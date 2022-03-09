@@ -1,0 +1,6 @@
+[submodule "vendor/cyberML"]
+	path = vendor/cyberML
+	url = https://github.com/LucasAPayne/cyberML
+[submodule "vendor/slogert"]
+	path = vendor/slogert
+	url = https://github.com/LucasAPayne/slogert
