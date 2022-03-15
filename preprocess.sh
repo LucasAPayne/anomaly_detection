@@ -3,7 +3,7 @@
 
 script_path="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )" # Magical incantation to get the absolute path to this script
 slogert_path="${script_path}/vendor/slogert"
-out_path="${script_path}/vendor/cyberML/data/AIT"
+out_path="${script_path}/data/AIT"
 
 read -p "Would you like to run the AIT demo [y/n]? " -n 1 -r $DEMO
 echo
@@ -23,8 +23,8 @@ mkdir -p $out_path/{raw,train,test}
 
 read -p "Enter the path to the directory where the dataset is stored: " -r dataset_path
 
-# Copy the dataset to this the anomaly_detection directory
-echo "Moving dataset to anomaly_detection directory..."
+# Copy the dataset to the anomaly_detection directory
+echo "Copying dataset to anomaly_detection directory..."
 cp -r $dataset_path anomaly_detection
 echo "Dataset moved"
 
@@ -32,14 +32,14 @@ echo "Dataset moved"
 cd anomaly_detection
 python extract_dataset.py
 
-# Move training dataset to SLOGERT, run SLOGERT commands, then move the dataset (raw dir in out_path)
+# Move training dataset to SLOGERT, run SLOGERT commands, then move the raw dataset (raw dir in out_path)
 cp -r output/train ${slogert_path}/input
 cd $slogert_path
 python slogert.py gen-kg -a -o ${out_path}/train.ttl
 cp -r input/train ${out_path}/raw
 rm -rf input/*
 
-# Move testing dataset to SLOGERT, run SLOGERT commands, apply labels, then move the dataset
+# Move testing dataset to SLOGERT, run SLOGERT commands, apply labels
 cd ${script_path}/anomaly_detection
 cp -r output/test ${slogert_path}/input
 rm -rf output
@@ -47,6 +47,8 @@ rm -rf ${dataset_path##*/} # Remove copied dataset (this gets the final subdir o
 cd $slogert_path
 python slogert.py gen-kg -a -o ${out_path}/test.ttl
 python ${script_path}/anomaly_detection/label.py -i ${out_path}/test.ttl
+
+# Generate IDs for entities and relations, reconstruct KG using them, move the raw dataset
 python slogert.py gen-ids -i ${out_path}/train.ttl
 python slogert.py gen-ids -i ${out_path}/test.ttl -l
 cp -r input/test ${out_path}/raw

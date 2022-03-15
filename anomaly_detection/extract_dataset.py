@@ -109,12 +109,12 @@ Extract training over a 1-day period
 Attacks occur on 03/04/2020 and 03/05/2020
 data_file_list: list of all file names to be processed, without the root directory (e.g., data/)
 """
-def extract_training_set(data_file_list: list):
+def extract_training_set(root_dir: str, data_file_list: list):
     for file in data_file_list:
         if file.endswith("zip"):
             continue
 
-        data_file_to_open = os.path.join("data/", file)
+        data_file_to_open = os.path.join(root_dir, "data/", file)
         out_file_to_open = os.path.join("output/train/", file)
         # If there is not already a folder for output, create one (make sure not to make the target output file into a directory)
         if not os.path.exists(parent_dir(out_file_to_open)):
@@ -144,13 +144,13 @@ Extract all attack data by looping through each line of each file and comparing 
 Attacks occur on 03/04/2020 and 03/05/2020
 data_file_list: list of all file names to be processed, without the root directory (e.g., data/)
 """
-def extract_testing_set(data_file_list: list):
+def extract_testing_set(root_dir: str, data_file_list: list):
     for file in data_file_list:
         if file.endswith("zip"):
             continue
 
-        label_file_to_open = os.path.join("labels/", file)
-        data_file_to_open = os.path.join("data/", file)
+        label_file_to_open = os.path.join(root_dir, "labels/", file)
+        data_file_to_open = os.path.join(root_dir, "data/", file)
         out_file_to_open = os.path.join("output/test/", file)
         # If there is not already a folder for output, create one (make sure not to make the target output file into a directory)
         if not os.path.exists(parent_dir(out_file_to_open)):
@@ -188,27 +188,26 @@ def inject_testing_set(data_file_list: list, lines: int):
             lines_to_write = train_lines[-lines:]
             for line in lines_to_write:
                 out_file.write(line.rstrip() + "\t\t4\n")
-
-            in_file.writelines(train_lines[:-lines]) # Delete the last n lines from training file to prevent duplication
-
+                
     print("Done")
 
 
 def main():
-    data_file_list = gather_files("data/")
-    label_file_list = gather_files("labels/")
+    dataset_path = "AIT-LDS-v1_1"
+    data_file_list = gather_files(os.path.join(dataset_path, "data/"))
+    label_file_list = gather_files(os.path.join(dataset_path, "labels/"))
     # extract_archives(data_file_list, "data/")
     # extract_archives(label_file_list, "labels/")
-    extract_training_set(data_file_list)
-    extract_testing_set(data_file_list)
+    extract_training_set(dataset_path, data_file_list)
+    extract_testing_set(dataset_path, data_file_list)
     inject_testing_set(data_file_list, 5)
 
     # Delete unzipped files
-    for file in data_file_list:
-        with open(os.path.join("data/", file)):
-            if file.endswith("audit.log"):
-                remove_unzipped_file(os.path.join("data/", file))
-                remove_unzipped_file(os.path.join("labels/", file))
+    # for file in data_file_list:
+    #     with open(os.path.join("data/", file)):
+    #         if file.endswith("audit.log"):
+    #             remove_unzipped_file(os.path.join("data/", file))
+    #             remove_unzipped_file(os.path.join("labels/", file))
 
 
 if __name__ == "__main__":

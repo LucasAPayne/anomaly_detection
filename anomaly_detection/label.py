@@ -23,17 +23,17 @@ def load_content(path: str):
 def main():
     # Define CLI arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("--name", "-n", help="the name of the input .ttl file")
+    parser.add_argument("--infile", "-i", help="the name of the input .ttl file")
     args = parser.parse_args()
 
-    if args.name != "train.ttl" and args.name != "test.ttl":
+    if not args.infile.endswith("train.ttl") and not args.infile.endswith("test.ttl"):
         raise InvalidFileException("File must be train.ttl or test.ttl")
 
-    lines = load_content(args.name)
+    lines = load_content(args.infile)
     for line_set in lines:
         label_value = -1
         # Line always gets observed label if it is in training data
-        if args.name == "train.ttl": 
+        if args.infile.endswith("train.ttl"): 
             label_value = 4
         else:
             for line in line_set:
@@ -54,7 +54,7 @@ def main():
                 else:
                     line_set[index] = line_set[index].rstrip() + '\t' + str(label_value) + '\n'
     
-    with open(args.name, "w") as f:
+    with open(args.infile, "w") as f:
         for line_set in lines:
             f.writelines(line_set)
 
