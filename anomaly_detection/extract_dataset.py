@@ -142,26 +142,38 @@ def extract_training_set(root_dir: str, data_file_list: list):
 """
 Extract all attack data by looping through each line of each file and comparing to the same label file
 Attacks occur on 03/04/2020 and 03/05/2020
+root_dir: root directory of dataset
 data_file_list: list of all file names to be processed, without the root directory (e.g., data/)
 """
-def extract_testing_set(root_dir: str, data_file_list: list):
+def extract_test_val_set(root_dir: str, data_file_list: list):
     for file in data_file_list:
         if file.endswith("zip"):
             continue
 
         label_file_to_open = os.path.join(root_dir, "labels/", file)
         data_file_to_open = os.path.join(root_dir, "data/", file)
-        out_file_to_open = os.path.join("output/test/", file)
-        # If there is not already a folder for output, create one (make sure not to make the target output file into a directory)
-        if not os.path.exists(parent_dir(out_file_to_open)):
-            os.makedirs(parent_dir(out_file_to_open))
+        test_file_to_open = os.path.join("output/test/", file)
+        val_file_to_open = os.path.join("output/val/", file)
 
-        with open(label_file_to_open, "r") as label_file, open(data_file_to_open, "r") as data_file, open(out_file_to_open, "w") as out_file:
+        # If there is not already a folder for output, create one (make sure not to make the target output file into a directory)
+        if not os.path.exists(parent_dir(test_file_to_open)):
+            os.makedirs(parent_dir(test_file_to_open))
+
+        if not os.path.exists(parent_dir(val_file_to_open)):
+            os.makedirs(parent_dir(val_file_to_open))
+
+        with open(label_file_to_open, "r") as label_file, open(data_file_to_open, "r") as data_file, open(test_file_to_open, "w") as test_file, open(val_file_to_open, "w") as val_file:
             print("Extracting attack data from {0}...".format(file), end=' ', flush=True)
 
+            # Write half of the attacks to the training set and the other half to the validation set
+            line_num = 0
             for label_line, data_line in zip(label_file, data_file):
                 if label_line.strip() != "0,0":
-                    out_file.write(data_line.rstrip() + "\t\t0\n")
+                    if line_num % 2 == 0:
+                        test_file.write(data_line.rstrip() + "\t\t0\n")
+                    else:
+                        val_file.write(data_line.rstrip() + "\t\t0\n")
+                line_num += 1
             print("Done")
 
     print("Attack data extracted")
@@ -172,22 +184,27 @@ Put the last few lines of each file in the training set into the testing set
 data_file_list: list of all file names to be processed, without the root directory (e.g., data/)
 lines: the number of lines to copy from each training file to each testing file
 """
-def inject_testing_set(data_file_list: list, lines: int):
-    print("Injecting training data into test set...", end=' ', flush=True)
+def inject_test_val_set(data_file_list: list, lines: int):
+    print("Injecting training data into test and validation sets...", end=' ', flush=True)
     for file in data_file_list:
         if file.endswith("zip"):
             continue
 
         train_file_to_open = os.path.join("output/train/", file)
         test_file_to_open = os.path.join("output/test", file)
-
-        with open(train_file_to_open, "r+") as in_file, open(test_file_to_open, "a") as out_file:
+        val_file_to_open = os.path.join("output/val/", file)
+        with open(train_file_to_open, "r+") as in_file, open(test_file_to_open, "a") as test_file, open(val_file_to_open, "a") as val_file:
             train_lines = in_file.readlines()
 
             # Append an "observed during training" label to each line from the training set
+            # Split data between test and val sets
             lines_to_write = train_lines[-lines:]
+            line_num = 0
             for line in lines_to_write:
-                out_file.write(line.rstrip() + "\t\t4\n")
+                if line_num % 2 == 0:
+                    test_file.write(line.rstrip() + "\t\t4\n")
+                else:
+                    val_file.write(line.rstrip() + "\t\t4\n")
                 
     print("Done")
 
@@ -199,8 +216,8 @@ def main():
     # extract_archives(data_file_list, "data/")
     # extract_archives(label_file_list, "labels/")
     extract_training_set(dataset_path, data_file_list)
-    extract_testing_set(dataset_path, data_file_list)
-    inject_testing_set(data_file_list, 5)
+    extract_test_val_set(dataset_path, data_file_list)
+    inject_test_val_set(data_file_list, 5)
 
     # Delete unzipped files
     # for file in data_file_list:

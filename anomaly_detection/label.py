@@ -26,8 +26,8 @@ def main():
     parser.add_argument("--infile", "-i", help="the name of the input .ttl file")
     args = parser.parse_args()
 
-    if not args.infile.endswith("train.ttl") and not args.infile.endswith("test.ttl"):
-        raise InvalidFileException("File must be train.ttl or test.ttl")
+    if not args.infile.endswith("train.ttl") and not args.infile.endswith("test.ttl") and not args.infile.endswith("val.ttl"):
+        raise InvalidFileException("File must be train.ttl, test.ttl, or val.ttl")
 
     lines = load_content(args.infile)
     for line_set in lines:
