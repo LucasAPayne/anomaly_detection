@@ -3,6 +3,7 @@ import os
 import shutil
 from datetime import datetime
 
+
 """
 Get timestamp from log line and return date
 log_type: type of log file. Options are {access, error, audit, exim, suricata, auth, daemon, mail, mail-info, messages, sys, user}
@@ -191,7 +192,7 @@ def inject_test_val_set(data_file_list: list, lines: int):
             continue
 
         train_file_to_open = os.path.join("output/train/", file)
-        test_file_to_open = os.path.join("output/test", file)
+        test_file_to_open = os.path.join("output/test/", file)
         val_file_to_open = os.path.join("output/val/", file)
         with open(train_file_to_open, "r+") as in_file, open(test_file_to_open, "a") as test_file, open(val_file_to_open, "a") as val_file:
             train_lines = in_file.readlines()
@@ -205,6 +206,8 @@ def inject_test_val_set(data_file_list: list, lines: int):
                     test_file.write(line.rstrip() + "\t\t4\n")
                 else:
                     val_file.write(line.rstrip() + "\t\t4\n")
+                    
+                line_num += 1
                 
     print("Done")
 

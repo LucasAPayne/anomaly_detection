@@ -4,6 +4,7 @@ Note: 4 indicates observed during training (not suspicious), and 0 indicates ver
 """
 
 import argparse
+import os
 from plistlib import InvalidFileException
 
 
@@ -13,7 +14,7 @@ def load_content(path: str):
     with open(path, "r") as f:
         for line in f:
             line_set.append(line)
-            if line == '\n' and len(line_set) != 0:
+            if line.isspace() and len(line_set) != 0:
                 lines.append(line_set)
                 line_set = []
     
@@ -42,14 +43,19 @@ def main():
                 elif "\\t\\t0" in line:
                     label_value = 0
                     break
-                elif "\\t\\t4" in line:
+                elif ("\\t\\t4" in line) or (line.startswith("<") and "/id/log/Event" not in line):
+                    # Check whether the subject indicates that this is a log event
+                    # If it is something else, like a port or user, for now mark it as not suspicious
+                    # TODO: In the future, this labeling should be more sophisticated, since some ports, users, etc. could be suspicious
                     label_value = 4
                     break
         
+
+
             for index, line in enumerate(line_set):
-                # line ending in > indicates it contains the subject, so skip
+                # line starting with < indicates it contains the subject, so skip
                 # Also discard lines declaring prefixes and blank lines
-                if line.startswith('<') or line.startswith("@prefix") or line == '\n':
+                if line.startswith('<') or line.startswith("@prefix") or line.isspace():
                     continue
                 else:
                     line_set[index] = line_set[index].rstrip() + '\t' + str(label_value) + '\n'

@@ -66,5 +66,5 @@ rm -rf input/*
 # Move training and testing data to their own folders, which is how cyberML expects them
 cd $out_path
 mv train.ttl train.del entity_ids.del relation_ids.del train/
-mv test.ttl test.del test/
-mv val.ttl val.del val/
+mv test.ttl test.del test_labels.txt test/
+mv val.ttl val.del val_labels.txt val/
