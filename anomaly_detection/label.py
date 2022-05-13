@@ -4,7 +4,6 @@ Note: 4 indicates observed during training (not suspicious), and 0 indicates ver
 """
 
 import argparse
-import os
 from plistlib import InvalidFileException
 
 
@@ -49,8 +48,6 @@ def main():
                     # TODO: In the future, this labeling should be more sophisticated, since some ports, users, etc. could be suspicious
                     label_value = 4
                     break
-        
-
 
             for index, line in enumerate(line_set):
                 # line starting with < indicates it contains the subject, so skip
@@ -58,7 +55,7 @@ def main():
                 if line.startswith('<') or line.startswith("@prefix") or line.isspace():
                     continue
                 else:
-                    line_set[index] = line_set[index].rstrip() + '\t' + str(label_value) + '\n'
+                    line_set[index] = line_set[index].rstrip().replace("\\t\\t0", "").replace("\\t\\t4", "") + '\t' + str(label_value) + '\n'
     
     with open(args.infile, "w") as f:
         for line_set in lines:
