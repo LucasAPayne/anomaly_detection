@@ -19,7 +19,7 @@ fi
 rm -rf ${slogert_path}/output/*
 rm -rf ${slogert_path}/input/*
 rm -rf ${out_path}/*
-mkdir -p $out_path/{raw,train,test,val}
+mkdir -p $out_path/{raw,train,test,valid}
 
 read -p "Enter the path to the directory where the dataset is stored: " -r dataset_path
 
@@ -48,23 +48,23 @@ python ${script_path}/anomaly_detection/label.py -i ${out_path}/test.ttl
 
 # Move validation dataset to SLOGERT, run SLOGERT commands, apply labels
 cd ${script_path}/anomaly_detection
-cp -r output/val ${slogert_path}/input
+cp -r output/valid ${slogert_path}/input
 rm -rf output
 rm -rf ${dataset_path##*/} # Remove copied dataset (this gets the final subdir of the path given to the dataset)
 cd $slogert_path
-python slogert.py gen-kg -a -o ${out_path}/val.ttl
-python ${script_path}/anomaly_detection/label.py -i ${out_path}/val.ttl
+python slogert.py gen-kg -a -o ${out_path}/valid.ttl
+python ${script_path}/anomaly_detection/label.py -i ${out_path}/valid.ttl
 
 # Generate IDs for entities and relations, reconstruct KG using them, move the raw dataset
-python slogert.py gen-ids -i ${out_path}/train.ttl
-python slogert.py gen-ids -i ${out_path}/test.ttl -l
-python slogert.py gen-ids -i ${out_path}/val.ttl -l
+python slogert.py post-process -i ${out_path}/train.ttl -g
+python slogert.py post-process -i ${out_path}/test.ttl -g -l
+python slogert.py post-process -i ${out_path}/valid.ttl -g -l
 cp -r input/test ${out_path}/raw
-cp -r input/val ${out_path}/raw
+cp -r input/valid ${out_path}/raw
 rm -rf input/*
 
 # Move training and testing data to their own folders, which is how cyberML expects them
 cd $out_path
 mv train.ttl train.txt entity_ids.txt relation_ids.txt train/
 mv test.ttl test.txt test_labels.txt test/
-mv val.ttl val.txt val_labels.txt val/
+mv valid.ttl valid.txt valid_labels.txt valid/

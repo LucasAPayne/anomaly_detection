@@ -111,6 +111,7 @@ Attacks occur on 03/04/2020 and 03/05/2020
 data_file_list: list of all file names to be processed, without the root directory (e.g., data/)
 """
 def extract_training_set(root_dir: str, data_file_list: list):
+    max_size = 5 * 1024
     for file in data_file_list:
         if file.endswith("zip"):
             continue
@@ -132,7 +133,7 @@ def extract_training_set(root_dir: str, data_file_list: list):
             log_type = log_type[log_type.rfind(".")+1:]
             log_type = log_type.replace("com-", "")
             for line in in_file:
-                if get_date(log_type, line) == "03/03/2020":
+                if get_date(log_type, line) == "03/03/2020" and out_file.tell() < max_size:
                     out_file.write(line)
             
             print("Done")
@@ -147,6 +148,7 @@ root_dir: root directory of dataset
 data_file_list: list of all file names to be processed, without the root directory (e.g., data/)
 """
 def extract_test_val_set(root_dir: str, data_file_list: list):
+    max_size = 512
     for file in data_file_list:
         if file.endswith("zip"):
             continue
@@ -154,7 +156,7 @@ def extract_test_val_set(root_dir: str, data_file_list: list):
         label_file_to_open = os.path.join(root_dir, "labels/", file)
         data_file_to_open = os.path.join(root_dir, "data/", file)
         test_file_to_open = os.path.join("output/test/", file)
-        val_file_to_open = os.path.join("output/val/", file)
+        val_file_to_open = os.path.join("output/valid/", file)
 
         # If there is not already a folder for output, create one (make sure not to make the target output file into a directory)
         if not os.path.exists(parent_dir(test_file_to_open)):
@@ -167,14 +169,13 @@ def extract_test_val_set(root_dir: str, data_file_list: list):
             print("Extracting attack data from {0}...".format(file), end=' ', flush=True)
 
             # Write half of the attacks to the training set and the other half to the validation set
-            line_num = 0
-            for label_line, data_line in zip(label_file, data_file):
+            for line_num, (label_line, data_line) in enumerate(zip(label_file, data_file)):
                 if label_line.strip() != "0,0":
-                    if line_num % 2 == 0:
+                    if line_num % 2 == 0 and test_file.tell() < max_size:
                         test_file.write(data_line.rstrip() + "\t\t0\n")
-                    else:
+                    elif line_num % 2 != 0 and val_file.tell() < max_size:
                         val_file.write(data_line.rstrip() + "\t\t0\n")
-                line_num += 1
+                        
             print("Done")
 
     print("Attack data extracted")
@@ -193,22 +194,19 @@ def inject_test_val_set(data_file_list: list, lines: int):
 
         train_file_to_open = os.path.join("output/train/", file)
         test_file_to_open = os.path.join("output/test/", file)
-        val_file_to_open = os.path.join("output/val/", file)
+        val_file_to_open = os.path.join("output/valid/", file)
         with open(train_file_to_open, "r+") as in_file, open(test_file_to_open, "a") as test_file, open(val_file_to_open, "a") as val_file:
             train_lines = in_file.readlines()
 
             # Append an "observed during training" label to each line from the training set
             # Split data between test and val sets
             lines_to_write = train_lines[-lines:]
-            line_num = 0
-            for line in lines_to_write:
+            for line_num, line in enumerate(lines_to_write):
                 if line_num % 2 == 0:
                     test_file.write(line.rstrip() + "\t\t4\n")
                 else:
                     val_file.write(line.rstrip() + "\t\t4\n")
-                    
-                line_num += 1
-                
+                                    
     print("Done")
 
 
