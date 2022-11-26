@@ -13,7 +13,7 @@ def load_content(path: str):
     with open(path, "r") as f:
         for line in f:
             line_set.append(line)
-            if line.isspace() and len(line_set) != 0:
+            if line == '\n' and len(line_set) != 0:
                 lines.append(line_set)
                 line_set = []
     
@@ -26,8 +26,8 @@ def main():
     parser.add_argument("--infile", "-i", help="the name of the input .ttl file")
     args = parser.parse_args()
 
-    if not args.infile.endswith("train.ttl") and not args.infile.endswith("test.ttl") and not args.infile.endswith("valid.ttl"):
-        raise InvalidFileException("File must be train.ttl, test.ttl, or valid.ttl")
+    if not args.infile.endswith("train.ttl") and not args.infile.endswith("test.ttl"):
+        raise InvalidFileException("File must be train.ttl or test.ttl")
 
     lines = load_content(args.infile)
     for line_set in lines:
@@ -42,20 +42,17 @@ def main():
                 elif "\\t\\t0" in line:
                     label_value = 0
                     break
-                elif ("\\t\\t4" in line) or (line.startswith("<") and "/id/log/Event" not in line):
-                    # Check whether the subject indicates that this is a log event
-                    # If it is something else, like a port or user, for now mark it as not suspicious
-                    # TODO: In the future, this labeling should be more sophisticated, since some ports, users, etc. could be suspicious
+                elif "\\t\\t4" in line:
                     label_value = 4
                     break
-
+        
             for index, line in enumerate(line_set):
-                # line starting with < indicates it contains the subject, so skip
+                # line ending in > indicates it contains the subject, so skip
                 # Also discard lines declaring prefixes and blank lines
-                if line.startswith('<') or line.startswith("@prefix") or line.isspace():
+                if line.startswith('<') or line.startswith("@prefix") or line == '\n':
                     continue
                 else:
-                    line_set[index] = line_set[index].rstrip().replace("\\t\\t0", "").replace("\\t\\t4", "") + '\t' + str(label_value) + '\n'
+                    line_set[index] = line_set[index].rstrip() + '\t' + str(label_value) + '\n'
     
     with open(args.infile, "w") as f:
         for line_set in lines:

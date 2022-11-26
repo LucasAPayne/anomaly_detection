@@ -1,3 +1,5 @@
 data/
+results/
+templates/
 models/
 .ipynb_checkpoints/
