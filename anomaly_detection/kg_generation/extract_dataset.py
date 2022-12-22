@@ -8,12 +8,36 @@ The testing set contains all data generated from malicious activity.
 The testing set also contains some normal activity.
 """
 
-import argparse
 import calendar
 import os
 import shutil
 from datetime import datetime
 
+
+# TODO(lucas): Put os wrappers in separate file to be shared
+# (For some reason, this function did not work when placed in a separate file)
+def join_path(*paths: str) -> str:
+    """
+    Wrapper around os.path.join to prepend this file's path
+
+    Parameters
+    ----------
+    - `*paths`: List of paths to join
+    """
+    return os.path.join(os.path.dirname(__file__), *paths)
+
+def make_dir(path: str) -> None:
+    """
+    Wrapper around os.mkdir that creates a directory if it does not exist
+
+    Parameters
+    ----------
+    - `path`: directory to create
+    """
+    # NOTE(lucas): Use join_path to make the path relative to the file
+    # making the directory
+    if not os.path.exists(join_path(path)):
+        os.mkdir(join_path(path))
 
 def get_date(log_type: str, line: str) -> str:
     """
@@ -21,10 +45,10 @@ def get_date(log_type: str, line: str) -> str:
 
     Parameters
     ----------
-    - log_type: type of log file.
+    - `log_type`: type of log file.
       Options are {access, error, audit, exim, suricata, auth, daemon, mail, mail-info,
       messages, sys, user}
-    - line: line of audit log to be processed
+    - `line`: line of audit log to be processed
     """
     # AD: abbreviated day
     # AM: abbreviated month
@@ -83,7 +107,7 @@ def parent_dir(path: str) -> str:
 
     Parameters
     ----------
-    - path: path to file
+    - `path`: path to file
     """
     return path[:path.rfind(os.sep)]
 
@@ -93,12 +117,14 @@ def gather_files(root_dir: str) -> list[str]:
 
     Parameters
     ----------
-    - root_dir: root directory from which to gather files
+    - `root_dir`: root directory from which to gather files
 
     Returns
     ---------
     A list of the file names that were gathered
     """
+    # FIXME(lucas): Files are gathered twice, once with data/ and again with labels/
+    print("gather files")
     file_list = []
     for root, _, files in os.walk(root_dir):
         for file in files:
@@ -119,8 +145,8 @@ def unzip(zip_path: str, unzipped_name: str) -> None:
 
     Parameters
     ----------
-    - zip_path: path to zip archive
-    - unzipped_name: name of extracted file
+    - `zip_path`: path to zip archive
+    - `unzipped_name`: name of extracted file
     """
     if not os.path.exists(unzipped_name) and not zip_path.endswith("log"):
         print(f"Unpacking {zip_path}...", end=' ', flush=True)
@@ -134,7 +160,7 @@ def remove_unzipped_file(unzipped_path: str) -> None:
 
     Parameters
     ----------
-    - unzipped_path: path to (unzipped) file
+    - `unzipped_path`: path to (unzipped) file
     """
     print(f"Removing unzipped file {unzipped_path}...", end=' ', flush=True)
     os.remove(unzipped_path)
@@ -147,13 +173,13 @@ def extract_archives(file_list: list[str], root_dir: str) -> None:
 
     Parameters
     ----------
-    - file_list: list of files, where the file names do not include the root directory
-    - root_dir: the root directory of the file list
+    - `file_list`: list of files, where the file names do not include the root directory
+    - `root_dir`: the root directory of the file list
     """
     for file in file_list:
         # unzip function handles the case where the zip file was already extracted
         if file.endswith("zip") or file.endswith("audit.log"):
-            zip_path = os.path.join(root_dir, file)
+            zip_path = join_path(root_dir, file)
             unzipped_name = zip_path.replace("zip", "log")
             unzip(zip_path, unzipped_name)
 
@@ -163,8 +189,8 @@ def exclude_line(line: str, exclusion_list: list[str]) -> bool:
 
     Parameters
     ----------
-    - line: log line to examine
-    - exclusion_list: list of words used to exclude log lines
+    - `line`: log line to examine
+    - `exclusion_list`: list of words used to exclude log lines
     """
     exclude = False
     for item in exclusion_list:
@@ -173,22 +199,24 @@ def exclude_line(line: str, exclusion_list: list[str]) -> bool:
             break
     return exclude
 
-def extract_training_set(data_file_list: list, exclusion_list: list[str]) -> None:
+def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: list[str]) -> None:
     """
     Extract training over a 1-day period
     Attacks occur on 03/04/2020 and 03/05/2020
 
     Parameters
     ----------
-    - data_file_list: list of all file names to be processed, without the root directory
-    - exclusion_list: list of words used to exclude log lines
+    - `root_dir`: root data directory
+    - `data_file_list`: list of all file names to be processed, without the root directory
+    - `exclusion_list`: list of words used to exclude log lines
     """
     for file in data_file_list:
         if file.endswith("zip"):
             continue
 
-        data_file_to_open = os.path.join("data", file)
-        out_file_to_open = os.path.join("output", "train", file)
+        # NOTE(lucas): input and output paths should be relative to data root directory
+        data_file_to_open = os.path.join(root_dir, "data", file)
+        out_file_to_open = os.path.join(root_dir, "train", file)
         # If there is not already a folder for output, create one
         # (make sure not to make the target output file into a directory)
         if not os.path.exists(parent_dir(out_file_to_open)):
@@ -216,7 +244,7 @@ def extract_training_set(data_file_list: list, exclusion_list: list[str]) -> Non
     print("Training data extracted")
 
 
-def extract_testing_set(data_file_list: list[str], exclusion_list: list[str]) ->None:
+def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list: list[str]) ->None:
     """
     Extract all attack data by looping through each line of each file and comparing to the same
     label file
@@ -224,15 +252,17 @@ def extract_testing_set(data_file_list: list[str], exclusion_list: list[str]) ->
 
     Parameters
     ---------
-    - data_file_list: list of all file names to be processed, without the root directory
+    - `root_dir`: root directory for raw data
+    - `data_file_list`: list of all file names to be processed, without the root directory
     """
     for file in data_file_list:
         if file.endswith("zip"):
             continue
 
-        label_file_to_open = os.path.join("labels", file)
-        data_file_to_open = os.path.join("data", file)
-        out_file_to_open = os.path.join("output", "test", file)
+        # NOTE(lucas): Input and output files should be relative to root data directory
+        label_file_to_open = os.path.join(root_dir, "labels", file)
+        data_file_to_open = os.path.join(root_dir, "data", file)
+        out_file_to_open = os.path.join(root_dir, "test", file)
         # If there is not already a folder for output, create one
         # (make sure not to make the target output file into a directory)
         if not os.path.exists(parent_dir(out_file_to_open)):
@@ -251,22 +281,23 @@ def extract_testing_set(data_file_list: list[str], exclusion_list: list[str]) ->
     print("Attack data extracted")
 
 
-def inject_testing_set(data_file_list: list[str], lines: int):
+def inject_testing_set(raw_data_dir: str, data_file_list: list[str], lines: int):
     """
     Put the last few lines of each file in the training set into the testing set
 
     Parameters
     ----------
-    - data_file_list: list of all file names to be processed, without the root directory
-    - lines: the number of lines to copy from each training file to each testing file
+    - `data_file_list`: list of all file names to be processed, without the root directory
+    - `lines`: the number of lines to copy from each training file to each testing file
     """
     print("Injecting training data into test set...", end=' ', flush=True)
     for file in data_file_list:
         if file.endswith("zip"):
             continue
 
-        train_file_to_open = os.path.join("output", "train", file)
-        test_file_to_open = os.path.join("output", "test", file)
+        # NOTE(lucas): output files should be relative to root data directory
+        train_file_to_open = os.path.join(raw_data_dir, "train", file)
+        test_file_to_open = os.path.join(raw_data_dir, "test", file)
 
         with open(train_file_to_open, "r+", encoding="utf-8") as in_file, \
              open(test_file_to_open, "a", encoding="utf-8") as out_file:
@@ -283,35 +314,32 @@ def inject_testing_set(data_file_list: list[str], lines: int):
     print("Done")
 
 
-def main():
+def extract_dataset(raw_data_dir: str, exclude_errors: bool=True) -> None:
     """
     Extract a smaller version of the AIT log dataset,
     optionally excluding log lines or zipped files
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--exclude_errors", "-e", action="store_true",
-        help="Exclude log line containing error/warning/status messages from dataset")
-    args = parser.parse_args()
 
+    Parameters
+    ----------
+    - `raw_data_dir`: directory containing raw log files
+    - `exclude_errors`: exclude log lines containing error/warning/status messages from dataset
+    """
     # List of strings to look for to determine whether
     # a log line should be excluded from the dataset
     exclusion_list = []
-    if args.exclude_errors:
+    if exclude_errors:
         exclusion_list = ["ERROR", "Error", "error", "Status", "Warning", "auditd", "audispd"]
 
-    data_file_list = gather_files("data")
+    data_file_list = gather_files(os.path.join(raw_data_dir, "data"))
     # extract_archives(data_file_list, "data/")
     # extract_archives(label_file_list, "labels/")
-    extract_training_set(data_file_list, exclusion_list)
-    extract_testing_set(data_file_list, exclusion_list)
-    inject_testing_set(data_file_list, 5)
+    extract_training_set(raw_data_dir, data_file_list, exclusion_list)
+    extract_testing_set(raw_data_dir, data_file_list, exclusion_list)
+    inject_testing_set(raw_data_dir, data_file_list, 5)
 
     # Delete unzipped files
-    for file in data_file_list:
-        with open(os.path.join("data", file), encoding="utf-8"):
-            if file.endswith("audit.log"):
-                remove_unzipped_file(os.path.join("data", file))
-                remove_unzipped_file(os.path.join("labels", file))
-
-if __name__ == "__main__":
-    main()
+    # for file in data_file_list:
+    #     with open(join_path("data", file), encoding="utf-8"):
+    #         if file.endswith("audit.log"):
+    #             remove_unzipped_file(join_path("data", file))
+    #             remove_unzipped_file(join_path("labels", file))
