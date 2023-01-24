@@ -5,11 +5,13 @@ and uses the PyKEEN module
 import json
 import os
 
+import numpy as np
+import random
+
 from pykeen.models import ConvE
 from pykeen.training import SLCWATrainingLoop
 from pykeen.triples import TriplesFactory
 from pykeen.evaluation import LCWAEvaluationLoop
-import pykeen.utils
 
 import torch
 
@@ -26,8 +28,10 @@ def kgc(train_path: str, test_path: str, val_path: str=None,
     - `results_path`: path to save model evaluation to
     - `dataset_name`: The name of the dataset, used for saving result file
     """
-    pykeen.utils.set_random_seed(seed)
-    training = TriplesFactory.from_path(train_path)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.manual_seed(seed)
+    training = TriplesFactory.from_path(train_path, create_inverse_triples=True)
     testing = TriplesFactory.from_path(
             test_path,
             entity_to_id=training.entity_to_id,

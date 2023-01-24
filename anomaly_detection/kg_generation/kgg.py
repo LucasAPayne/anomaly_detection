@@ -14,6 +14,8 @@ import time
 from drain3 import TemplateMiner
 from drain3.template_miner_config import TemplateMinerConfig
 
+import numpy as np
+
 
 # TODO(lucas): Put os wrappers in separate file to be shared
 # (For some reason, this function did not work when placed in a separate file)
@@ -107,8 +109,7 @@ def parse_log(in_log_file: str,
     - `in_log_file`: the log file to parse
     - `out_file`: the file to which to write the results
     - `logger`: optional logger to print progress messages to terminal
-    - `labels`: whether log lines contain labels (i.e., number that indicates suspicion).
-                Only affects test/val datasets
+    - `label_file`: path to label file if lines include labels
     """
 
     config = TemplateMinerConfig()
@@ -171,7 +172,7 @@ def parse_log(in_log_file: str,
 
     template_miner.profiler.report(0)
 
-def extract_relations_templates(template_dir: str, out_file: str, labels=False) -> None:
+def extract_relations_templates(template_dir: str, out_path: str, label_path: str=None) -> None:
     """
     Extract relations from parsed log files using templates,
     and write the resulting triples to a file.
@@ -192,7 +193,12 @@ def extract_relations_templates(template_dir: str, out_file: str, labels=False) 
                 "HOST": "host",
                 "SESSION": "session"}
 
-    with open(out_file, "w", encoding="utf-8") as outfile, \
+    label_file = None
+    if label_path:
+        label_file = open(label_path, "w", encoding="utf-8")
+
+    # TODO(lucas): Try to reduce nesting
+    with open(out_path, "w", encoding="utf-8") as outfile, \
          open (join_path("config", "templates.json"), "r", encoding="utf-8") as template_file:
         templates = json.load(template_file)["templates"]
 
@@ -213,9 +219,10 @@ def extract_relations_templates(template_dir: str, out_file: str, labels=False) 
                                 sub = parse_result["params"][sub_index][0]
                                 obj = parse_result["params"][obj_index][0]
                                 rel = relation["relation_label"]
-                                if labels:
+                                if label_file:
                                     label = parse_result["label"]
-                                    outfile.write(f"{sub}\t{rel}\t{obj}\t{label}\n")
+                                    outfile.write(f"{sub}\t{rel}\t{obj}\n")
+                                    label_file.write(label + '\n')
                                 else:
                                     outfile.write(f"{sub}\t{rel}\t{obj}\n")
 
@@ -234,7 +241,10 @@ def extract_relations_templates(template_dir: str, out_file: str, labels=False) 
                                     obj = type_map[obj_type]
                                     outfile.write(f"{sub}\t{rel}\t{obj}\n")
 
-def generate_val_set(test_path, val_path):
+    if label_file and not label_file.closed:
+        label_file.close()
+
+def generate_val_set(test_path: str, val_path: str, val_ratio: float):
     """
     Generate a validation set by splitting the test set in half.
     To make a more varied set, alternate which lines go to testing and which go to validation.
@@ -244,13 +254,27 @@ def generate_val_set(test_path, val_path):
     - `test_path`: path to test set
     - `val_path`: path to save validation set to
     """
-    with fileinput.input(test_path, inplace=True, backup=".bak", encoding="utf-8") as test_file:
-        with open(val_path, "w", encoding="utf-8") as val_file:
-            for i, line in enumerate(test_file):
-                if i % 2 == 0:
-                    print(line.strip())
-                else:
-                    val_file.write(line)
+    # with fileinput.input(test_path, inplace=True, backup=".bak", encoding="utf-8") as test_file:
+    #     with open(val_path, "w", encoding="utf-8") as val_file:
+    #         for i, line in enumerate(test_file):
+    #             if i % 2 == 0:
+    #                 print(line.strip())
+    #             else:
+    #                 val_file.write(line)
+    with open(test_path, "r", encoding="utf-8") as test_file:
+        test_data = np.array(test_file.readlines())
+
+    shuffled_indices = np.random.permutation(len(test_data))
+    val_size = int(len(test_data) * val_ratio)
+    val_indices = shuffled_indices[:val_size]
+    test_indices = shuffled_indices[val_size:]
+
+    with open(test_path, "w", encoding="utf-8") as test_file:
+        test_file.writelines(test_data[test_indices])
+
+    with open(val_path, "w", encoding="utf-8")  as val_file:
+        val_file.writelines(test_data[val_indices])
+
 
 def gen_kg(raw_data_dir: str, labels: bool=True) -> None:
     """
@@ -293,11 +317,12 @@ def gen_kg(raw_data_dir: str, labels: bool=True) -> None:
                 parse_log(os.path.join(root, file), result_file, logger=logger, labels=labels)
 
     # TODO(lucas): Have option to remove generated template files and templates directory
-    train_kg_file = os.path.join(preprocessed_data_dir, "train.ttl")
-    test_kg_file = os.path.join(preprocessed_data_dir, "test.ttl")
+    train_kg_file = os.path.join(preprocessed_data_dir, "train.txt")
+    test_kg_file = os.path.join(preprocessed_data_dir, "test.txt")
+    label_file = os.path.join(preprocessed_data_dir, "labels.txt")
     extract_relations_templates(join_path("templates", "train"), train_kg_file)
-    extract_relations_templates(join_path("templates", "test"), test_kg_file, labels=True)
-    remove_duplicate_lines(train_kg_file)
-    remove_duplicate_lines(test_kg_file)
-    generate_val_set(join_path(preprocessed_data_dir, "test.ttl"),
-                     join_path(preprocessed_data_dir, "val.ttl"))
+    extract_relations_templates(join_path("templates", "test"), test_kg_file, label_file)
+    # remove_duplicate_lines(train_kg_file)
+    # remove_duplicate_lines(test_kg_file)
+    generate_val_set(join_path(preprocessed_data_dir, "train.txt"),
+                     join_path(preprocessed_data_dir, "valid.txt"), val_ratio=0.2)

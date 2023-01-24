@@ -5,6 +5,8 @@ as well as knowledge graph completion using both traditional and GNN models
 
 import os
 
+import numpy as np
+
 from kg_generation import extract_dataset
 from kg_generation import kgg
 from kg_completion import kgc
@@ -24,6 +26,7 @@ def main():
     """
     The demo code
     """
+    np.random.seed(1234)
     raw_data_dir = os.path.join(parent_dir(os.path.dirname(__file__)), "data", "AIT-LDS-v1_1")
     labels = True
     exclude_errors = True
@@ -31,9 +34,9 @@ def main():
     kgg.gen_kg(raw_data_dir, labels)
 
     preprocessed_data_dir = os.path.join(raw_data_dir, "preprocessed")
-    train_path = os.path.join(preprocessed_data_dir, "train.ttl")
-    test_path = os.path.join(preprocessed_data_dir, "test.ttl")
-    val_path = os.path.join(preprocessed_data_dir, "val.ttl")
+    train_path = os.path.join(preprocessed_data_dir, "train.txt")
+    test_path = os.path.join(preprocessed_data_dir, "test.txt")
+    val_path = os.path.join(preprocessed_data_dir, "valid.txt")
     results_path = "results"
     kgc.kgc(train_path, test_path, val_path, results_path, "AIT")
 

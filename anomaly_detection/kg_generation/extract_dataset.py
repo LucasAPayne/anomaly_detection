@@ -234,8 +234,9 @@ def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: li
             log_type = log_type.replace(".log", "").replace(".info", "")
             log_type = log_type[log_type.rfind(".")+1:]
             log_type = log_type.replace("com-", "")
+            valid_dates = ["02/29/2020", "03/01/2020", "03/02/2020", "03/03/2020"]
             for line in in_file:
-                if get_date(log_type, line) == "03/03/2020" and not \
+                if get_date(log_type, line) in valid_dates and not \
                    exclude_line(line, exclusion_list):
                     out_file.write(line)
 
@@ -260,28 +261,28 @@ def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list
             continue
 
         # NOTE(lucas): Input and output files should be relative to root data directory
-        label_file_to_open = os.path.join(root_dir, "labels", file)
-        data_file_to_open = os.path.join(root_dir, "data", file)
-        out_file_to_open = os.path.join(root_dir, "test", file)
+        in_label_file_to_open = os.path.join(root_dir, "labels", file)
+        in_data_file_to_open = os.path.join(root_dir, "data", file)
+        out_data_file_to_open = os.path.join(root_dir, "test", file)
         # If there is not already a folder for output, create one
         # (make sure not to make the target output file into a directory)
-        if not os.path.exists(parent_dir(out_file_to_open)):
-            os.makedirs(parent_dir(out_file_to_open))
+        if not os.path.exists(parent_dir(out_data_file_to_open)):
+            os.makedirs(parent_dir(out_data_file_to_open))
 
-        with open(label_file_to_open, "r", encoding="utf-8") as label_file, \
-             open(data_file_to_open, "r", encoding="utf-8") as data_file, \
-             open(out_file_to_open, "w", encoding="utf-8") as out_file:
+        with open(in_label_file_to_open,  "r", encoding="utf-8") as in_label_file, \
+             open(in_data_file_to_open,   "r", encoding="utf-8") as in_data_file, \
+             open(out_data_file_to_open,  "w", encoding="utf-8") as out_data_file:
             print(f"Extracting attack data from {file}...", end=' ', flush=True)
 
-            for label_line, data_line in zip(label_file, data_file):
+            for label_line, data_line in zip(in_label_file, in_data_file):
                 if label_line.strip() != "0,0" and not exclude_line(data_line, exclusion_list):
-                    out_file.write(data_line.rstrip() + "\t\t0\n")
+                    out_data_file.write(data_line.rstrip() + "\t\t0\n")
             print("Done")
 
     print("Attack data extracted")
 
 
-def inject_testing_set(raw_data_dir: str, data_file_list: list[str], lines: int):
+def inject_testing_set(raw_data_dir: str, data_file_list: list[str], lines: int) -> None:
     """
     Put the last few lines of each file in the training set into the testing set
 
@@ -297,16 +298,16 @@ def inject_testing_set(raw_data_dir: str, data_file_list: list[str], lines: int)
 
         # NOTE(lucas): output files should be relative to root data directory
         train_file_to_open = os.path.join(raw_data_dir, "train", file)
-        test_file_to_open = os.path.join(raw_data_dir, "test", file)
+        test_file_to_open  = os.path.join(raw_data_dir, "test", file)
 
         with open(train_file_to_open, "r+", encoding="utf-8") as in_file, \
-             open(test_file_to_open, "a", encoding="utf-8") as out_file:
+             open(test_file_to_open,  "a",  encoding="utf-8") as out_data_file:
             train_lines = in_file.readlines()
 
             # Append an "observed during training" label to each line from the training set
             lines_to_write = train_lines[-lines:]
             for line in lines_to_write:
-                out_file.write(line.rstrip() + "\t\t4\n")
+                out_data_file.write(line.rstrip() + "\t\t4\n")
 
             # Delete the last n lines from training file to prevent duplication
             in_file.writelines(train_lines[:-lines])

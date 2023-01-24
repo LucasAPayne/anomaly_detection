@@ -1,5 +1,6 @@
 """
-Script to take in .ttl files produced by SLOGERT and assign labels to them, corresponding to how suspicious an activity is
+Script to take in .ttl files produced by SLOGERT and assign labels to them, corresponding to how
+suspicious an activity is.
 Note: 4 indicates observed during training (not suspicious), and 0 indicates very suspicious
 """
 
@@ -7,16 +8,16 @@ import argparse
 from plistlib import InvalidFileException
 
 
-def load_content(path: str):
+def load_content(path: str) -> list[str]:
     lines = []
     line_set = []
-    with open(path, "r") as f:
-        for line in f:
+    with open(path, "r", encoding="utf-8") as infile:
+        for line in infile:
             line_set.append(line)
             if line == '\n' and len(line_set) != 0:
                 lines.append(line_set)
                 line_set = []
-    
+
     return lines
 
 
@@ -33,19 +34,19 @@ def main():
     for line_set in lines:
         label_value = -1
         # Line always gets observed label if it is in training data
-        if args.infile.endswith("train.ttl"): 
+        if args.infile.endswith("train.ttl"):
             label_value = 4
         else:
             for line in line_set:
                 if line.startswith("@prefix"):
                     break
-                elif "\\t\\t0" in line:
+                if "\\t\\t0" in line:
                     label_value = 0
                     break
-                elif "\\t\\t4" in line:
+                if "\\t\\t4" in line:
                     label_value = 4
                     break
-        
+
             for index, line in enumerate(line_set):
                 # line ending in > indicates it contains the subject, so skip
                 # Also discard lines declaring prefixes and blank lines
@@ -53,10 +54,10 @@ def main():
                     continue
                 else:
                     line_set[index] = line_set[index].rstrip() + '\t' + str(label_value) + '\n'
-    
-    with open(args.infile, "w") as f:
+
+    with open(args.infile, "w", encoding="utf-8") as infile:
         for line_set in lines:
-            f.writelines(line_set)
+            infile.writelines(line_set)
 
 
 if __name__ == "__main__":
