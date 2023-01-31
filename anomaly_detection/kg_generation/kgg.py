@@ -244,24 +244,18 @@ def extract_relations_templates(template_dir: str, out_path: str, label_path: st
     if label_file and not label_file.closed:
         label_file.close()
 
-def generate_val_set(test_path: str, val_path: str, val_ratio: float):
+def generate_val_set(train_path: str, out_val_path: str, val_ratio: float):
     """
-    Generate a validation set by splitting the test set in half.
-    To make a more varied set, alternate which lines go to testing and which go to validation.
+    Generate a validation set by splitting the train set into two pieces based on val_ratio.
+    To make a more varied set, randomly permute the training set.
 
     Parameters
     ----------
-    - `test_path`: path to test set
-    - `val_path`: path to save validation set to
+    - `test_path`: path to train set
+    - `out_val_path`: path to save validation set to
+    - `val_ratio`: percentage of training data to split off for validation data
     """
-    # with fileinput.input(test_path, inplace=True, backup=".bak", encoding="utf-8") as test_file:
-    #     with open(val_path, "w", encoding="utf-8") as val_file:
-    #         for i, line in enumerate(test_file):
-    #             if i % 2 == 0:
-    #                 print(line.strip())
-    #             else:
-    #                 val_file.write(line)
-    with open(test_path, "r", encoding="utf-8") as test_file:
+    with open(train_path, "r", encoding="utf-8") as test_file:
         test_data = np.array(test_file.readlines())
 
     shuffled_indices = np.random.permutation(len(test_data))
@@ -269,12 +263,11 @@ def generate_val_set(test_path: str, val_path: str, val_ratio: float):
     val_indices = shuffled_indices[:val_size]
     test_indices = shuffled_indices[val_size:]
 
-    with open(test_path, "w", encoding="utf-8") as test_file:
+    with open(train_path, "w", encoding="utf-8") as test_file:
         test_file.writelines(test_data[test_indices])
 
-    with open(val_path, "w", encoding="utf-8")  as val_file:
+    with open(out_val_path, "w", encoding="utf-8")  as val_file:
         val_file.writelines(test_data[val_indices])
-
 
 def gen_kg(raw_data_dir: str, labels: bool=True) -> None:
     """

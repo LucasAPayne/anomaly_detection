@@ -3,7 +3,7 @@ Script that extracts a smaller dataset from the AIT log dataset.
 The full AIT log dataset can be found here: https://zenodo.org/record/4264796
 The intended use for the extracted dataset is knowledge graph completion for anomaly detection.
 The extracted dataset is divided into a training and testing set.
-The training set contains a day worth of normal activity.
+The training set contains normal activity.
 The testing set contains all data generated from malicious activity.
 The testing set also contains some normal activity.
 """
