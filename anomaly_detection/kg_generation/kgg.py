@@ -92,8 +92,6 @@ def remove_duplicate_lines(path: str):
                 print(line)
 
     # Successfully removed duplicates and closed files, now delete backup file
-    # FIXME(lucas): train.ttl.bak is removed successfully, but test.ttl.bak is not,
-    # even though it reports success in both cases
     os.remove(path + ".bak")
 
 def parse_log(in_log_file: str,
@@ -216,9 +214,9 @@ def extract_relations_templates(template_dir: str, out_path: str, label_path: st
                             for relation in template["relations"]:
                                 sub_index = relation["subject"]
                                 obj_index = relation["object"]
-                                sub = parse_result["params"][sub_index][0]
-                                obj = parse_result["params"][obj_index][0]
-                                rel = relation["relation_label"]
+                                sub = str(parse_result["params"][sub_index][0]).lower()
+                                obj = str(parse_result["params"][obj_index][0]).lower()
+                                rel = str(relation["relation_label"]).lower()
                                 if label_file:
                                     label = parse_result["label"]
                                     outfile.write(f"{sub}\t{rel}\t{obj}\n")
@@ -233,12 +231,12 @@ def extract_relations_templates(template_dir: str, out_path: str, label_path: st
                                 if file_in_dataset(infile.name, "train") and  sub_type in type_map:
                                     # TODO(lucas): replace with RDF type relation
                                     rel = "a"
-                                    obj = type_map[sub_type]
+                                    obj = type_map[sub_type].lower()
                                     outfile.write(f"{sub}\t{rel}\t{obj}\n")
                                 if file_in_dataset(infile.name, "train") and obj_type in type_map:
-                                    sub = parse_result["params"][obj_index][0]
+                                    sub = parse_result["params"][obj_index][0].lower()
                                     rel = "a"
-                                    obj = type_map[obj_type]
+                                    obj = type_map[obj_type].lower()
                                     outfile.write(f"{sub}\t{rel}\t{obj}\n")
 
     if label_file and not label_file.closed:
@@ -269,7 +267,122 @@ def generate_val_set(train_path: str, out_val_path: str, val_ratio: float):
     with open(out_val_path, "w", encoding="utf-8")  as val_file:
         val_file.writelines(test_data[val_indices])
 
-def gen_kg(raw_data_dir: str, labels: bool=True) -> None:
+def _save_ids(path: str, mapping: dict):
+    """
+    Save mapping of IDs to strings to a file. Internal function
+
+    Parameters
+    ----------
+    - `path`: location to write the file
+    - `mapping`: dictionary containing mappings of entities or relations to IDs 
+    """
+    # Sort the dictionary by value (outputs list of tuples)
+    mapping = sorted(mapping.items(), key=lambda x : x[1])
+
+    with open(path, "w", encoding="utf-8") as outfile:
+        for i in mapping:
+            outfile.write(str(i[1]) + '\t' + str(i[0]) + '\n')
+
+def _regenerate_triples_with_ids(triples_path: str, ent_ids: dict, rel_ids: dict):
+    """
+    Regenerate triples in a dataset using saved ID mappings.
+
+    Parameters
+    ----------
+    - `triples_path`: path to triples to regenerate (i.e., train/test/val set)
+    - `ent_ids`: mapping of entity strings to IDs
+    - `rel_ids`: mapping of relation strings to IDs
+    """
+    # Check that triples_path is saved as a TTL file
+    # If not, rename it to a TTL file
+    triples_path_root, triples_path_ext = os.path.splitext(triples_path)
+    new_triples_path = triples_path
+    if triples_path_ext != ".ttl":
+        new_triples_path = triples_path_root + ".ttl"
+        os.rename(triples_path, new_triples_path)
+
+    # NOTE(lucas): Create a new file with a different extension for output.
+    # Take each line from the input file and write it to the output file, looking up strings in the
+    # entity/relation mappings and replacing them with IDs in the output file.
+    # If an entity or relation does not exist in the mapping, discard the triple.
+    discarded_tripes = 0
+    out_path = triples_path_root + ".txt"
+    with open(new_triples_path, "r", encoding="utf-8") as infile, \
+         open(out_path, "w", encoding="utf-8") as outfile:
+        for line in infile:
+            line = line.rstrip().split('\t')
+
+            if line[0] not in ent_ids:
+                print(f"{line[0]} does not exist in entity mapping. Discarding triple.")
+                discarded_tripes += 1
+                continue
+            if line[1] not in rel_ids:
+                print(f"{line[1]} does not exist in relation mapping. Discarding triple.")
+                discarded_tripes += 1
+                continue
+            if line[2] not in ent_ids:
+                print(f"{line[2]} does not exist in entity mapping. Discarding triple.")
+                discarded_tripes += 1
+                continue
+
+            # All mappings exist
+            sub = str(ent_ids[line[0]])
+            rel = str(rel_ids[line[1]])
+            obj = str(ent_ids[line[2]])
+            outfile.write(sub + '\t' + rel + '\t' + obj + '\n')
+
+    triples_filename = triples_path_root[triples_path_root.rfind(os.sep):]
+    print(f"{discarded_tripes} triples discarded from {triples_filename}")
+
+def _generate_ids(preprpocessed_data_dir: str, train_path: str,
+                  test_path: str, val_path: str) -> None:
+    """
+    Generate a mapping of entities/relations to IDs based on the training dataset. Then, rebuild
+    the KG using those IDs rather than the entities/relations themselves. This can be helpful to
+    reduce the size on disk of a dataset, and can also lead to better performance, depending on the
+    dataset.
+
+    Parameters
+    ----------
+    - `preprocessed_data_dir`: directory containing preprocessed data
+    - `train_path`: path to preprocessed training set
+    - `preserve_old`: whether to preserve old string-based dataset
+    """
+    ent_ids = {}
+    rel_ids = {}
+
+    ent_count = 0
+    rel_count = 0
+
+    with open(train_path, "r", encoding="utf-8") as infile:
+        for line in infile:
+            # Skip prefix definitions in TTL files
+            if line.startswith("@prefix") or line == '\n':
+                continue
+
+            # Strip trailing whitespace/newline from line and split on tabs to get triple elements
+            line = line.rstrip()
+            triple = line.split('\t')
+
+            # Add each entity/relation to its corresponding dictionary and increment the count
+            if triple[0] not in ent_ids:
+                ent_ids[triple[0]] = ent_count
+                ent_count += 1
+            if triple[1] not in rel_ids:
+                rel_ids[triple[1]] = rel_count
+                rel_count += 1
+            if triple[2] not in ent_ids:
+                ent_ids[triple[2]] = ent_count
+                ent_count += 1
+
+    _save_ids(os.path.join(preprpocessed_data_dir, "entity_ids.txt"), ent_ids)
+    _save_ids(os.path.join(preprpocessed_data_dir, "relation_ids.txt"), rel_ids)
+
+    _regenerate_triples_with_ids(train_path, ent_ids, rel_ids)
+    _regenerate_triples_with_ids(test_path, ent_ids, rel_ids)
+    _regenerate_triples_with_ids(val_path, ent_ids, rel_ids)
+
+def generate_kg(raw_data_dir: str, labels: bool=True, gen_ids: bool=False) -> None:
     """
     Generate a knowledge graph from a set of log files using entity and relation extraction.
 
@@ -278,6 +391,10 @@ def gen_kg(raw_data_dir: str, labels: bool=True) -> None:
     - `raw_data_dir`: path to directory containing raw log data
     - `labels`: whether the testing data should be labeled
     """
+    # TODO(lucas): Think about converting to all lowercase. Names appear as both, so irwin and
+    # Irwin are technically two different entities.
+    # TODO(lucas): For the AIT dataset, map names to email addresses to be clear that they refer
+    # to the same person
     logger = logging.getLogger(__name__)
     logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(message)s')
 
@@ -312,10 +429,15 @@ def gen_kg(raw_data_dir: str, labels: bool=True) -> None:
     # TODO(lucas): Have option to remove generated template files and templates directory
     train_kg_file = os.path.join(preprocessed_data_dir, "train.txt")
     test_kg_file = os.path.join(preprocessed_data_dir, "test.txt")
+    val_kg_file = os.path.join(preprocessed_data_dir, "valid.txt")
     label_file = os.path.join(preprocessed_data_dir, "labels.txt")
     extract_relations_templates(join_path("templates", "train"), train_kg_file)
     extract_relations_templates(join_path("templates", "test"), test_kg_file, label_file)
     # remove_duplicate_lines(train_kg_file)
     # remove_duplicate_lines(test_kg_file)
-    generate_val_set(join_path(preprocessed_data_dir, "train.txt"),
-                     join_path(preprocessed_data_dir, "valid.txt"), val_ratio=0.2)
+    generate_val_set(test_kg_file, val_kg_file, val_ratio=0.5)
+
+    # Optionally generate ID mappings for each entity and relation and regenerate the triple sets
+    # using those IDs
+    if gen_ids:
+        _generate_ids(preprocessed_data_dir, train_kg_file, test_kg_file, val_kg_file)
