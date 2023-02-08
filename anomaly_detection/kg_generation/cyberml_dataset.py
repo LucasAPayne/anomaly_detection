@@ -6,7 +6,7 @@ The testing set contains both normal and malicious activity.
 
 import os
 
-from . import kgg
+from . import kg_generation
 
 def extract_train_set(root_dir: str, preprocessed_data_dir: str) -> None:
     """
@@ -62,7 +62,7 @@ def extract_dataset(root_dir: str, val_ratio: float) -> None:
     Parameters
     ----------
     - `root_dir`: root directory of CyberML dataset
-    - `val_ratio`:
+    - `val_ratio`: ratio of test data to be used as validation data
     """
     preprocessed_data_dir = os.path.join(root_dir, "preprocessed")
     if not os.path.exists(preprocessed_data_dir):
@@ -72,7 +72,7 @@ def extract_dataset(root_dir: str, val_ratio: float) -> None:
     extract_test_set(root_dir, preprocessed_data_dir)
 
     # Generate validation set from a subset of a random permutation of the training set
-    train_path = os.path.join(preprocessed_data_dir, "test.txt")
+    test_path = os.path.join(preprocessed_data_dir, "test.txt")
     out_val_path = os.path.join(preprocessed_data_dir, "valid.txt")
-    kgg.generate_val_set(train_path, out_val_path, val_ratio)
+    kg_generation.generate_val_set(test_path, out_val_path, val_ratio)
     
