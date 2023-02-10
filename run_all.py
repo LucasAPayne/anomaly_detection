@@ -8,6 +8,7 @@ import torch
 from anomaly_detection.kg_completion.kg_completion import kg_completion
 
 def main():
+    np.random.seed(1234)
     config_filename = "config/ait.yaml"
     dataset_dir = "data/AIT/preprocessed"
     models = ["complex", "distmult", "ggnn_distmult", "gcn_distmult", "gcn_complex", "ggnn_complex"]
