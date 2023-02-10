@@ -16,10 +16,10 @@ def main():
     rng = np.random.default_rng()
 
     param_space = {
-        "l2": rng.uniform(0.0, 0.1, n_iter).tolist(),
-        "label_smoothing": rng.uniform(0.0, 0.1, n_iter).tolist(),
-        "input_drop": rng.uniform(0.0, 0.5, n_iter).tolist(),
-        "feat_drop": rng.uniform(0.0, 0.5, n_iter).tolist()
+        "l2": rng.uniform(0.0, 0.1, n_iter).round(4).tolist(),
+        "label_smoothing": rng.uniform(0.0, 0.1, n_iter).round(4).tolist(),
+        "input_drop": rng.uniform(0.0, 0.5, n_iter).round(4).tolist(),
+        "feat_drop": rng.uniform(0.0, 0.5, n_iter).round(4).tolist()
     }
 
     yaml = ruamel.yaml.YAML()
