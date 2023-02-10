@@ -1,11 +1,9 @@
-pandas
-scipy
+drain3
+graph4nlp == 0.5.5
+torch
+torchtext
 pyyaml
-torch>=1.11.0 --find-links https://download.pytorch.org/whl/torch_stable.html
-matplotlib
-seaborn
-jupyterlab
-sklearn
-numpy
-ipympl
-regex
+requests
+Pillow
+python-dateutil
+ruamel.yaml

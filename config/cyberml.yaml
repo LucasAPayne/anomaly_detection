@@ -1,0 +1,31 @@
+# Data
+dataset: CyberML
+out_dir: results/kgc/CyberML/CyberML
+
+# Training
+model: ggnn_complex # distmult, complex, conve, gcn_distmult, gcn_complex, ggnn_distmult, ggnn_complex
+seed: 1234
+epochs: 200 # number of maximal training epochs
+batch_size: 128 # batch size
+loader_threads: 4 # number of data loader workers
+lr: 0.0005 # learning rate
+l2: 0.0
+label_smoothing: 0.1
+
+# GNN
+direction_option: bi_fuse # Choose from: {undirected, bi_sep, bi_fuse}
+embedding_dim: 200
+input_drop: 0.2
+feat_drop: 0.2
+
+# ConvE
+embedding_shape: 20
+hidden_drop: 0.25
+hidden_size: 9728
+use_bias: false
+
+resume: false
+preprocess: true  # set as True to build KG_graph.pt
+
+gpu: -1
+cuda: false
