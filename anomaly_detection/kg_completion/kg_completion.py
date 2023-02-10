@@ -191,13 +191,14 @@ def kg_completion(config_path: str, dataset_dir: str) -> None:
         os.mkdir("saved_models")
     cfg = get_yaml_config(config_path)
 
-    cfg["cuda"] = False
-
-    model_name = "{2}_{3}_{0}_{1}".format(
-        cfg["input_drop"],
-        cfg["hidden_drop"],
+    model_name = "{0}_{1}_{2}_{3}_{4}_{5}_{6}".format(
         cfg["model"],
         cfg["direction_option"],
+        cfg["l2"],
+        cfg["label_smoothing"],
+        cfg["input_drop"],
+        cfg["hidden_drop"],
+        cfg["feat_drop"]
     )
     model_path = "saved_models/{0}_{1}.model".format(
         cfg["dataset"], model_name
@@ -214,7 +215,7 @@ def kg_completion(config_path: str, dataset_dir: str) -> None:
         topology_subdir="kgc",
     )
 
-    cfg["out_dir"] = cfg["out_dir"] + "_{}_{}".format(cfg["model"], cfg["direction_option"])
+    cfg["out_dir"] = os.path.join(cfg["out_dir"], "{0}_{1}".format(cfg["dataset"], model_name))
 
     logger = Logger(
         cfg["out_dir"],
@@ -362,6 +363,7 @@ def kg_completion(config_path: str, dataset_dir: str) -> None:
                 )
                 if dev_mrr > best_mrr:
                     best_mrr = dev_mrr
+                    logger.write("Best MRR")
                     print("saving best model to {0}".format(model_path))
                     torch.save(model.state_dict(), model_path)
             if epoch % 2 == 0:

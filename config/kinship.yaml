@@ -2,63 +2,30 @@
 dataset: kinship
 out_dir: results/kgc/kinship/kinship
 
-# Preprocessing
-top_word_vocab: 70000
-share_vocab: true
-word_emb_size: 300
-min_word_freq: 1
-num_hidden: 300 # number of hidden units
-n_samples:
-
-word_dropout: 0.4 # word embedding dropout
-enc_rnn_dropout: 0.3 # Encoder RNN dropout
-coverage_loss_ratio: 0.3 # coverage loss ratio
-
 # Training
+model: ggnn_complex # distmult, complex, conve, gcn_distmult, gcn_complex, ggnn_distmult, ggnn_complex
 seed: 1234
-batch_size: 128 # batch size
-test_batch_size: 128
 epochs: 200 # number of maximal training epochs
-grad_clipping: 10
-patience: 10
+batch_size: 128 # batch size
+loader_threads: 4 # number of data loader workers
 lr: 0.0005 # learning rate
-lr_patience: 2
-lr_reduce_factor: 0.5
-num_workers: 4 # number of data loader workers
 l2: 0.0
-model: gcn_complex # distmult, complex, conve, gcn_distmult, gcn_complex, ggnn_distmult, ggnn_complex
-use_bias: false
-loader_threads: 4
+label_smoothing: 0.1
 
 # GNN
-direction_option: bi_fuse  # Choose from: {undirected, bi_sep, bi_fuse}
+direction_option: bi_fuse # Choose from: {undirected, bi_sep, bi_fuse}
 embedding_dim: 200
-embedding_shape1: 20
-hidden_drop: 0.25
 input_drop: 0.2
 feat_drop: 0.2
-lr_decay: 0.995
+
+# ConvE
+embedding_shape: 20
+hidden_drop: 0.25
+hidden_size: 9728
+use_bias: false
 
 resume: false
 preprocess: true  # set as True to build KG_graph.pt
-label_smoothing: 0.1
-
-hidden_size: 9728
-channels: 200
-kernel_size: 5
-
-# Beam search
-beam_size: 3
 
 gpu: -1
-no_cuda: true
-
-graph_construction_args:
-  graph_construction_private:
-    dynamic_init_graph_name:
-    merge_strategy:
-    edge_strategy:
-
-  graph_construction_share:
-    port: 9100
-    timeout: 300000
+cuda: false
