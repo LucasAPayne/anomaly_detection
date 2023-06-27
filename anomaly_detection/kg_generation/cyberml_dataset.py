@@ -26,7 +26,7 @@ def extract_train_set(root_dir: str, preprocessed_data_dir: str) -> None:
     with open(in_train_file, "r", encoding="utf-8") as in_file, \
          open(out_train_file, "w", encoding="utf-8") as out_file:
         for line in in_file:
-            out_file.write(line)
+            out_file.write(line.rstrip() + '\t' + '1\n')
 
 def extract_test_set(root_dir: str, preprocessed_data_dir: str) -> None:
     """
@@ -39,19 +39,31 @@ def extract_test_set(root_dir: str, preprocessed_data_dir: str) -> None:
     - `preprocessed_data_dir`: directory to output preprocessed files
     """
     test_dir = os.path.join(root_dir, "test")
-    test_files = ["credential_use.del", "https.del", "scan.del", "ssh.del", "variables_access.del"]
+    in_files = ["credential_use.del", "https.del", "scan.del", "ssh.del", "variables_access.del"]
 
-    # TODO(lucas): Save labels to separate file
     # Loop through test file and write contents to one large test file
-    out_test_file = os.path.join(preprocessed_data_dir, "test.txt")
-    with open(out_test_file, "w", encoding="utf-8") as out_file:
-        for file in test_files:
+    test_file = os.path.join(preprocessed_data_dir, "test.txt")
+    label_file = os.path.join(preprocessed_data_dir, "labels.txt")
+    with open(test_file, "w", encoding="utf-8") as out_test_file, \
+         open(label_file, "w", encoding="utf-8") as out_label_file:
+        for file in in_files:
             test_file = os.path.join(test_dir, file)
             with open(test_file, "r", encoding="utf-8") as in_file:
                 for line in in_file:
                     split_line = line.split('\t')[:-1]
                     out_line = '\t'.join(split_line)
-                    out_file.write(out_line + '\n')
+
+                    # NOTE(lucas): For now, labels will changed for binary classifier
+                    # [0, 1, 2] -> 0: suspicious
+                    # [3,4] -> 1: normal
+                    label = int(line.split('\t')[-1].strip())
+                    if label in [0, 1, 2]:
+                        label = 0
+                    elif label in [3, 4]:
+                        label = 1
+                    # out_label_file.write(str(label) + '\n')
+
+                    out_test_file.write(out_line + '\t' + str(label) + '\n')
 
 def extract_dataset(root_dir: str, val_ratio: float) -> None:
     """

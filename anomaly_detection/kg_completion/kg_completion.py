@@ -1,15 +1,21 @@
 import os
+import sys
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
+# TODO(lucas): Is there a better way to import this?
+_graph4nlp_module_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'lib', 'graph4nlp')
+sys.path.append(_graph4nlp_module_dir)
 from graph4nlp.pytorch.modules.utils.config_utils import get_yaml_config
 from graph4nlp.pytorch.datasets.kinship import KinshipDataset
 from graph4nlp.pytorch.modules.utils.logger import Logger
 
 from .model import Complex, ConvE, Distmult, GCNComplex, GCNDistMult,GGNNComplex, GGNNDistMult
+
+import sklearn.metrics
 
 def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=None, logger=None):
     print("")
@@ -23,6 +29,7 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
         logger.write(name)
         logger.write("-" * 50)
         logger.write("")
+
     hits_left = []
     hits_right = []
     hits = []
@@ -34,6 +41,8 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
         hits_right.append([])
         hits.append([])
 
+    confidence_cutoff = 0.5
+
     for i, str2var in enumerate(dev_rank_batcher):
         e1 = str2var["e1_tensor"]
         e2 = str2var["e2_tensor"]
@@ -41,6 +50,16 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
         rel_reverse = str2var["rel_eval_tensor"]
         e2_multi1 = str2var["e2_multi1"].float()
         e2_multi2 = str2var["e2_multi2"].float()
+
+        # TODO(lucas): Change labels to be strings by default
+        true_labels_int = [int(i) for i in str2var["label"]]
+        true_labels = []
+        for label in true_labels_int:
+            if label == 1:
+                true_labels.append("normal")
+            else:
+                true_labels.append("suspicious")
+
         if cfg["cuda"]:
             e1 = e1.to("cuda")
             e2 = e2.to("cuda")
@@ -54,6 +73,7 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
         pred1, pred2 = pred1.data, pred2.data
         e1, e2 = e1.data, e2.data
         e2_multi1, e2_multi2 = e2_multi1.data, e2_multi2.data
+        pred_labels = []
         for i in range(e1.shape[0]):
             # these filters contain ALL labels
             filter1 = e2_multi1[i].long()
@@ -69,6 +89,10 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
             # write base the saved values
             pred1[i][e2[i]] = target_value1
             pred2[i][e1[i]] = target_value2
+
+			# Map confidence to labels
+            pred_label = "normal" if target_value1 > confidence_cutoff else "suspicious"
+            pred_labels.append(pred_label)
 
         # sort and rank
         max_values, argsort1 = torch.sort(pred1, 1, descending=True)
@@ -104,6 +128,19 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
 
         # dev_rank_batcher.state.loss = [0]
 
+    # Accuracy, precision, recall, f1, support, confusion matrix, true/false pos/neg rates
+    label_names = ["normal", "suspicious"]
+    accuracy = sklearn.metrics.accuracy_score(true_labels, pred_labels)
+    precision, recall, f1_score, support = sklearn.metrics.precision_recall_fscore_support(true_labels, pred_labels, labels=label_names, pos_label="suspicious", average="binary", zero_division=0)
+    tn, fp, fn, tp = sklearn.metrics.confusion_matrix(true_labels, pred_labels).ravel()
+
+    # Prevent divide by 0
+    tpr = tp / (tp + fn) if tp + fn > 0 else 0.0
+    tnr = tn / (tn + fp) if tn + fp > 0 else 0.0
+    fpr = fp / (fp + tn) if fp + tn > 0 else 0.0
+    fnr = fn / (fn + tp) if fn + tp > 0 else 0.0
+
+
     for i in range(10):
         print("Hits left @{0}: {1}".format(i + 1, np.mean(hits_left[i])))
         print("Hits right @{0}: {1}".format(i + 1, np.mean(hits_right[i])))
@@ -114,6 +151,21 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
     print("Mean reciprocal rank left: {0}".format(np.mean(1.0 / np.array(ranks_left))))
     print("Mean reciprocal rank right: {0}".format(np.mean(1.0 / np.array(ranks_right))))
     print("Mean reciprocal rank: {0}".format(np.mean(1.0 / np.array(ranks))))
+    print("\n")
+    print(f"Accuracy: {accuracy}")
+    print(f"F1-score: {f1_score}")
+    print(f"precision: {precision}")
+    print(f"recall: {recall}")
+    print(f"support: {support}")
+    print(f"True Positives: {tp}")
+    print(f"False Positives: {fp}")
+    print(f"True Negatives: {tn}")
+    print(f"False Negatives: {fn}")
+    print(f"True Positive Rate: {tpr}")
+    print(f"False Positive Rate: {fpr}")
+    print(f"True Negative Rate: {tnr}")
+    print(f"False Negative Rate: {fnr}")
+
 
     if logger is not None:
         for i in [0, 9]:
@@ -126,8 +178,32 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
         logger.write("Mean reciprocal rank left: {0}".format(np.mean(1.0 / np.array(ranks_left))))
         logger.write("Mean reciprocal rank right: {0}".format(np.mean(1.0 / np.array(ranks_right))))
         logger.write("Mean reciprocal rank: {0}".format(np.mean(1.0 / np.array(ranks))))
+        logger.write("\n")
+        logger.write(f"Accuracy: {accuracy}")
+        logger.write(f"F1-score: {f1_score}")
+        logger.write(f"precision: {precision}")
+        logger.write(f"recall: {recall}")
+        logger.write(f"support: {support}")
+        logger.write(f"True Positives: {tp}")
+        logger.write(f"False Positives: {fp}")
+        logger.write(f"True Negatives: {tn}")
+        logger.write(f"False Negatives: {fn}")
+        logger.write(f"True Positive Rate: {tpr}")
+        logger.write(f"False Positive Rate: {fpr}")
+        logger.write(f"True Negative Rate: {tnr}")
+        logger.write(f"False Negative Rate: {fnr}")
 
-    return np.mean(1.0 / np.array(ranks))
+        logger.write(f"True Positives: {tp}")
+        logger.write(f"False Positives: {fp}")
+        logger.write(f"True Negatives: {tn}")
+        logger.write(f"False Negatives: {fn}")
+        logger.write(f"True Positive Rate: {tpr}")
+        logger.write(f"False Positive Rate: {fpr}")
+        logger.write(f"True Negative Rate: {tnr}")
+        logger.write(f"False Negative Rate: {fnr}")
+
+    # return np.mean(1.0 / np.array(ranks))
+    return accuracy
 
 class KGC(nn.Module):
     def __init__(self, cfg, num_entities, num_relations):
@@ -325,7 +401,7 @@ def kg_completion(config_path: str, dataset_dir: str) -> None:
     # print(params)
     # print(np.sum(params))
 
-    best_mrr = 0
+    best_accuracy = 0.0
 
     opt = torch.optim.Adam(model.parameters(), lr=cfg["lr"], weight_decay=cfg["l2"])
     for epoch in range(cfg["epochs"]):
@@ -352,7 +428,7 @@ def kg_completion(config_path: str, dataset_dir: str) -> None:
         model.eval()
         with torch.no_grad():
             if epoch % 2 == 0 and epoch > 0:
-                dev_mrr = ranking_and_hits_this(
+                accuracy = ranking_and_hits_this(
                     cfg,
                     model,
                     val_dataloader,
@@ -361,9 +437,9 @@ def kg_completion(config_path: str, dataset_dir: str) -> None:
                     kg_graph=KG_graph,
                     logger=logger,
                 )
-                if dev_mrr > best_mrr:
-                    best_mrr = dev_mrr
-                    logger.write("Best MRR")
+                if accuracy > best_accuracy:
+                    best_accuracy = accuracy
+                    logger.write("Best model")
                     print("saving best model to {0}".format(model_path))
                     torch.save(model.state_dict(), model_path)
             if epoch % 2 == 0:
@@ -375,5 +451,5 @@ def kg_completion(config_path: str, dataset_dir: str) -> None:
                         dataset.vocab_model,
                         "test_evaluation",
                         kg_graph=KG_graph,
-                        logger=logger,
+                        logger=logger
                     )

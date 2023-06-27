@@ -1,5 +1,4 @@
 drain3
-graph4nlp == 0.5.5
 torch
 torchtext
 pyyaml

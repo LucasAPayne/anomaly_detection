@@ -23,6 +23,7 @@ def write_training_graph(cases, graph, path):
             data_point["rel_eval"] = "None"
             data_point["e2_multi1"] = entities1
             data_point["e2_multi2"] = "None"
+            data_point["label"] = 1
 
             f.write(json.dumps(data_point) + "\n")
 
@@ -31,7 +32,7 @@ def write_evaluation_graph(cases, graph, path):
     with open(path, "w") as f:
         n1 = 0
         n2 = 0
-        for e1, rel, e2 in cases:
+        for e1, rel, e2, label in cases:
             # (Mike, fatherOf) -> John
             # (John, fatherOf, Tom)
             rel_reverse = rel + "_reverse"
@@ -48,11 +49,12 @@ def write_evaluation_graph(cases, graph, path):
             data_point["rel_eval"] = rel_reverse
             data_point["e2_multi1"] = entities1
             data_point["e2_multi2"] = entities2
+            data_point["label"] = label
 
             f.write(json.dumps(data_point) + "\n")
 
 
-def wrangle_kg(data_dir):
+def wrangle_kg(data_dir, labels=False):
     np.random.RandomState(234234)
 
     files = ["train.txt", "valid.txt", "test.txt"]
@@ -68,7 +70,11 @@ def wrangle_kg(data_dir):
 
         with open(os.path.join(data_dir, file), "r", encoding="utf-8") as infile:
             for line in infile:
-                e1, rel, e2 = line.split('\t')
+                if labels:
+                    e1, rel, e2, label = line.rstrip().split('\t')
+                else:
+                    e1, rel, e2 = line.split('\t')
+
                 e1 = e1.strip()
                 e2 = e2.strip()
                 rel = rel.strip()
@@ -101,7 +107,7 @@ def wrangle_kg(data_dir):
                 # test cases
                 # (Mike, fatherOf, John)
                 # (John, fatherOf, Tom)
-                test_cases[file].append([e1, rel, e2])
+                test_cases[file].append([e1, rel, e2, label])
 
                 # data
                 # (Mike, fatherOf, John)
