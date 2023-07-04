@@ -29,11 +29,12 @@ def main():
     # collect_results("results/kgc")
     # find_best_model("results/kgc/AIT")
 
+    labels = True
     cyberml_raw_data_dir = os.path.join(os.path.dirname(__file__), "data", "CyberML")
     cyberml_preprocessed_data_dir = os.path.join(cyberml_raw_data_dir, "preprocessed")
-    cyberml_dataset.extract_dataset(cyberml_raw_data_dir, 0.5)
-    wrangle_kg(cyberml_preprocessed_data_dir, labels=True)
-    kg_completion("config/cyberml.yaml", "data/CyberML/preprocessed")
+    cyberml_dataset.extract_dataset(cyberml_raw_data_dir, val_ratio=0.5, labels=labels)
+    wrangle_kg(cyberml_preprocessed_data_dir, labels=labels)
+    kg_completion("config/cyberml.yaml", "data/CyberML/preprocessed", labels=labels)
 
 if __name__ == "__main__":
     main()

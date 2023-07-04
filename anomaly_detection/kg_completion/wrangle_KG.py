@@ -74,6 +74,7 @@ def wrangle_kg(data_dir, labels=False):
                     e1, rel, e2, label = line.rstrip().split('\t')
                 else:
                     e1, rel, e2 = line.split('\t')
+                    label = None
 
                 e1 = e1.strip()
                 e2 = e2.strip()

@@ -17,7 +17,7 @@ from .model import Complex, ConvE, Distmult, GCNComplex, GCNDistMult,GGNNComplex
 
 import sklearn.metrics
 
-def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=None, logger=None):
+def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=None, logger=None, labels=False):
     print("")
     print("-" * 50)
     print(name)
@@ -51,14 +51,16 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
         e2_multi1 = str2var["e2_multi1"].float()
         e2_multi2 = str2var["e2_multi2"].float()
 
-        # TODO(lucas): Change labels to be strings by default
-        true_labels_int = [int(i) for i in str2var["label"]]
-        true_labels = []
-        for label in true_labels_int:
-            if label == 1:
-                true_labels.append("normal")
-            else:
-                true_labels.append("suspicious")
+        if labels:
+            # TODO(lucas): Change labels to be strings by default
+            true_labels_int = [int(i) for i in str2var["label"]]
+            true_labels = []
+            pred_labels = []
+            for label in true_labels_int:
+                if label == 1:
+                    true_labels.append("normal")
+                else:
+                    true_labels.append("suspicious")
 
         if cfg["cuda"]:
             e1 = e1.to("cuda")
@@ -73,7 +75,6 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
         pred1, pred2 = pred1.data, pred2.data
         e1, e2 = e1.data, e2.data
         e2_multi1, e2_multi2 = e2_multi1.data, e2_multi2.data
-        pred_labels = []
         for i in range(e1.shape[0]):
             # these filters contain ALL labels
             filter1 = e2_multi1[i].long()
@@ -91,8 +92,9 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
             pred2[i][e1[i]] = target_value2
 
 			# Map confidence to labels
-            pred_label = "normal" if target_value1 > confidence_cutoff else "suspicious"
-            pred_labels.append(pred_label)
+            if labels:
+                pred_label = "normal" if target_value1 > confidence_cutoff else "suspicious"
+                pred_labels.append(pred_label)
 
         # sort and rank
         max_values, argsort1 = torch.sort(pred1, 1, descending=True)
@@ -129,16 +131,17 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
         # dev_rank_batcher.state.loss = [0]
 
     # Accuracy, precision, recall, f1, support, confusion matrix, true/false pos/neg rates
-    label_names = ["normal", "suspicious"]
-    accuracy = sklearn.metrics.accuracy_score(true_labels, pred_labels)
-    precision, recall, f1_score, support = sklearn.metrics.precision_recall_fscore_support(true_labels, pred_labels, labels=label_names, pos_label="suspicious", average="binary", zero_division=0)
-    tn, fp, fn, tp = sklearn.metrics.confusion_matrix(true_labels, pred_labels).ravel()
+    if labels:
+        label_names = ["normal", "suspicious"]
+        accuracy = sklearn.metrics.accuracy_score(true_labels, pred_labels)
+        precision, recall, f1_score, support = sklearn.metrics.precision_recall_fscore_support(true_labels, pred_labels, labels=label_names, pos_label="suspicious", average="binary", zero_division=0)
+        tn, fp, fn, tp = sklearn.metrics.confusion_matrix(true_labels, pred_labels).ravel()
 
-    # Prevent divide by 0
-    tpr = tp / (tp + fn) if tp + fn > 0 else 0.0
-    tnr = tn / (tn + fp) if tn + fp > 0 else 0.0
-    fpr = fp / (fp + tn) if fp + tn > 0 else 0.0
-    fnr = fn / (fn + tp) if fn + tp > 0 else 0.0
+        # Prevent divide by 0
+        tpr = tp / (tp + fn) if tp + fn > 0 else 0.0
+        tnr = tn / (tn + fp) if tn + fp > 0 else 0.0
+        fpr = fp / (fp + tn) if fp + tn > 0 else 0.0
+        fnr = fn / (fn + tp) if fn + tp > 0 else 0.0
 
 
     for i in range(10):
@@ -151,20 +154,22 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
     print("Mean reciprocal rank left: {0}".format(np.mean(1.0 / np.array(ranks_left))))
     print("Mean reciprocal rank right: {0}".format(np.mean(1.0 / np.array(ranks_right))))
     print("Mean reciprocal rank: {0}".format(np.mean(1.0 / np.array(ranks))))
-    print("\n")
-    print(f"Accuracy: {accuracy}")
-    print(f"F1-score: {f1_score}")
-    print(f"precision: {precision}")
-    print(f"recall: {recall}")
-    print(f"support: {support}")
-    print(f"True Positives: {tp}")
-    print(f"False Positives: {fp}")
-    print(f"True Negatives: {tn}")
-    print(f"False Negatives: {fn}")
-    print(f"True Positive Rate: {tpr}")
-    print(f"False Positive Rate: {fpr}")
-    print(f"True Negative Rate: {tnr}")
-    print(f"False Negative Rate: {fnr}")
+
+    if labels:
+        print("\n")
+        print(f"Accuracy: {accuracy}")
+        print(f"F1-score: {f1_score}")
+        print(f"precision: {precision}")
+        print(f"recall: {recall}")
+        print(f"support: {support}")
+        print(f"True Positives: {tp}")
+        print(f"False Positives: {fp}")
+        print(f"True Negatives: {tn}")
+        print(f"False Negatives: {fn}")
+        print(f"True Positive Rate: {tpr}")
+        print(f"False Positive Rate: {fpr}")
+        print(f"True Negative Rate: {tnr}")
+        print(f"False Negative Rate: {fnr}")
 
 
     if logger is not None:
@@ -178,32 +183,26 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
         logger.write("Mean reciprocal rank left: {0}".format(np.mean(1.0 / np.array(ranks_left))))
         logger.write("Mean reciprocal rank right: {0}".format(np.mean(1.0 / np.array(ranks_right))))
         logger.write("Mean reciprocal rank: {0}".format(np.mean(1.0 / np.array(ranks))))
-        logger.write("\n")
-        logger.write(f"Accuracy: {accuracy}")
-        logger.write(f"F1-score: {f1_score}")
-        logger.write(f"precision: {precision}")
-        logger.write(f"recall: {recall}")
-        logger.write(f"support: {support}")
-        logger.write(f"True Positives: {tp}")
-        logger.write(f"False Positives: {fp}")
-        logger.write(f"True Negatives: {tn}")
-        logger.write(f"False Negatives: {fn}")
-        logger.write(f"True Positive Rate: {tpr}")
-        logger.write(f"False Positive Rate: {fpr}")
-        logger.write(f"True Negative Rate: {tnr}")
-        logger.write(f"False Negative Rate: {fnr}")
 
-        logger.write(f"True Positives: {tp}")
-        logger.write(f"False Positives: {fp}")
-        logger.write(f"True Negatives: {tn}")
-        logger.write(f"False Negatives: {fn}")
-        logger.write(f"True Positive Rate: {tpr}")
-        logger.write(f"False Positive Rate: {fpr}")
-        logger.write(f"True Negative Rate: {tnr}")
-        logger.write(f"False Negative Rate: {fnr}")
+        if labels:
+            logger.write("\n")
+            logger.write(f"Accuracy: {accuracy}")
+            logger.write(f"F1-score: {f1_score}")
+            logger.write(f"precision: {precision}")
+            logger.write(f"recall: {recall}")
+            logger.write(f"support: {support}")
+            logger.write(f"True Positives: {tp}")
+            logger.write(f"False Positives: {fp}")
+            logger.write(f"True Negatives: {tn}")
+            logger.write(f"False Negatives: {fn}")
+            logger.write(f"True Positive Rate: {tpr}")
+            logger.write(f"False Positive Rate: {fpr}")
+            logger.write(f"True Negative Rate: {tnr}")
+            logger.write(f"False Negative Rate: {fnr}")
 
-    # return np.mean(1.0 / np.array(ranks))
-    return accuracy
+    # Return accuracy if using labels, else return MRR
+    ret = accuracy if labels else np.mean(1.0 / np.array(ranks))
+    return ret
 
 class KGC(nn.Module):
     def __init__(self, cfg, num_entities, num_relations):
@@ -262,7 +261,7 @@ class KGC(nn.Module):
         # argsort1 = argsort1.cpu().numpy()
         return argsort1[:, 0].item()
 
-def kg_completion(config_path: str, dataset_dir: str) -> None:
+def kg_completion(config_path: str, dataset_dir: str, labels=False) -> None:
     if not os.path.exists("saved_models"):
         os.mkdir("saved_models")
     cfg = get_yaml_config(config_path)
@@ -383,6 +382,7 @@ def kg_completion(config_path: str, dataset_dir: str) -> None:
             "test_evaluation",
             kg_graph=KG_graph,
             logger=logger,
+            labels=labels
         )
         ranking_and_hits_this(
             cfg,
@@ -392,6 +392,7 @@ def kg_completion(config_path: str, dataset_dir: str) -> None:
             "dev_evaluation",
             kg_graph=KG_graph,
             logger=logger,
+            labels=labels
         )
     else:
         model.init()
@@ -401,7 +402,8 @@ def kg_completion(config_path: str, dataset_dir: str) -> None:
     # print(params)
     # print(np.sum(params))
 
-    best_accuracy = 0.0
+    # Result is accuracy if using labels and MRR if not using labels
+    best_result = 0.0
 
     opt = torch.optim.Adam(model.parameters(), lr=cfg["lr"], weight_decay=cfg["l2"])
     for epoch in range(cfg["epochs"]):
@@ -428,7 +430,7 @@ def kg_completion(config_path: str, dataset_dir: str) -> None:
         model.eval()
         with torch.no_grad():
             if epoch % 2 == 0 and epoch > 0:
-                accuracy = ranking_and_hits_this(
+                result = ranking_and_hits_this(
                     cfg,
                     model,
                     val_dataloader,
@@ -436,9 +438,10 @@ def kg_completion(config_path: str, dataset_dir: str) -> None:
                     "dev_evaluation",
                     kg_graph=KG_graph,
                     logger=logger,
+                    labels=labels
                 )
-                if accuracy > best_accuracy:
-                    best_accuracy = accuracy
+                if result > best_result:
+                    best_result = result
                     logger.write("Best model")
                     print("saving best model to {0}".format(model_path))
                     torch.save(model.state_dict(), model_path)
@@ -451,5 +454,6 @@ def kg_completion(config_path: str, dataset_dir: str) -> None:
                         dataset.vocab_model,
                         "test_evaluation",
                         kg_graph=KG_graph,
-                        logger=logger
+                        logger=logger,
+                        labels=labels
                     )
