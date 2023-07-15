@@ -9,6 +9,30 @@ from anomaly_detection.kg_completion.kg_completion import kg_completion
 
 def main():
     np.random.seed(1234)
+
+    config_filename = "config/cyberml.yaml"
+    dataset_dir = "data/CyberML/preprocessed"
+    models = ["gcn_complex", "ggnn_complex", "complex", "gcn_distmult", "ggnn_distmult", "distmult"]
+
+    yaml = ruamel.yaml.YAML()
+    cfg = {}
+    with open(config_filename, "r", encoding="utf-8") as config_file:
+        cfg = yaml.load(config_file)
+
+    for model in models:
+        cfg["model"] = model
+        if model == "gcn_distmult" or model == "gnn_distmult":
+            cfg["direction_option"] = "bi_sep"
+        elif model == "gcn_complex":
+            cfg["direction_option"] = "undirected"
+        elif model == "ggnn_complex":
+            cfg["direction_option"] = "bi_fuse"
+
+        with open(config_filename, "w", encoding="utf-8") as config_file:
+            yaml.dump(cfg, config_file)
+
+        kg_completion(config_filename, dataset_dir)
+
     config_filename = "config/ait.yaml"
     dataset_dir = "data/AIT/preprocessed"
     models = ["complex", "distmult", "ggnn_distmult", "gcn_distmult", "gcn_complex", "ggnn_complex"]
