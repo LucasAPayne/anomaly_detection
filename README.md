@@ -14,6 +14,7 @@ Use Anaconda to create and activate a virtual environment, then install the addi
     conda activate anomaly_detection
     cd path/to/repo
     pip3 install -r requirements.txt
+    ./setup
 
 ## Running the Demo
 This repository includes a demo using the AIT log dataset. To run this demo, it is required to download the [AIT](https://zenodo.org/record/4264796) and [cyberML](https://github.com/dodo47/cyberML/tree/main/data) datasets and place them into the `data` directory. Next, run

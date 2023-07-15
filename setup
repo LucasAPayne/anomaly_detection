@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# Install graph4nlp submodule
+cd lib/graph4nlp
+./configure
+python setup.py install
