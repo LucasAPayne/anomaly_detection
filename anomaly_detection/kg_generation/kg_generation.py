@@ -98,7 +98,7 @@ def parse_log(in_log_file: str,
               out_file: str,
               batch_size: int = 10000,
               logger: logging.Logger = None,
-              labels=False) -> None:
+              labels=True) -> None:
     """
     Parse a log file, writing the templates and extracted parameters to a JSON file.
 
@@ -125,13 +125,16 @@ def parse_log(in_log_file: str,
         start_time = time.time()
         batch_start_time = start_time
 
+        buffer = []
+
         for line in infile:
             line = line.rstrip()
             # NOTE(lucas): Temporarily lift label if it comes from test/val set
             # so it does not appear in template. Then put it back
             label = ""
-            if labels and (file_in_dataset(outfile.name, "test") or \
-                           file_in_dataset(outfile.name, "val")):
+            # if labels and (file_in_dataset(outfile.name, "test") or \
+            #                file_in_dataset(outfile.name, "val")):
+            if labels:
                 _, *_, label = line.split()
                 line = line.rsplit(None, 1)[0]
             line = line.rstrip()
@@ -153,10 +156,16 @@ def parse_log(in_log_file: str,
                 logger.info(f"Processing line: {line_count}, rate {rate:.1f} lines/sec, "
                             f"{len(template_miner.drain.clusters)} clusters so far.")
                 batch_start_time = time.time()
-            if result["change_type"] != "none":
-                json.dumps(result)
+            # if result["change_type"] != "none":
+            #     json.dumps(result)
 
-            outfile.write(json.dumps(result) + "\n")
+            buffer.append(json.dumps(result) + "\n")
+            if len(buffer) == batch_size:
+                outfile.writelines(buffer)
+                buffer.clear()
+
+        outfile.writelines(buffer)
+        buffer.clear()
 
     time_taken = time.time() - start_time
     rate = line_count / time_taken if time_taken > 0 else 0
@@ -170,7 +179,8 @@ def parse_log(in_log_file: str,
 
     template_miner.profiler.report(0)
 
-def extract_relations_templates(template_dir: str, out_path: str, label_path: str=None) -> None:
+def extract_relations_templates(template_dir: str, out_path: str, labels: bool=True,
+                                chunk_size: int=10000) -> None:
     """
     Extract relations from parsed log files using templates,
     and write the resulting triples to a file.
@@ -180,7 +190,6 @@ def extract_relations_templates(template_dir: str, out_path: str, label_path: st
     - `template_dir`: the directory containing log template files
     - `out_file`: the file to which to write the extracted triples
     - `labels`: whether log lines contain labels (i.e., number that indicates suspicion).
-                Only affects test/val datasets
     """
     # TODO(lucas): Replace this mapping with mappings to ontologies
     type_map = {"IP": "ip_address",
@@ -191,10 +200,6 @@ def extract_relations_templates(template_dir: str, out_path: str, label_path: st
                 "HOST": "host",
                 "SESSION": "session"}
 
-    label_file = None
-    if label_path:
-        label_file = open(label_path, "w", encoding="utf-8")
-
     # TODO(lucas): Try to reduce nesting
     with open(out_path, "w", encoding="utf-8") as outfile, \
          open (join_path("config", "templates.json"), "r", encoding="utf-8") as template_file:
@@ -203,6 +208,8 @@ def extract_relations_templates(template_dir: str, out_path: str, label_path: st
         for entry in os.listdir(template_dir):
             with open(join_path(template_dir, entry), "r", encoding="utf-8") as infile:
                 # For each line, search for a matching template
+
+                buffer = []
                 for parsed_line in infile:
                     for template in templates:
                         parse_result = json.loads(parsed_line)
@@ -217,30 +224,40 @@ def extract_relations_templates(template_dir: str, out_path: str, label_path: st
                                 sub = str(parse_result["params"][sub_index][0]).lower()
                                 obj = str(parse_result["params"][obj_index][0]).lower()
                                 rel = str(relation["relation_label"]).lower()
-                                if label_file:
-                                    label = parse_result["label"]
-                                    outfile.write(f"{sub}\t{rel}\t{obj}\n")
-                                    label_file.write(label + '\n')
+                                label = parse_result["label"]
+                                if labels:
+                                    buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\n")
                                 else:
-                                    outfile.write(f"{sub}\t{rel}\t{obj}\n")
+                                    buffer.append(f"{sub}\t{rel}\t{obj}\n")
 
                                 # TODO(lucas): Add type relations for objects
                                 # Add type relation if subject
                                 sub_type = parse_result["params"][sub_index][1]
                                 obj_type = parse_result["params"][obj_index][1]
-                                if file_in_dataset(infile.name, "train") and  sub_type in type_map:
+                                if file_in_dataset(infile.name, "train") and sub_type in type_map:
                                     # TODO(lucas): replace with RDF type relation
                                     rel = "a"
                                     obj = type_map[sub_type].lower()
-                                    outfile.write(f"{sub}\t{rel}\t{obj}\n")
+                                    if labels:
+                                        buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\n")
+                                    else:
+                                        buffer.append(f"{sub}\t{rel}\t{obj}\n")
                                 if file_in_dataset(infile.name, "train") and obj_type in type_map:
                                     sub = parse_result["params"][obj_index][0].lower()
                                     rel = "a"
                                     obj = type_map[obj_type].lower()
-                                    outfile.write(f"{sub}\t{rel}\t{obj}\n")
+                                    if labels:
+                                        buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\n")
+                                    else:
+                                        buffer.append(f"{sub}\t{rel}\t{obj}\n")
 
-    if label_file and not label_file.closed:
-        label_file.close()
+                    if len(buffer) == chunk_size:
+                        outfile.writelines(buffer)
+                        buffer.clear()
+
+                outfile.writelines(buffer)
+                buffer.clear()
+
 
 def generate_val_set(train_path: str, out_val_path: str, val_ratio: float):
     """
@@ -267,7 +284,7 @@ def generate_val_set(train_path: str, out_val_path: str, val_ratio: float):
     with open(out_val_path, "w", encoding="utf-8")  as val_file:
         val_file.writelines(test_data[val_indices])
 
-def _save_ids(path: str, mapping: dict):
+def _save_ids(path: str, mapping: dict, chunk_size: int=10000):
     """
     Save mapping of IDs to strings to a file. Internal function
 
@@ -280,10 +297,18 @@ def _save_ids(path: str, mapping: dict):
     mapping = sorted(mapping.items(), key=lambda x : x[1])
 
     with open(path, "w", encoding="utf-8") as outfile:
+        buffer = []
         for i in mapping:
-            outfile.write(str(i[1]) + '\t' + str(i[0]) + '\n')
+            buffer.append(str(i[1]) + '\t' + str(i[0]) + '\n')
+            if len(buffer) == chunk_size:
+                outfile.writelines(buffer)
+                buffer.clear()
+        
+        outfile.writelines(buffer)
+        buffer.clear()
 
-def _regenerate_triples_with_ids(triples_path: str, ent_ids: dict, rel_ids: dict):
+def _regenerate_triples_with_ids(triples_path: str, ent_ids: dict, rel_ids: dict,
+                                 labels: bool=True, chunk_size: int=10000):
     """
     Regenerate triples in a dataset using saved ID mappings.
 
@@ -309,6 +334,7 @@ def _regenerate_triples_with_ids(triples_path: str, ent_ids: dict, rel_ids: dict
     out_path = triples_path_root + ".txt"
     with open(new_triples_path, "r", encoding="utf-8") as infile, \
          open(out_path, "w", encoding="utf-8") as outfile:
+        buffer = []
         for line in infile:
             line = line.rstrip().split('\t')
 
@@ -329,13 +355,25 @@ def _regenerate_triples_with_ids(triples_path: str, ent_ids: dict, rel_ids: dict
             sub = str(ent_ids[line[0]])
             rel = str(rel_ids[line[1]])
             obj = str(ent_ids[line[2]])
-            outfile.write(sub + '\t' + rel + '\t' + obj + '\n')
 
-    triples_filename = triples_path_root[triples_path_root.rfind(os.sep):]
+            if labels:
+                label = line[3]
+                buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\n")
+            else:
+                buffer.append(f"{sub}\t{rel}\t{obj}\n")
+
+            if len(buffer) == chunk_size:
+                outfile.writelines(buffer)
+                buffer.clear()
+
+        outfile.writelines(buffer)
+        buffer.clear()
+
+    triples_filename = triples_path_root[triples_path_root.rfind(os.sep)+1:]
     print(f"{discarded_tripes} triples discarded from {triples_filename}")
 
-def _generate_ids(preprpocessed_data_dir: str, train_path: str,
-                  test_path: str, val_path: str) -> None:
+def _generate_ids(preprpocessed_data_dir: str, train_path: str, test_path: str, val_path: str,
+                  labels: bool=True) -> None:
     """
     Generate a mapping of entities/relations to IDs based on the training dataset. Then, rebuild
     the KG using those IDs rather than the entities/relations themselves. This can be helpful to
@@ -430,9 +468,9 @@ def generate_kg(raw_data_dir: str, labels: bool=True, gen_ids: bool=False) -> No
     train_kg_file = os.path.join(preprocessed_data_dir, "train.txt")
     test_kg_file = os.path.join(preprocessed_data_dir, "test.txt")
     val_kg_file = os.path.join(preprocessed_data_dir, "valid.txt")
-    label_file = os.path.join(preprocessed_data_dir, "labels.txt")
-    extract_relations_templates(join_path("templates", "train"), train_kg_file)
-    extract_relations_templates(join_path("templates", "test"), test_kg_file, label_file)
+    # label_file = os.path.join(preprocessed_data_dir, "labels.txt")
+    extract_relations_templates(join_path("templates", "train"), train_kg_file, labels=labels)
+    extract_relations_templates(join_path("templates", "test"), test_kg_file, labels=labels)
     # remove_duplicate_lines(train_kg_file)
     # remove_duplicate_lines(test_kg_file)
     generate_val_set(test_kg_file, val_kg_file, val_ratio=0.5)

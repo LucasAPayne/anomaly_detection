@@ -23,7 +23,7 @@ def write_training_graph(cases, graph, path):
             data_point["rel_eval"] = "None"
             data_point["e2_multi1"] = entities1
             data_point["e2_multi2"] = "None"
-            data_point["label"] = 1
+            data_point["label"] = "0"
 
             f.write(json.dumps(data_point) + "\n")
 

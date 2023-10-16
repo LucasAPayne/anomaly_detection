@@ -24,10 +24,10 @@ def main():
     ait_dataset.extract_dataset(ait_raw_data_dir, exclude_errors)
     generate_kg(ait_raw_data_dir, labels, gen_ids=True)
 
-    wrangle_kg(ait_preprocessed_data_dir)
-    kg_completion("config/ait.yaml", "data/AIT/preprocessed")
-    # collect_results("results/kgc")
-    # find_best_model("results/kgc/AIT")
+    wrangle_kg(ait_preprocessed_data_dir, labels=labels)
+    kg_completion("config/ait.yaml", "data/AIT/preprocessed", labels=labels)
+    collect_results("results/kgc")
+    find_best_model("results/kgc/AIT")
 
 if __name__ == "__main__":
     main()

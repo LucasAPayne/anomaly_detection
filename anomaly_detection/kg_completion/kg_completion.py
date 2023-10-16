@@ -13,11 +13,11 @@ from graph4nlp.pytorch.modules.utils.config_utils import get_yaml_config
 from graph4nlp.pytorch.datasets.kinship import KinshipDataset
 from graph4nlp.pytorch.modules.utils.logger import Logger
 
-from .model import Complex, ConvE, Distmult, GCNComplex, GCNDistMult,GGNNComplex, GGNNDistMult
+from .model import Complex, ConvE, Distmult, GCNComplex, GCNDistMult, GGNNComplex, GGNNDistMult
 
 import sklearn.metrics
 
-def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=None, logger=None, labels=False):
+def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=None, logger=None, labels=True):
     print("")
     print("-" * 50)
     print(name)
@@ -57,10 +57,13 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
             true_labels = []
             pred_labels = []
             for label in true_labels_int:
-                if label == 1:
+                if label == 0:
                     true_labels.append("normal")
                 else:
                     true_labels.append("suspicious")
+
+            # true_labels = str2var["label"]
+            # pred_labels = []
 
         if cfg["cuda"]:
             e1 = e1.to("cuda")
@@ -135,7 +138,7 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
         label_names = ["normal", "suspicious"]
         accuracy = sklearn.metrics.accuracy_score(true_labels, pred_labels)
         precision, recall, f1_score, support = sklearn.metrics.precision_recall_fscore_support(true_labels, pred_labels, labels=label_names, pos_label="suspicious", average="binary", zero_division=0)
-        tn, fp, fn, tp = sklearn.metrics.confusion_matrix(true_labels, pred_labels).ravel()
+        tn, fp, fn, tp = sklearn.metrics.confusion_matrix(true_labels, pred_labels, labels=label_names).ravel()
 
         # Prevent divide by 0
         tpr = tp / (tp + fn) if tp + fn > 0 else 0.0
@@ -261,7 +264,7 @@ class KGC(nn.Module):
         # argsort1 = argsort1.cpu().numpy()
         return argsort1[:, 0].item()
 
-def kg_completion(config_path: str, dataset_dir: str, labels=False) -> None:
+def kg_completion(config_path: str, dataset_dir: str, labels: bool=True) -> None:
     if not os.path.exists("saved_models"):
         os.mkdir("saved_models")
     cfg = get_yaml_config(config_path)
