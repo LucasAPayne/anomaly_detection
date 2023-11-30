@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 _graph4nlp_module_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'lib', 'graph4nlp')
 sys.path.append(_graph4nlp_module_dir)
 from graph4nlp.pytorch.modules.utils.config_utils import get_yaml_config
+from graph4nlp.pytorch.modules.utils.generic_utils import EarlyStopping
 from graph4nlp.pytorch.datasets.kinship import KinshipDataset
 from graph4nlp.pytorch.modules.utils.logger import Logger
 
@@ -137,8 +138,15 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
     if labels:
         label_names = ["normal", "suspicious"]
         accuracy = sklearn.metrics.accuracy_score(true_labels, pred_labels)
-        precision, recall, f1_score, support = sklearn.metrics.precision_recall_fscore_support(true_labels, pred_labels, labels=label_names, pos_label="suspicious", average="binary", zero_division=0)
-        tn, fp, fn, tp = sklearn.metrics.confusion_matrix(true_labels, pred_labels, labels=label_names).ravel()
+        precision, recall, f1_score, support = \
+            sklearn.metrics.precision_recall_fscore_support(true_labels,
+                                                            pred_labels,
+                                                            labels=label_names,
+                                                            pos_label="suspicious",
+                                                            average="binary",
+                                                            zero_division=0.0)
+        tn, fp, fn, tp = \
+            sklearn.metrics.confusion_matrix(true_labels, pred_labels, labels=label_names).ravel()
 
         # Prevent divide by 0
         tpr = tp / (tp + fn) if tp + fn > 0 else 0.0
@@ -148,23 +156,23 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
 
 
     for i in range(10):
-        print("Hits left @{0}: {1}".format(i + 1, np.mean(hits_left[i])))
-        print("Hits right @{0}: {1}".format(i + 1, np.mean(hits_right[i])))
+        print("Hits Left @{0}: {1}".format(i + 1, np.mean(hits_left[i])))
+        print("Hits Right @{0}: {1}".format(i + 1, np.mean(hits_right[i])))
         print("Hits @{0}: {1}".format(i + 1, np.mean(hits[i])))
-    print("Mean rank left: {0}".format(np.mean(ranks_left)))
-    print("Mean rank right: {0}".format(np.mean(ranks_right)))
-    print("Mean rank: {0}".format(np.mean(ranks)))
-    print("Mean reciprocal rank left: {0}".format(np.mean(1.0 / np.array(ranks_left))))
-    print("Mean reciprocal rank right: {0}".format(np.mean(1.0 / np.array(ranks_right))))
-    print("Mean reciprocal rank: {0}".format(np.mean(1.0 / np.array(ranks))))
+    print("Mean Rank Left: {0}".format(np.mean(ranks_left)))
+    print("Mean Rank Right: {0}".format(np.mean(ranks_right)))
+    print("Mean Rank: {0}".format(np.mean(ranks)))
+    print("Mean Reciprocal Rank Left: {0}".format(np.mean(1.0 / np.array(ranks_left))))
+    print("Mean Reciprocal Rank Right: {0}".format(np.mean(1.0 / np.array(ranks_right))))
+    print("Mean Reciprocal Rank: {0}".format(np.mean(1.0 / np.array(ranks))))
 
     if labels:
         print("\n")
         print(f"Accuracy: {accuracy}")
-        print(f"F1-score: {f1_score}")
-        print(f"precision: {precision}")
-        print(f"recall: {recall}")
-        print(f"support: {support}")
+        print(f"F1-Score: {f1_score}")
+        print(f"Precision: {precision}")
+        print(f"Recall: {recall}")
+        print(f"Support: {support}")
         print(f"True Positives: {tp}")
         print(f"False Positives: {fp}")
         print(f"True Negatives: {tn}")
@@ -177,23 +185,23 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
 
     if logger is not None:
         for i in [0, 9]:
-            logger.write("Hits left @{0}: {1}".format(i + 1, np.mean(hits_left[i])))
-            logger.write("Hits right @{0}: {1}".format(i + 1, np.mean(hits_right[i])))
+            logger.write("Hits Left @{0}: {1}".format(i + 1, np.mean(hits_left[i])))
+            logger.write("Hits Right @{0}: {1}".format(i + 1, np.mean(hits_right[i])))
             logger.write("Hits @{0}: {1}".format(i + 1, np.mean(hits[i])))
-        logger.write("Mean rank left: {0}".format(np.mean(ranks_left)))
-        logger.write("Mean rank right: {0}".format(np.mean(ranks_right)))
-        logger.write("Mean rank: {0}".format(np.mean(ranks)))
-        logger.write("Mean reciprocal rank left: {0}".format(np.mean(1.0 / np.array(ranks_left))))
-        logger.write("Mean reciprocal rank right: {0}".format(np.mean(1.0 / np.array(ranks_right))))
-        logger.write("Mean reciprocal rank: {0}".format(np.mean(1.0 / np.array(ranks))))
+        logger.write("Mean Rank Left: {0}".format(np.mean(ranks_left)))
+        logger.write("Mean Rank Right: {0}".format(np.mean(ranks_right)))
+        logger.write("Mean Rank: {0}".format(np.mean(ranks)))
+        logger.write("Mean Reciprocal Rank Left: {0}".format(np.mean(1.0 / np.array(ranks_left))))
+        logger.write("Mean Reciprocal Rank Right: {0}".format(np.mean(1.0 / np.array(ranks_right))))
+        logger.write("Mean Reciprocal Rank: {0}".format(np.mean(1.0 / np.array(ranks))))
 
         if labels:
             logger.write("\n")
             logger.write(f"Accuracy: {accuracy}")
-            logger.write(f"F1-score: {f1_score}")
-            logger.write(f"precision: {precision}")
-            logger.write(f"recall: {recall}")
-            logger.write(f"support: {support}")
+            logger.write(f"F1-Score: {f1_score}")
+            logger.write(f"Precision: {precision}")
+            logger.write(f"Recall: {recall}")
+            logger.write(f"Support: {support}")
             logger.write(f"True Positives: {tp}")
             logger.write(f"False Positives: {fp}")
             logger.write(f"True Negatives: {tn}")
@@ -210,7 +218,20 @@ def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=No
 class KGC(nn.Module):
     def __init__(self, cfg, num_entities, num_relations):
         super(KGC, self).__init__()
+
         self.cfg = cfg
+        self.model_name = "{0}_{1}_{2}_{3}_{4}_{5}_{6}".format(
+            self.cfg["model"],
+            self.cfg["direction_option"],
+            self.cfg["l2"],
+            self.cfg["label_smoothing"],
+            self.cfg["input_drop"],
+            self.cfg["hidden_drop"],
+            self.cfg["feat_drop"]
+        )
+
+        self.stopper = EarlyStopping("saved_models/{0}_{1}.model".format(cfg["dataset"],
+                                     self.model_name), patience=self.cfg['patience'])
         self.num_entities = num_entities
         self.num_relations = num_relations
         if cfg["model"] is None:
@@ -407,6 +428,7 @@ def kg_completion(config_path: str, dataset_dir: str, labels: bool=True) -> None
 
     # Result is accuracy if using labels and MRR if not using labels
     best_result = 0.0
+    result = 0.0
 
     opt = torch.optim.Adam(model.parameters(), lr=cfg["lr"], weight_decay=cfg["l2"])
     for epoch in range(cfg["epochs"]):
@@ -460,3 +482,6 @@ def kg_completion(config_path: str, dataset_dir: str, labels: bool=True) -> None
                         logger=logger,
                         labels=labels
                     )
+        
+        if model.stopper.step(result, model):
+            break

@@ -26,7 +26,7 @@ def main():
 
     wrangle_kg(ait_preprocessed_data_dir, labels=labels)
     kg_completion("config/ait.yaml", "data/AIT/preprocessed", labels=labels)
-    collect_results("results/kgc")
+    collect_results("results/kgc/AIT")
     find_best_model("results/kgc/AIT")
 
 if __name__ == "__main__":

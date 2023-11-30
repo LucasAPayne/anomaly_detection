@@ -22,8 +22,8 @@ def main():
     cyberml_dataset.extract_dataset(cyberml_raw_data_dir, val_ratio=0.5, labels=labels)
     wrangle_kg(cyberml_preprocessed_data_dir, labels=labels)
     kg_completion("config/cyberml.yaml", "data/CyberML/preprocessed", labels=labels)
-    # collect_results("results/kgc")
-    # find_best_model("results/kgc/CyberML")
+    collect_results("results/kgc")
+    find_best_model("results/kgc/CyberML")
 
 if __name__ == "__main__":
     main()

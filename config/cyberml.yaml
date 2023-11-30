@@ -11,6 +11,7 @@ loader_threads: 4 # number of data loader workers
 lr: 0.0005 # learning rate
 l2: 0.0
 label_smoothing: 0.1
+patience: 10 # How many epocs to wait for model improvement before stopping early
 
 # GNN
 direction_option: bi_fuse # Choose from: {undirected, bi_sep, bi_fuse}
