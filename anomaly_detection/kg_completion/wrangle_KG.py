@@ -55,8 +55,6 @@ def write_evaluation_graph(cases, graph, path):
 
 
 def wrangle_kg(data_dir, labels=False):
-    np.random.RandomState(234234)
-
     files = ["train.txt", "valid.txt", "test.txt"]
     data = []
     label_graph = {}

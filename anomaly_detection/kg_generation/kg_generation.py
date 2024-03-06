@@ -96,6 +96,7 @@ def remove_duplicate_lines(path: str):
 
 def parse_log(in_log_file: str,
               out_file: str,
+              dataset_name: str,
               batch_size: int = 10000,
               logger: logging.Logger = None,
               labels=True) -> None:
@@ -106,12 +107,13 @@ def parse_log(in_log_file: str,
     ----------
     - `in_log_file`: the log file to parse
     - `out_file`: the file to which to write the results
+    - `dataset_name`: the name of the dataset
     - `logger`: optional logger to print progress messages to terminal
     - `label_file`: path to label file if lines include labels
     """
 
     config = TemplateMinerConfig()
-    config.load(join_path("config", "drain3.ini"))
+    config.load(join_path("config", dataset_name, "drain3.ini"))
     config.profiling_enabled = True
     template_miner = TemplateMiner(config=config)
 
@@ -179,8 +181,8 @@ def parse_log(in_log_file: str,
 
     template_miner.profiler.report(0)
 
-def extract_relations_templates(template_dir: str, out_path: str, labels: bool=True,
-                                chunk_size: int=10000) -> None:
+def extract_relations_templates(template_dir: str, out_path: str, dataset_name: str,
+                                labels: bool=True, chunk_size: int=10000) -> None:
     """
     Extract relations from parsed log files using templates,
     and write the resulting triples to a file.
@@ -188,7 +190,7 @@ def extract_relations_templates(template_dir: str, out_path: str, labels: bool=T
     Parameters
     ----------
     - `template_dir`: the directory containing log template files
-    - `out_file`: the file to which to write the extracted triples
+    - `out_path`: the file to which to write the extracted triples
     - `labels`: whether log lines contain labels (i.e., number that indicates suspicion).
     """
     # TODO(lucas): Replace this mapping with mappings to ontologies
@@ -198,11 +200,17 @@ def extract_relations_templates(template_dir: str, out_path: str, labels: bool=T
                 "USER": "user",
                 "PROCESS": "process",
                 "HOST": "host",
-                "SESSION": "session"}
+                "SESSION": "session",
+                "MODULE": "module",
+                "DATANODES": "datanodes",
+                "HOST_LIST": "host_list",
+                "FILEPATH": "filepath",
+                "BLOCK": "block"}
 
+    template_path = join_path("config", dataset_name, "templates.json")
     # TODO(lucas): Try to reduce nesting
-    with open(out_path, "w", encoding="utf-8") as outfile, \
-         open (join_path("config", "templates.json"), "r", encoding="utf-8") as template_file:
+    with open(out_path, "w", encoding="utf-8") as out_file, \
+         open(template_path, "r", encoding="utf-8") as template_file:
         templates = json.load(template_file)["templates"]
 
         for entry in os.listdir(template_dir):
@@ -218,12 +226,12 @@ def extract_relations_templates(template_dir: str, out_path: str, labels: bool=T
                             # and write a triple to the output file.
                             # The template contains the index into the "params" field of the parsed
                             # log file
-                            for relation in template["relations"]:
+                            for relation in template["triples"]:
                                 sub_index = relation["subject"]
                                 obj_index = relation["object"]
                                 sub = str(parse_result["params"][sub_index][0]).lower()
                                 obj = str(parse_result["params"][obj_index][0]).lower()
-                                rel = str(relation["relation_label"]).lower()
+                                rel = str(relation["relation"]).lower()
                                 label = parse_result["label"]
                                 if labels:
                                     buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\n")
@@ -252,14 +260,13 @@ def extract_relations_templates(template_dir: str, out_path: str, labels: bool=T
                                         buffer.append(f"{sub}\t{rel}\t{obj}\n")
 
                     if len(buffer) == chunk_size:
-                        outfile.writelines(buffer)
+                        out_file.writelines(buffer)
                         buffer.clear()
 
-                outfile.writelines(buffer)
+                out_file.writelines(buffer)
                 buffer.clear()
 
-
-def generate_val_set(train_path: str, out_val_path: str, val_ratio: float):
+def generate_val_set(train_path: str, out_val_path: str, val_ratio: float) -> None:
     """
     Generate a validation set by splitting the train set into two pieces based on val_ratio.
     To make a more varied set, randomly permute the training set.
@@ -281,7 +288,7 @@ def generate_val_set(train_path: str, out_val_path: str, val_ratio: float):
     with open(train_path, "w", encoding="utf-8") as test_file:
         test_file.writelines(test_data[test_indices])
 
-    with open(out_val_path, "w", encoding="utf-8")  as val_file:
+    with open(out_val_path, "w", encoding="utf-8") as val_file:
         val_file.writelines(test_data[val_indices])
 
 def _save_ids(path: str, mapping: dict, chunk_size: int=10000):
@@ -308,7 +315,7 @@ def _save_ids(path: str, mapping: dict, chunk_size: int=10000):
         buffer.clear()
 
 def _regenerate_triples_with_ids(triples_path: str, ent_ids: dict, rel_ids: dict,
-                                 labels: bool=True, chunk_size: int=10000):
+                                 labels: bool=True, str=None, chunk_size: int=10000):
     """
     Regenerate triples in a dataset using saved ID mappings.
 
@@ -420,7 +427,7 @@ def _generate_ids(preprpocessed_data_dir: str, train_path: str, test_path: str, 
     _regenerate_triples_with_ids(test_path, ent_ids, rel_ids)
     _regenerate_triples_with_ids(val_path, ent_ids, rel_ids)
 
-def generate_kg(raw_data_dir: str, labels: bool=True, gen_ids: bool=False) -> None:
+def generate_kg(raw_data_dir: str, dataset_name: str, labels: bool=True, gen_ids: bool=False) -> None:
     """
     Generate a knowledge graph from a set of log files using entity and relation extraction.
 
@@ -439,7 +446,7 @@ def generate_kg(raw_data_dir: str, labels: bool=True, gen_ids: bool=False) -> No
     # Directory to write KG data to
     preprocessed_data_dir = os.path.join(raw_data_dir, "preprocessed")
 
-    make_dir("templates")
+    make_dir(os.path.join("templates", dataset_name))
     make_dir(preprocessed_data_dir)
 
     for root, _, files in os.walk(raw_data_dir):
@@ -462,15 +469,18 @@ def generate_kg(raw_data_dir: str, labels: bool=True, gen_ids: bool=False) -> No
                 make_dir(join_path("templates", match))
 
                 result_file = join_path("templates", result_prefix + filename + "_result.jsonl")
-                parse_log(os.path.join(root, file), result_file, logger=logger, labels=labels)
+                parse_log(os.path.join(root, file), result_file, dataset_name,
+                          logger=logger, labels=labels)
 
     # TODO(lucas): Have option to remove generated template files and templates directory
     train_kg_file = os.path.join(preprocessed_data_dir, "train.txt")
     test_kg_file = os.path.join(preprocessed_data_dir, "test.txt")
     val_kg_file = os.path.join(preprocessed_data_dir, "valid.txt")
     # label_file = os.path.join(preprocessed_data_dir, "labels.txt")
-    extract_relations_templates(join_path("templates", "train"), train_kg_file, labels=labels)
-    extract_relations_templates(join_path("templates", "test"), test_kg_file, labels=labels)
+    extract_relations_templates(join_path("templates", "train"), train_kg_file,
+                                dataset_name, labels=labels)
+    extract_relations_templates(join_path("templates", "test"), test_kg_file,
+                                dataset_name, labels=labels)
     # remove_duplicate_lines(train_kg_file)
     # remove_duplicate_lines(test_kg_file)
     generate_val_set(test_kg_file, val_kg_file, val_ratio=0.5)

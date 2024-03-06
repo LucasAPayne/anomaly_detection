@@ -249,7 +249,7 @@ def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: li
                         buffer.append(line)
 
                 # Flush buffer to file once it reaches target size
-                if len(buffer) == chunk_size :
+                if len(buffer) == chunk_size:
                     out_file.writelines(buffer)
                     buffer.clear()
 
@@ -338,21 +338,8 @@ def inject_testing_set(raw_data_dir: str, data_file_list: list[str], lines: int,
              open(test_file_to_open,  "a",  encoding="utf-8") as out_data_file:
             train_lines = in_file.readlines()
 
-            buffer = []
             # Append an "observed during training" label to each line from the training set
-            lines_to_write = train_lines[-lines:]
-            for line in lines_to_write:
-                if labels:
-                    buffer.append(line.rstrip() + "\t\t0\n")
-                else:
-                    buffer.append(line)
-
-                if len(buffer) == chunk_size:
-                    out_data_file.writelines(buffer)
-                    buffer.clear()
-
-            out_data_file.writelines(buffer)
-            buffer.clear()
+            out_data_file.writelines(train_lines[-lines:])
 
             # Delete the last n lines from training file to prevent duplication
             in_file.writelines(train_lines[:-lines])

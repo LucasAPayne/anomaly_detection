@@ -22,7 +22,7 @@ def main():
     labels = True
     exclude_errors = True
     ait_dataset.extract_dataset(ait_raw_data_dir, exclude_errors)
-    generate_kg(ait_raw_data_dir, labels, gen_ids=True)
+    generate_kg(ait_raw_data_dir, "AIT", labels, gen_ids=True)
 
     wrangle_kg(ait_preprocessed_data_dir, labels=labels)
     kg_completion("config/ait.yaml", "data/AIT/preprocessed", labels=labels)

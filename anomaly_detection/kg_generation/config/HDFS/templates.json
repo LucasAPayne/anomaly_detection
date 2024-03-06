@@ -1,0 +1,254 @@
+{
+    "templates":
+    [
+        {
+            "template_mined": "Changing block file offset of block <:BLOCK:> from <:NUM:> to <:NUM:> meta file offset to <:NUM:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "has_block_file_offset", "object": 2},
+                {"subject": 0, "relation": "has_meta_file_offset", "object": 3}
+            ]
+        },
+        {
+            "template_mined": "Exception in receiveBlock for block <:BLOCK:> <:EXCEPTION:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "got_exception", "object": 1}
+            ]
+        },
+        {
+            "template_mined": "BLOCK* <:MODULE:>.addStoredBlock: addStoredBlock request received for <:BLOCK:> on <:HOST_LIST:> size <:NUM:> But it does not belong to any file.",
+            "triples":
+            [
+                {"subject": 0, "relation": "has_host", "object": 1},
+                {"subject": 0, "relation": "has_size", "object": 2},
+                {"subject": 1, "relation": "has_block", "object": 0}
+            ]
+        },
+        {
+            "template_mined": "<:MODULE:> timed out block <:BLOCK:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "timed_out", "object": 1}
+            ]
+        },
+        {
+            "template_mined": "<:HOST_LIST:>:Failed to transfer <:BLOCK:> to <:HOST_LIST:> got <:EXCEPTION:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "has_block", "object": 1},
+                {"subject": 0, "relation": "failed_transfer_of", "object": 1},
+                {"subject": 0, "relation": "got_exception", "object": 3},
+                {"subject": 1, "relation": "has_host", "object": 0},
+                {"subject": 1, "relation": "failed_transfer_to", "object": 2}
+            ]
+        },
+        {
+            "template_mined": "Unexpected error trying to delete block <:BLOCK:>. BlockInfo not found in volumeMap.",
+            "triples":
+            [
+
+            ]
+        },
+        {
+            "template_mined": "Deleting block <:BLOCK:> file <:FILEPATH:>",
+            "triples":
+            [
+
+            ]
+        },
+        {
+            "template_mined": "Verification succeeded for <:BLOCK:>",
+            "triples":
+            [
+
+            ]
+        },
+        {
+            "template_mined": "Receiving empty packet for block <:BLOCK:>",
+            "triples":
+            [
+
+            ]
+        },
+        {
+            "template_mined": "BLOCK* <:MODULE:>.addStoredBlock: Redundant addStoredBlock request received for <:BLOCK:> on <:HOST_LIST:> size <:NUM:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "reduntant_request_for", "object": 1},
+                {"subject": 1, "relation": "on_host", "object": 2},
+                {"subject": 1, "relation": "has_size", "object": 3},
+                {"subject": 2, "relation": "has_block", "object": 1}
+            ]
+        },
+        {
+            "template_mined": "<:MODULE:> <:BLOCK:> <:NUM:> Exception <:EXCEPTION:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "got_exception", "object": 3},
+                {"subject": 0, "relation": "has_module_id", "object": 2},
+                {"subject": 1, "relation": "got_exception", "object": 3}
+            ]
+        },
+        {
+            "template_mined": "BLOCK* <:MODULE:>.addStoredBlock: blockMap updated: <:HOST_LIST:> is added to <:BLOCK:> size <:NUM:>",
+            "triples":
+            [
+                {"subject": 1, "relation": "added_to", "object": 2},
+                {"subject": 2, "relation": "has_size", "object": 3}
+            ]
+        },
+        {
+            "template_mined": "Received block <:BLOCK:> of size <:NUM:> from <:IP:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "has_size", "object": 1},
+                {"subject": 2, "relation": "sent_block", "object": 0}
+            ]
+        },
+        {
+            "template_mined": "<:HOST_LIST:> Served block <:BLOCK:> to <:IP:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "has_block", "object": 1},
+                {"subject": 0, "relation": "served_block", "object": 1},
+                {"subject": 1, "relation": "served_to", "object": 2},
+                {"subject": 1, "relation": "served_by", "object": 0},
+                {"subject": 1, "relation": "has_host", "object": 0},
+                {"subject": 2, "relation": "received_block", "object": 1}
+            ]
+        },
+        {
+            "template_mined": "BLOCK* Removing block <:BLOCK:> from neededReplications as it does not belong to any file.",
+            "triples":
+            [
+                
+            ]
+        },
+        {
+            "template_mined": "BLOCK* ask <:HOST_LIST:> to replicate <:BLOCK:> to <:DATANODES:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "replicate_block", "object": 1},
+                {"subject": 1, "relation": "replicated_to", "object": 2}
+            ]
+        },
+        {
+            "template_mined": "<:HOST_LIST:>:Got exception while serving <:BLOCK:> to <:IP:>:",
+            "triples":
+            [
+                {"subject": 0, "relation": "serve_exception", "object": 1},
+                {"subject": 1, "relation": "served_exception", "object": 2}
+            ]
+        },
+        {
+            "template_mined": "<:MODULE:> <:NUM:> for block <:BLOCK:> terminating",
+            "triples":
+            [
+                {"subject": 0, "relation": "has_module_id", "object": 1},
+                {"subject": 0, "relation": "has_block", "object": 2},
+                {"subject": 0, "relation": "terminating_module_id", "object": 1}
+            ]
+        },
+        {
+            "template_mined": "<:HOST_LIST:>:Exception writing block <:BLOCK:> to mirror <:HOST_LIST:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "write_exception", "object": 1},
+                {"subject": 1, "relation": "write_exception", "object": 2}
+            ]
+        },
+        {
+            "template_mined": "BLOCK* <:MODULE:>.delete: <:BLOCK:> is added to invalidSet of <:HOST_LIST:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "deleted_block", "object": 1},
+                {"subject": 2, "relation": "has_invalid_block", "object": 1}
+            ]
+        },
+        {
+            "template_mined": "Receiving block <:BLOCK:> src: <:HOST_LIST:> dest: <:HOST_LIST:>",
+            "triples":
+            [
+                {"subject": 1, "relation": "has_block", "object": 0},
+                {"subject": 1, "relation": "served_block", "object": 0},
+                {"subject": 0, "relation": "served_to", "object": 2},
+                {"subject": 0, "relation": "served_by", "object": 1},
+                {"subject": 0, "relation": "has_host", "object": 1},
+                {"subject": 2, "relation": "received_block", "object": 0}
+            ]
+        },
+        {
+            "template_mined": "Adding an already existing block <:BLOCK:>",
+            "triples":
+            [
+
+            ]
+        },
+        {
+            "template_mined": "BLOCK* <:MODULE:>.allocateBlock: <:FILEPATH:> <:BLOCK:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "allocated_block", "object": 2},
+                {"subject": 2, "relation": "has_filepath", "object": 1}
+            ]
+        },
+        {
+            "template_mined": "<:MODULE:> <:BLOCK:> received exception <:EXCEPTION:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "got_exception", "object": 2},
+                {"subject": 1, "realtion": "got_exception", "object": 2}
+            ]
+        },
+        {
+            "template_mined": "<:HOST_LIST:>:Transmitted block <:BLOCK:> to <:HOST_LIST:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "has_block", "object": 1},
+                {"subject": 0, "relation": "served_block", "object": 1},
+                {"subject": 1, "relation": "served_to", "object": 2},
+                {"subject": 1, "relation": "served_by", "object": 0},
+                {"subject": 1, "relation": "has_host", "object": 0},
+                {"subject": 2, "relation": "received_block", "object": 1}
+            ]
+        },
+        {
+            "template_mined": "Reopen Block <:BLOCK:>",
+            "triples":
+            [
+
+            ]
+        },
+        {
+            "template_mined": "Received block <:BLOCK:> src: <:HOST_LIST:> dest: <:HOST_LIST:> of size <:NUM:>",
+            "triples":
+            [
+                {"subject": 1, "relation": "has_block", "object": 0},
+                {"subject": 1, "relation": "served_block", "object": 0},
+                {"subject": 0, "relation": "served_to", "object": 2},
+                {"subject": 0, "relation": "served_by", "object": 1},
+                {"subject": 0, "relation": "has_host", "object": 1},
+                {"subject": 0, "relation": "has_size", "object": 3},
+                {"subject": 2, "relation": "received_block", "object": 0}
+            ]
+        },
+        {
+            "template_mined": "<:MODULE:> <:NUM:> for block <:BLOCK:> Interrupted.",
+            "triples":
+            [
+                {"subject": 0, "relation": "has_module_id", "object": 1},
+                {"subject": 1, "relation": "block_interrupted", "object": 2}
+            ]
+        },
+        {
+            "template_mined": "<:HOST_LIST:> Starting thread to transfer block <:BLOCK:> to <:HOST_LIST:>",
+            "triples":
+            [
+                {"subject": 0, "relation": "transfered_block", "object": 1},
+                {"subject": 1, "relation": "transfered_to", "object": 2},
+                {"subject": 1, "relation": "transfered_by", "object": 0}
+            ]
+        }
+    ]
+}
