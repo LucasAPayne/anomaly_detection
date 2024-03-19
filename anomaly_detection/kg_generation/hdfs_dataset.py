@@ -70,13 +70,12 @@ def extract_dataset(data_dir: str, chunk_size: int=10000) -> None:
          open(test_file_path, "w", encoding="utf-8") as test_file:
         print(f"Extracting data from {data_file_path}...", end=' ', flush=True)
         for line, label in zip(data_file, label_file):
-            if label.strip() == "0 -1" and train_size < 10_000: # Normal label
+            if label.strip() == "0 -1": # Normal label
                 train_buffer.append(line.strip() + "\t\t0\n")
                 train_size += 1
             else:
-                if test_size < 10_000:
-                    test_buffer.append(line.strip() + "\t\t1\n")
-                    test_size += 1
+                test_buffer.append(line.strip() + "\t\t1\n")
+                test_size += 1
 
             flush_buffer_to_file(train_buffer, train_file, chunk_size)
             flush_buffer_to_file(test_buffer, test_file, chunk_size)

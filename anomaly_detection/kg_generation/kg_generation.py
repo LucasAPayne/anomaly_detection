@@ -16,6 +16,9 @@ from drain3.template_miner_config import TemplateMinerConfig
 
 import numpy as np
 
+# NOTE(lucas): global variables
+entities = set()
+relations = set()
 
 # TODO(lucas): Put os wrappers in separate file to be shared
 # (For some reason, this function did not work when placed in a separate file)
@@ -195,6 +198,7 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
     """
     # TODO(lucas): Replace this mapping with mappings to ontologies
     type_map = {"IP": "ip_address",
+                "PORT": "port",
                 "UID": "user_id",
                 "PID": "process_id",
                 "USER": "user",
@@ -203,9 +207,15 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
                 "SESSION": "session",
                 "MODULE": "module",
                 "DATANODES": "datanodes",
-                "HOST_LIST": "host_list",
                 "FILEPATH": "filepath",
                 "BLOCK": "block"}
+
+    global entities
+    global relations
+
+    entities_discarded = 0
+    relations_discarded = 0
+    triples_discarded = 0
 
     template_path = join_path("config", dataset_name, "templates.json")
     # TODO(lucas): Try to reduce nesting
@@ -233,6 +243,22 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
                                 obj = str(parse_result["params"][obj_index][0]).lower()
                                 rel = str(relation["relation"]).lower()
                                 label = parse_result["label"]
+
+                                if template_dir.endswith("train"):
+                                    entities.add(sub)
+                                    relations.add(rel)
+                                else:
+                                    skip = False
+                                    if sub not in entities or obj not in entities:
+                                        entities_discarded += 1
+                                        skip = True
+                                    if rel not in relations:
+                                        relations_discarded += 1
+                                        skip = True
+                                    if skip:
+                                        triples_discarded += 1
+                                        continue
+
                                 if labels:
                                     buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\n")
                                 else:
@@ -265,6 +291,10 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
 
                 out_file.writelines(buffer)
                 buffer.clear()
+
+    if triples_discarded:
+        print(f"{entities_discarded} entities and {relations_discarded} relations were not found in the train set.")
+        print(f"In total, {triples_discarded} triples were discarded.")
 
 def generate_val_set(train_path: str, out_val_path: str, val_ratio: float) -> None:
     """
@@ -446,6 +476,7 @@ def generate_kg(raw_data_dir: str, dataset_name: str, labels: bool=True, gen_ids
     # Directory to write KG data to
     preprocessed_data_dir = os.path.join(raw_data_dir, "preprocessed")
 
+    make_dir("templates")
     make_dir(os.path.join("templates", dataset_name))
     make_dir(preprocessed_data_dir)
 
@@ -476,9 +507,11 @@ def generate_kg(raw_data_dir: str, dataset_name: str, labels: bool=True, gen_ids
     train_kg_file = os.path.join(preprocessed_data_dir, "train.txt")
     test_kg_file = os.path.join(preprocessed_data_dir, "test.txt")
     val_kg_file = os.path.join(preprocessed_data_dir, "valid.txt")
-    # label_file = os.path.join(preprocessed_data_dir, "labels.txt")
+
+    # TODO(lucas): Remove triples from test/val sets that have entities and relations that do not exist in train set
+    # Use Sets
     extract_relations_templates(join_path("templates", "train"), train_kg_file,
-                                dataset_name, labels=labels)
+                                                      dataset_name, labels=labels)
     extract_relations_templates(join_path("templates", "test"), test_kg_file,
                                 dataset_name, labels=labels)
     # remove_duplicate_lines(train_kg_file)

@@ -17,12 +17,12 @@
             ]
         },
         {
-            "template_mined": "BLOCK* <:MODULE:>.addStoredBlock: addStoredBlock request received for <:BLOCK:> on <:HOST_LIST:> size <:NUM:> But it does not belong to any file.",
+            "template_mined": "BLOCK* <:MODULE:>.addStoredBlock: addStoredBlock request received for <:BLOCK:> on <:IP:>:<:PORT:> size <:NUM:> But it does not belong to any file.",
             "triples":
             [
-                {"subject": 0, "relation": "has_host", "object": 1},
-                {"subject": 0, "relation": "has_size", "object": 2},
-                {"subject": 1, "relation": "has_block", "object": 0}
+                {"subject": 0, "relation": "has_host", "object": 2},
+                {"subject": 1, "relation": "has_size", "object": 4},
+                {"subject": 2, "relation": "has_block", "object": 0}
             ]
         },
         {
@@ -33,14 +33,14 @@
             ]
         },
         {
-            "template_mined": "<:HOST_LIST:>:Failed to transfer <:BLOCK:> to <:HOST_LIST:> got <:EXCEPTION:>",
+            "template_mined": "<:IP:>:<:PORT:>:Failed to transfer <:BLOCK:> to <:IP:>:<:PORT:> got <:EXCEPTION:>",
             "triples":
             [
-                {"subject": 0, "relation": "has_block", "object": 1},
-                {"subject": 0, "relation": "failed_transfer_of", "object": 1},
-                {"subject": 0, "relation": "got_exception", "object": 3},
-                {"subject": 1, "relation": "has_host", "object": 0},
-                {"subject": 1, "relation": "failed_transfer_to", "object": 2}
+                {"subject": 0, "relation": "has_block", "object": 2},
+                {"subject": 0, "relation": "failed_transfer_of", "object": 2},
+                {"subject": 0, "relation": "got_exception", "object": 5},
+                {"subject": 2, "relation": "has_host", "object": 0},
+                {"subject": 2, "relation": "failed_transfer_to", "object": 3}
             ]
         },
         {
@@ -72,12 +72,12 @@
             ]
         },
         {
-            "template_mined": "BLOCK* <:MODULE:>.addStoredBlock: Redundant addStoredBlock request received for <:BLOCK:> on <:HOST_LIST:> size <:NUM:>",
+            "template_mined": "BLOCK* <:MODULE:>.addStoredBlock: Redundant addStoredBlock request received for <:BLOCK:> on <:IP:>:<:PORT:> size <:NUM:>",
             "triples":
             [
                 {"subject": 0, "relation": "reduntant_request_for", "object": 1},
-                {"subject": 1, "relation": "on_host", "object": 2},
-                {"subject": 1, "relation": "has_size", "object": 3},
+                {"subject": 1, "relation": "has_host", "object": 2},
+                {"subject": 1, "relation": "has_size", "object": 4},
                 {"subject": 2, "relation": "has_block", "object": 1}
             ]
         },
@@ -91,11 +91,11 @@
             ]
         },
         {
-            "template_mined": "BLOCK* <:MODULE:>.addStoredBlock: blockMap updated: <:HOST_LIST:> is added to <:BLOCK:> size <:NUM:>",
+            "template_mined": "BLOCK* <:MODULE:>.addStoredBlock: blockMap updated: <:IP:>:<:PORT:> is added to <:BLOCK:> size <:NUM:>",
             "triples":
             [
-                {"subject": 1, "relation": "added_to", "object": 2},
-                {"subject": 2, "relation": "has_size", "object": 3}
+                {"subject": 1, "relation": "added_to", "object": 3},
+                {"subject": 3, "relation": "has_size", "object": 4}
             ]
         },
         {
@@ -107,15 +107,15 @@
             ]
         },
         {
-            "template_mined": "<:HOST_LIST:> Served block <:BLOCK:> to <:IP:>",
+            "template_mined": "<:IP:>:<:PORT:> Served block <:BLOCK:> to <:IP:>",
             "triples":
             [
-                {"subject": 0, "relation": "has_block", "object": 1},
-                {"subject": 0, "relation": "served_block", "object": 1},
-                {"subject": 1, "relation": "served_to", "object": 2},
-                {"subject": 1, "relation": "served_by", "object": 0},
-                {"subject": 1, "relation": "has_host", "object": 0},
-                {"subject": 2, "relation": "received_block", "object": 1}
+                {"subject": 0, "relation": "has_block", "object": 2},
+                {"subject": 0, "relation": "served_block", "object": 2},
+                {"subject": 2, "relation": "served_to", "object": 3},
+                {"subject": 2, "relation": "served_by", "object": 0},
+                {"subject": 2, "relation": "has_host", "object": 0},
+                {"subject": 3, "relation": "received_block", "object": 2}
             ]
         },
         {
@@ -126,19 +126,19 @@
             ]
         },
         {
-            "template_mined": "BLOCK* ask <:HOST_LIST:> to replicate <:BLOCK:> to <:DATANODES:>",
+            "template_mined": "BLOCK* ask <:IP:>:<:PORT:> to replicate <:BLOCK:> to <:DATANODES:>",
             "triples":
             [
-                {"subject": 0, "relation": "replicate_block", "object": 1},
-                {"subject": 1, "relation": "replicated_to", "object": 2}
+                {"subject": 0, "relation": "replicate_block", "object": 2},
+                {"subject": 2, "relation": "replicated_to", "object": 3}
             ]
         },
         {
-            "template_mined": "<:HOST_LIST:>:Got exception while serving <:BLOCK:> to <:IP:>:",
+            "template_mined": "<:IP:>:<:PORT:>:Got exception while serving <:BLOCK:> to <:IP:>:",
             "triples":
             [
-                {"subject": 0, "relation": "serve_exception", "object": 1},
-                {"subject": 1, "relation": "served_exception", "object": 2}
+                {"subject": 0, "relation": "serve_exception", "object": 2},
+                {"subject": 3, "relation": "serve_exception", "object": 2}
             ]
         },
         {
@@ -151,15 +151,15 @@
             ]
         },
         {
-            "template_mined": "<:HOST_LIST:>:Exception writing block <:BLOCK:> to mirror <:HOST_LIST:>",
+            "template_mined": "<:IP:>:<:PORT:>:Exception writing block <:BLOCK:> to mirror <:IP:>:<:PORT:>",
             "triples":
             [
-                {"subject": 0, "relation": "write_exception", "object": 1},
-                {"subject": 1, "relation": "write_exception", "object": 2}
+                {"subject": 0, "relation": "write_exception", "object": 2},
+                {"subject": 3, "relation": "write_exception", "object": 2}
             ]
         },
         {
-            "template_mined": "BLOCK* <:MODULE:>.delete: <:BLOCK:> is added to invalidSet of <:HOST_LIST:>",
+            "template_mined": "BLOCK* <:MODULE:>.delete: <:BLOCK:> is added to invalidSet of <:IP:>:<:PORT:>",
             "triples":
             [
                 {"subject": 0, "relation": "deleted_block", "object": 1},
@@ -167,15 +167,15 @@
             ]
         },
         {
-            "template_mined": "Receiving block <:BLOCK:> src: <:HOST_LIST:> dest: <:HOST_LIST:>",
+            "template_mined": "Receiving block <:BLOCK:> src: <:IP:>:<:PORT:> dest: <:IP:>:<:PORT:>",
             "triples":
             [
                 {"subject": 1, "relation": "has_block", "object": 0},
                 {"subject": 1, "relation": "served_block", "object": 0},
-                {"subject": 0, "relation": "served_to", "object": 2},
+                {"subject": 0, "relation": "served_to", "object": 3},
                 {"subject": 0, "relation": "served_by", "object": 1},
                 {"subject": 0, "relation": "has_host", "object": 1},
-                {"subject": 2, "relation": "received_block", "object": 0}
+                {"subject": 3, "relation": "received_block", "object": 0}
             ]
         },
         {
@@ -202,15 +202,15 @@
             ]
         },
         {
-            "template_mined": "<:HOST_LIST:>:Transmitted block <:BLOCK:> to <:HOST_LIST:>",
+            "template_mined": "<:IP:>:<:PORT:>:Transmitted block <:BLOCK:> to <:IP:>:<:PORT:>",
             "triples":
             [
-                {"subject": 0, "relation": "has_block", "object": 1},
-                {"subject": 0, "relation": "served_block", "object": 1},
-                {"subject": 1, "relation": "served_to", "object": 2},
-                {"subject": 1, "relation": "served_by", "object": 0},
-                {"subject": 1, "relation": "has_host", "object": 0},
-                {"subject": 2, "relation": "received_block", "object": 1}
+                {"subject": 0, "relation": "has_block", "object": 2},
+                {"subject": 0, "relation": "served_block", "object": 2},
+                {"subject": 2, "relation": "served_to", "object": 3},
+                {"subject": 2, "relation": "served_by", "object": 0},
+                {"subject": 2, "relation": "has_host", "object": 0},
+                {"subject": 3, "relation": "received_block", "object": 2}
             ]
         },
         {
@@ -221,16 +221,16 @@
             ]
         },
         {
-            "template_mined": "Received block <:BLOCK:> src: <:HOST_LIST:> dest: <:HOST_LIST:> of size <:NUM:>",
+            "template_mined": "Received block <:BLOCK:> src: <:IP:>:<:PORT:> dest: <:IP:>:<:PORT:> of size <:NUM:>",
             "triples":
             [
                 {"subject": 1, "relation": "has_block", "object": 0},
                 {"subject": 1, "relation": "served_block", "object": 0},
-                {"subject": 0, "relation": "served_to", "object": 2},
+                {"subject": 0, "relation": "served_to", "object": 3},
                 {"subject": 0, "relation": "served_by", "object": 1},
                 {"subject": 0, "relation": "has_host", "object": 1},
-                {"subject": 0, "relation": "has_size", "object": 3},
-                {"subject": 2, "relation": "received_block", "object": 0}
+                {"subject": 0, "relation": "has_size", "object": 5},
+                {"subject": 3, "relation": "received_block", "object": 0}
             ]
         },
         {
@@ -242,12 +242,12 @@
             ]
         },
         {
-            "template_mined": "<:HOST_LIST:> Starting thread to transfer block <:BLOCK:> to <:HOST_LIST:>",
+            "template_mined": "<:IP:>:<:PORT:> Starting thread to transfer block <:BLOCK:> to <:IP:>:<:PORT:>",
             "triples":
             [
-                {"subject": 0, "relation": "transfered_block", "object": 1},
-                {"subject": 1, "relation": "transfered_to", "object": 2},
-                {"subject": 1, "relation": "transfered_by", "object": 0}
+                {"subject": 0, "relation": "transfered_block", "object": 2},
+                {"subject": 2, "relation": "transfered_to", "object": 3},
+                {"subject": 2, "relation": "transfered_by", "object": 0}
             ]
         }
     ]
