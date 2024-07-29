@@ -8,6 +8,7 @@ import fileinput
 import json
 import logging
 import os
+import shutil
 import sys
 import time
 
@@ -132,7 +133,7 @@ def parse_log(in_log_file: str,
 
         buffer = []
 
-        for line in infile:
+        for i, line in enumerate(infile):
             line = line.rstrip()
             # NOTE(lucas): Temporarily lift label if it comes from test/val set
             # so it does not appear in template. Then put it back
@@ -153,6 +154,7 @@ def parse_log(in_log_file: str,
                     line,
                     exact_matching=True)
             result["label"] = label
+            result["log_id"] = i
 
             line_count += 1
             if line_count % batch_size == 0:
@@ -200,9 +202,12 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
     type_map = {"IP": "ip_address",
                 "PORT": "port",
                 "UID": "user_id",
+                "EUID": "effective_user_id",
                 "PID": "process_id",
                 "USER": "user",
                 "PROCESS": "process",
+                "SERVICE": "service",
+                "EVENT": "event",
                 "HOST": "host",
                 "SESSION": "session",
                 "MODULE": "module",
@@ -243,6 +248,7 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
                                 obj = str(parse_result["params"][obj_index][0]).lower()
                                 rel = str(relation["relation"]).lower()
                                 label = parse_result["label"]
+                                log_id = parse_result["log_id"]
 
                                 if template_dir.endswith("train"):
                                     entities.add(sub)
@@ -260,7 +266,7 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
                                         continue
 
                                 if labels:
-                                    buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\n")
+                                    buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
                                 else:
                                     buffer.append(f"{sub}\t{rel}\t{obj}\n")
 
@@ -273,7 +279,7 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
                                     rel = "a"
                                     obj = type_map[sub_type].lower()
                                     if labels:
-                                        buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\n")
+                                        buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
                                     else:
                                         buffer.append(f"{sub}\t{rel}\t{obj}\n")
                                 if file_in_dataset(infile.name, "train") and obj_type in type_map:
@@ -281,7 +287,7 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
                                     rel = "a"
                                     obj = type_map[obj_type].lower()
                                     if labels:
-                                        buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\n")
+                                        buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
                                     else:
                                         buffer.append(f"{sub}\t{rel}\t{obj}\n")
 
@@ -517,6 +523,12 @@ def generate_kg(raw_data_dir: str, dataset_name: str, labels: bool=True, gen_ids
     # remove_duplicate_lines(train_kg_file)
     # remove_duplicate_lines(test_kg_file)
     generate_val_set(test_kg_file, val_kg_file, val_ratio=0.5)
+
+    # Make a copy of the dataset in kg_completion/datasets/name
+    kgc_prefix = join_path("..", "kg_completion", "datasets", dataset_name)
+    shutil.copy(train_kg_file, join_path(kgc_prefix, "train.txt"))
+    shutil.copy(test_kg_file, join_path(kgc_prefix, "test.txt"))
+    shutil.copy(val_kg_file, join_path(kgc_prefix, "valid.txt"))
 
     # Optionally generate ID mappings for each entity and relation and regenerate the triple sets
     # using those IDs

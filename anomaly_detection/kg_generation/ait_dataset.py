@@ -334,12 +334,31 @@ def inject_testing_set(raw_data_dir: str, data_file_list: list[str], lines: int,
         train_file_to_open = os.path.join(raw_data_dir, "train", file)
         test_file_to_open  = os.path.join(raw_data_dir, "test", file)
 
+        if train_file_to_open.endswith("auth.log") or train_file_to_open.endswith("messages"):
+            lines = 1000
+        elif train_file_to_open.endswith("mainlog"):
+            lines = 50
+        else:
+            lines = 5
+
         with open(train_file_to_open, "r+", encoding="utf-8") as in_file, \
              open(test_file_to_open,  "a",  encoding="utf-8") as out_data_file:
             train_lines = in_file.readlines()
 
+            # TODO(lucas): Variable number of lines depending on type of log file?
+            # Much higher for long logs, fewer or nothing for short logs
+            buffer = []
             # Append an "observed during training" label to each line from the training set
-            out_data_file.writelines(train_lines[-lines:])
+            lines_to_write = train_lines[-lines:]
+            for line in lines_to_write:
+                buffer.append(line)
+
+                if len(buffer) == chunk_size:
+                    out_data_file.writelines(buffer)
+                    buffer.clear()
+
+            out_data_file.writelines(buffer)
+            buffer.clear()
 
             # Delete the last n lines from training file to prevent duplication
             in_file.writelines(train_lines[:-lines])
