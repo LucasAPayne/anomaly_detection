@@ -1,16 +1,15 @@
 """
 A program that demonstrates templates knowledge graph generation from log files
-as well as knowledge graph completion using both traditional and GNN models
+as well as knowledge graph completion for anomaly detection
 """
 
 import os
 import numpy as np
+import yaml
 
 from anomaly_detection.kg_generation import ait_dataset
 from anomaly_detection.kg_generation.kg_generation import generate_kg
-from anomaly_detection.kg_completion.wrangle_KG import wrangle_kg
 from anomaly_detection.kg_completion.kg_completion import kg_completion
-from collect_results import collect_results, find_best_model
 
 def main():
     """
@@ -18,16 +17,16 @@ def main():
     """
     np.random.seed(1234)
     ait_raw_data_dir = os.path.join(os.path.dirname(__file__), "data", "AIT")
-    ait_preprocessed_data_dir = os.path.join(ait_raw_data_dir, "preprocessed")
     labels = True
     exclude_errors = True
     ait_dataset.extract_dataset(ait_raw_data_dir, exclude_errors)
-    generate_kg(ait_raw_data_dir, labels, gen_ids=True)
+    generate_kg(ait_raw_data_dir, "AIT", labels, gen_ids=False)
 
-    wrangle_kg(ait_preprocessed_data_dir)
-    kg_completion("config/ait.yaml", "data/AIT/preprocessed")
-    # collect_results("results/kgc")
-    # find_best_model("results/kgc/AIT")
+    cfg_path = "config/ait.yaml"
+    cfg: dict = {}
+    with open(cfg_path, "r", encoding="utf-8") as cfg_file:
+        cfg = yaml.safe_load(cfg_file)
+    kg_completion(cfg)
 
 if __name__ == "__main__":
     main()

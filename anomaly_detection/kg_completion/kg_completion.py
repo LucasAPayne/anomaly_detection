@@ -1,459 +1,203 @@
+import json
 import os
-import sys
 import numpy as np
-import torch
-import torch.backends.cudnn as cudnn
-import torch.nn as nn
-from torch.utils.data import DataLoader
 
-# TODO(lucas): Is there a better way to import this?
-_graph4nlp_module_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'lib', 'graph4nlp')
-sys.path.append(_graph4nlp_module_dir)
-from graph4nlp.pytorch.modules.utils.config_utils import get_yaml_config
-from graph4nlp.pytorch.datasets.kinship import KinshipDataset
-from graph4nlp.pytorch.modules.utils.logger import Logger
+from pykeen.datasets import PathDataset
+from pykeen.evaluation import LCWAEvaluationLoop, RankBasedEvaluator
+from pykeen.models import ERModel, ComplEx, ConvE, DistMult
+from pykeen.pipeline import pipeline
+from pykeen.stoppers import EarlyStopper
+from pykeen.losses import SoftplusLoss
+from pykeen.sampling import BasicNegativeSampler
 
-from .model import Complex, ConvE, Distmult, GCNComplex, GCNDistMult,GGNNComplex, GGNNDistMult
+from torch.optim import Adam
 
-import sklearn.metrics
+# For reporting classification metrics
+import sklearn
 
-def ranking_and_hits_this(cfg, model, dev_rank_batcher, vocab, name, kg_graph=None, logger=None, labels=False):
-    print("")
-    print("-" * 50)
-    print(name)
-    print("-" * 50)
-    print("")
-    if logger is not None:
-        logger.write("")
-        logger.write("-" * 50)
-        logger.write(name)
-        logger.write("-" * 50)
-        logger.write("")
+# TODO(lucas): Register datasets through PyKEEN
+from .datasets.AIT import AIT
+from .datasets.CyberML import CyberML
+from .datasets.HDFS import HDFS
 
-    hits_left = []
-    hits_right = []
-    hits = []
-    ranks = []
-    ranks_left = []
-    ranks_right = []
-    for _ in range(10):
-        hits_left.append([])
-        hits_right.append([])
-        hits.append([])
+def report_classification_results(true_labels: list, pred_labels: list, file_path: str):
+    label_names = ["normal", "suspicious"]
+    accuracy = sklearn.metrics.accuracy_score(true_labels, pred_labels)
+    precision, recall, f1_score, support = \
+        sklearn.metrics.precision_recall_fscore_support(true_labels, pred_labels,
+                                                        labels=label_names, pos_label="suspicious",
+                                                        average="binary", zero_division=0)
+    tn, fp, fn, tp = sklearn.metrics.confusion_matrix(true_labels, pred_labels).ravel()
+
+    # Prevent divide by 0
+    tpr = tp / (tp + fn) if tp + fn > 0 else 0.0
+    tnr = tn / (tn + fp) if tn + fp > 0 else 0.0
+    fpr = fp / (fp + tn) if fp + tn > 0 else 0.0
+    fnr = fn / (fn + tp) if fn + tp > 0 else 0.0
+
+    print(f"Accuracy: {accuracy}")
+    print(f"F1-score: {f1_score}")
+    print(f"precision: {precision}")
+    print(f"recall: {recall}")
+    print(f"support: {support}")
+    print(f"True Positives: {tp}")
+    print(f"False Positives: {fp}")
+    print(f"True Negatives: {tn}")
+    print(f"False Negatives: {fn}")
+    print(f"True Positive Rate: {tpr}")
+    print(f"False Positive Rate: {fpr}")
+    print(f"True Negative Rate: {tnr}")
+    print(f"False Negative Rate: {fnr}")
+
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(f"Accuracy: {accuracy}\n")
+        f.write(f"F1-score: {f1_score}\n")
+        f.write(f"precision: {precision}\n")
+        f.write(f"recall: {recall}\n")
+        f.write(f"support: {support}\n")
+        f.write(f"True Positives: {tp}\n")
+        f.write(f"False Positives: {fp}\n")
+        f.write(f"True Negatives: {tn}\n")
+        f.write(f"False Negatives: {fn}\n")
+        f.write(f"True Positive Rate: {tpr}\n")
+        f.write(f"False Positive Rate: {fpr}\n")
+        f.write(f"True Negative Rate: {tnr}\n")
+        f.write(f"False Negative Rate: {fnr}\n")
+
+def classify(model: ERModel, dataset: PathDataset, out_dir: str):
+    log_ids: list[str] = dataset.metadata["test"]["log_ids"]
+    labels: list[str] = dataset.metadata["test"]["labels"]
+    has_log_ids = len(log_ids) > 0
+
+    true_labels = []
+    if has_log_ids:
+        for log_id, label in zip(log_ids, labels):
+            label_str = "suspicious" if label == "1" else "normal"
+            true_labels.append((log_id, label_str))
+    else:
+        for label in labels:
+            label_str = "suspicious" if label == "1" else "normal"
+            true_labels.append((0, label_str))
+
+    # TODO(lucas): Is there a better way to organize/extract labels and log IDs?
+    # TODO(lucas): Make all these arrays np.array to begin with
+    # NOTE(lucas): np.unique changes order, so the lists need to be sorted for comparison
+    true_labels_np = np.array(true_labels)
+    true_triple_labels: list = true_labels_np[:,1]
+
+    pred_triple_labels = []
 
     confidence_cutoff = 0.5
+    preds = model.predict_hrt(dataset.testing.mapped_triples)
+    for pred, in preds:
+        pred_label = "normal" if pred > confidence_cutoff else "suspicious"
+        pred_triple_labels.append(pred_label)
 
-    for i, str2var in enumerate(dev_rank_batcher):
-        e1 = str2var["e1_tensor"]
-        e2 = str2var["e2_tensor"]
-        rel = str2var["rel_tensor"]
-        rel_reverse = str2var["rel_eval_tensor"]
-        e2_multi1 = str2var["e2_multi1"].float()
-        e2_multi2 = str2var["e2_multi2"].float()
+    print("--------------------")
+    print("Triple-Level Results")
+    print("--------------------")
+    out_file_triples = os.path.join(out_dir, "result_classification_triples.txt")
+    report_classification_results(true_triple_labels, pred_triple_labels, out_file_triples)
 
-        if labels:
-            # TODO(lucas): Change labels to be strings by default
-            true_labels_int = [int(i) for i in str2var["label"]]
-            true_labels = []
-            pred_labels = []
-            for label in true_labels_int:
-                if label == 1:
-                    true_labels.append("normal")
-                else:
-                    true_labels.append("suspicious")
+    if has_log_ids:
+        log_ids = true_labels_np[:,0]
+        true_line_labels = np.copy(true_labels_np)
+        true_line_labels[:,1] = "normal"
+        true_line_labels_idx = np.unique(true_line_labels, return_index=True, axis=0)[1]
+        true_line_labels = true_line_labels[true_line_labels_idx]
 
-        if cfg["cuda"]:
-            e1 = e1.to("cuda")
-            e2 = e2.to("cuda")
-            rel = rel.to("cuda")
-            rel_reverse = rel_reverse.to("cuda")
-            e2_multi1 = e2_multi1.to("cuda")
-            e2_multi2 = e2_multi2.to("cuda")
+        # NOTE(lucas): For each true label, if the log ID has a suspicious label, find the log ID
+        # in the unique array and change the label to suspicious
+        for entry in true_labels:
+            if entry[1] == "suspicious":
+                idx = np.where(true_line_labels == entry[0])
+                true_line_labels[idx,1] = "suspicious"
 
-        pred1 = model(e1, rel, kg_graph)
-        pred2 = model(e2, rel_reverse, kg_graph)
-        pred1, pred2 = pred1.data, pred2.data
-        e1, e2 = e1.data, e2.data
-        e2_multi1, e2_multi2 = e2_multi1.data, e2_multi2.data
-        for i in range(e1.shape[0]):
-            # these filters contain ALL labels
-            filter1 = e2_multi1[i].long()
-            filter2 = e2_multi2[i].long()
+        # NOTE(lucas): Initialize predictions as all normal.
+        # Then later, if any triple corresponding to a log ID is deemed suspicious,
+        # change the prediction to suspicious
+        pred_line_labels = np.copy(true_labels_np)
+        pred_line_labels[:,1] = "normal"
+        pred_line_labels_idx = np.unique(pred_line_labels, return_index=True, axis=0)[1]
+        pred_line_labels = pred_line_labels[pred_line_labels_idx]
+        pred_triple_labels = list(zip(log_ids, pred_triple_labels))
 
-            # save the prediction that is relevant
-            target_value1 = pred1[i, e2[i, 0].item()].item()
-            target_value2 = pred2[i, e1[i, 0].item()].item()
-            # zero all known cases (this are not interesting)
-            # this corresponds to the filtered setting
-            pred1[i][filter1] = 0.0
-            pred2[i][filter2] = 0.0
-            # write base the saved values
-            pred1[i][e2[i]] = target_value1
-            pred2[i][e1[i]] = target_value2
+        pred_triple_labels_np = np.array(pred_triple_labels)
+        for entry in pred_triple_labels_np:
+            if entry[1] == "suspicious":
+                idx = np.where(pred_line_labels == entry[0])
+                pred_line_labels[idx,1] = "suspicious"
 
-			# Map confidence to labels
-            if labels:
-                pred_label = "normal" if target_value1 > confidence_cutoff else "suspicious"
-                pred_labels.append(pred_label)
+        print("--------------------")
+        print("Line-Level Results")
+        print("--------------------")
+        out_file_lines = os.path.join(out_dir, "result_classification_lines.txt")
+        report_classification_results(list(true_line_labels[:,1]), list(pred_line_labels[:,1]),
+                                      out_file_lines)
 
-        # sort and rank
-        max_values, argsort1 = torch.sort(pred1, 1, descending=True)
-        max_values, argsort2 = torch.sort(pred2, 1, descending=True)
+def kg_completion(cfg: dict):
+    dataset = None
+    dataset_str = cfg["dataset"].lower()
+    if dataset_str == "ait":
+        dataset = AIT()
+    elif dataset_str == "cyberml":
+        dataset = CyberML()
+    elif dataset_str == "hdfs":
+        dataset = HDFS()
 
-        argsort1 = argsort1.cpu().numpy()
-        argsort2 = argsort2.cpu().numpy()
-        for i in range(e1.shape[0]):
-            # find the rank of the target entities
-            rank1 = np.where(argsort1[i] == e2[i, 0].item())[0][0]
-            rank2 = np.where(argsort2[i] == e1[i, 0].item())[0][0]
-            # rank+1, since the lowest rank is rank 1 not rank 0
-            ranks.append(rank1 + 1)
-            ranks_left.append(rank1 + 1)
-            ranks.append(rank2 + 1)
-            ranks_right.append(rank2 + 1)
+    training_triples_factory = dataset.training
+    val_triples_factory = dataset.validation
 
-            # this could be done more elegantly, but here you go
-            for hits_level in range(10):
-                if rank1 <= hits_level:
-                    hits[hits_level].append(1.0)
-                    hits_left[hits_level].append(1.0)
-                else:
-                    hits[hits_level].append(0.0)
-                    hits_left[hits_level].append(0.0)
+    model = None
+    kgc_model_str = cfg["model"].lower()
+    if kgc_model_str == "complex":
+        model = ComplEx(triples_factory=training_triples_factory,
+                        embedding_dim=cfg["embedding_dim"],
+                        random_seed=cfg["seed"]).cuda()
+    elif kgc_model_str == "distmult":
+        model = DistMult(triples_factory=training_triples_factory,
+                        embedding_dim=cfg["embedding_dim"],
+                        random_seed=cfg["seed"]).cuda()
+    elif kgc_model_str == "conve":
+        model = ConvE(triples_factory=training_triples_factory,
+                      random_seed=cfg["seed"]).cuda()
 
-                if rank2 <= hits_level:
-                    hits[hits_level].append(1.0)
-                    hits_right[hits_level].append(1.0)
-                else:
-                    hits[hits_level].append(0.0)
-                    hits_right[hits_level].append(0.0)
+    optimizer = Adam(params=model.get_grad_params(), lr=cfg["lr"],)
+    negative_sampler = BasicNegativeSampler(mapped_triples=training_triples_factory.mapped_triples)
+    loss = SoftplusLoss()
+    evaluator = RankBasedEvaluator()
 
-        # dev_rank_batcher.state.loss = [0]
+    # TODO(lucas): Use NopStopper if use_stopper is false?
+    stopper = None
+    if cfg["use_stopper"]:
+        stopper = EarlyStopper(model, evaluator, training_triples_factory, val_triples_factory,
+                               frequency=cfg["frequency"], patience=cfg["patience"],
+                               metric=cfg["metric"])
 
-    # Accuracy, precision, recall, f1, support, confusion matrix, true/false pos/neg rates
-    if labels:
-        label_names = ["normal", "suspicious"]
-        accuracy = sklearn.metrics.accuracy_score(true_labels, pred_labels)
-        precision, recall, f1_score, support = sklearn.metrics.precision_recall_fscore_support(true_labels, pred_labels, labels=label_names, pos_label="suspicious", average="binary", zero_division=0)
-        tn, fp, fn, tp = sklearn.metrics.confusion_matrix(true_labels, pred_labels).ravel()
-
-        # Prevent divide by 0
-        tpr = tp / (tp + fn) if tp + fn > 0 else 0.0
-        tnr = tn / (tn + fp) if tn + fp > 0 else 0.0
-        fpr = fp / (fp + tn) if fp + tn > 0 else 0.0
-        fnr = fn / (fn + tp) if fn + tp > 0 else 0.0
-
-
-    for i in range(10):
-        print("Hits left @{0}: {1}".format(i + 1, np.mean(hits_left[i])))
-        print("Hits right @{0}: {1}".format(i + 1, np.mean(hits_right[i])))
-        print("Hits @{0}: {1}".format(i + 1, np.mean(hits[i])))
-    print("Mean rank left: {0}".format(np.mean(ranks_left)))
-    print("Mean rank right: {0}".format(np.mean(ranks_right)))
-    print("Mean rank: {0}".format(np.mean(ranks)))
-    print("Mean reciprocal rank left: {0}".format(np.mean(1.0 / np.array(ranks_left))))
-    print("Mean reciprocal rank right: {0}".format(np.mean(1.0 / np.array(ranks_right))))
-    print("Mean reciprocal rank: {0}".format(np.mean(1.0 / np.array(ranks))))
-
-    if labels:
-        print("\n")
-        print(f"Accuracy: {accuracy}")
-        print(f"F1-score: {f1_score}")
-        print(f"precision: {precision}")
-        print(f"recall: {recall}")
-        print(f"support: {support}")
-        print(f"True Positives: {tp}")
-        print(f"False Positives: {fp}")
-        print(f"True Negatives: {tn}")
-        print(f"False Negatives: {fn}")
-        print(f"True Positive Rate: {tpr}")
-        print(f"False Positive Rate: {fpr}")
-        print(f"True Negative Rate: {tnr}")
-        print(f"False Negative Rate: {fnr}")
-
-
-    if logger is not None:
-        for i in [0, 9]:
-            logger.write("Hits left @{0}: {1}".format(i + 1, np.mean(hits_left[i])))
-            logger.write("Hits right @{0}: {1}".format(i + 1, np.mean(hits_right[i])))
-            logger.write("Hits @{0}: {1}".format(i + 1, np.mean(hits[i])))
-        logger.write("Mean rank left: {0}".format(np.mean(ranks_left)))
-        logger.write("Mean rank right: {0}".format(np.mean(ranks_right)))
-        logger.write("Mean rank: {0}".format(np.mean(ranks)))
-        logger.write("Mean reciprocal rank left: {0}".format(np.mean(1.0 / np.array(ranks_left))))
-        logger.write("Mean reciprocal rank right: {0}".format(np.mean(1.0 / np.array(ranks_right))))
-        logger.write("Mean reciprocal rank: {0}".format(np.mean(1.0 / np.array(ranks))))
-
-        if labels:
-            logger.write("\n")
-            logger.write(f"Accuracy: {accuracy}")
-            logger.write(f"F1-score: {f1_score}")
-            logger.write(f"precision: {precision}")
-            logger.write(f"recall: {recall}")
-            logger.write(f"support: {support}")
-            logger.write(f"True Positives: {tp}")
-            logger.write(f"False Positives: {fp}")
-            logger.write(f"True Negatives: {tn}")
-            logger.write(f"False Negatives: {fn}")
-            logger.write(f"True Positive Rate: {tpr}")
-            logger.write(f"False Positive Rate: {fpr}")
-            logger.write(f"True Negative Rate: {tnr}")
-            logger.write(f"False Negative Rate: {fnr}")
-
-    # Return accuracy if using labels, else return MRR
-    ret = accuracy if labels else np.mean(1.0 / np.array(ranks))
-    return ret
-
-class KGC(nn.Module):
-    def __init__(self, cfg, num_entities, num_relations):
-        super(KGC, self).__init__()
-        self.cfg = cfg
-        self.num_entities = num_entities
-        self.num_relations = num_relations
-        if cfg["model"] is None:
-            model = ConvE(cfg, num_entities, num_relations)
-        elif cfg["model"] == "conve":
-            model = ConvE(cfg, num_entities, num_relations)
-        # elif cfg["model"] == "ggnn_conve":
-        #     model = GGNNConvE(cfg, num_entities, num_relations)
-        # elif cfg["model"] == "gcn_conve":
-        #     model = GCNConvE(cfg, num_entities, num_relations)
-        elif cfg["model"] == "distmult":
-            model = Distmult(cfg, num_entities, num_relations)
-        elif cfg["model"] == "complex":
-            model = Complex(cfg, num_entities, num_relations)
-        elif cfg["model"] == "ggnn_distmult":
-            model = GGNNDistMult(cfg, num_entities, num_relations)
-        elif cfg["model"] == "gcn_distmult":
-            model = GCNDistMult(cfg, num_entities, num_relations)
-        elif cfg["model"] == "ggnn_complex":
-            model = GGNNComplex(cfg, num_entities, num_relations)
-        elif cfg["model"] == "gcn_complex":
-            model = GCNComplex(cfg, num_entities, num_relations)
-        else:
-            raise Exception("Unknown model type!")
-
-        self.model = model
-
-    def init(self):
-        return self.model.init()
-
-    def forward(self, e1_tensor, rel_tensor, KG_graph):
-        return self.model(e1_tensor, rel_tensor, KG_graph)
-
-    def loss(self, pred, e2_multi):
-        return self.model.loss(pred, e2_multi)
-
-    def inference_forward(self, collate_data, KG_graph):
-        e1_tensor = collate_data["e1_tensor"]
-        rel_tensor = collate_data["rel_tensor"]
-        if self.cfg["cuda"]:
-            e1_tensor = e1_tensor.to("cuda")
-            rel_tensor = rel_tensor.to("cuda")
-        return self.model(e1_tensor, rel_tensor, KG_graph)
-
-    def post_process(self, logits, e2=None):
-        max_values, argsort1 = torch.sort(logits, 1, descending=True)
-        rank1 = np.where(argsort1.cpu().numpy()[0] == e2[0, 0].item())[0][0]
-
-        print("ground truth e2 rank = {}".format(rank1 + 1))
-
-        # argsort1 = argsort1.cpu().numpy()
-        return argsort1[:, 0].item()
-
-def kg_completion(config_path: str, dataset_dir: str, labels=False) -> None:
-    if not os.path.exists("saved_models"):
-        os.mkdir("saved_models")
-    cfg = get_yaml_config(config_path)
-
-    model_name = "{0}_{1}_{2}_{3}_{4}_{5}_{6}".format(
-        cfg["model"],
-        cfg["direction_option"],
-        cfg["l2"],
-        cfg["label_smoothing"],
-        cfg["input_drop"],
-        cfg["hidden_drop"],
-        cfg["feat_drop"]
-    )
-    model_path = "saved_models/{0}_{1}.model".format(
-        cfg["dataset"], model_name
-    )
-
-    torch.manual_seed(cfg["seed"])
-
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-    np.set_printoptions(precision=3)
-    cudnn.benchmark = True
-
-    dataset = KinshipDataset(
-        root_dir=dataset_dir,
-        topology_subdir="kgc",
-    )
-
-    cfg["out_dir"] = os.path.join(cfg["out_dir"], "{0}_{1}".format(cfg["dataset"], model_name))
-
-    logger = Logger(
-        cfg["out_dir"],
-        config={k: v for k, v in cfg.items() if k != "device"},
-        overwrite=True,
-    )
-    logger.write(cfg["out_dir"])
-
-    train_dataloader = DataLoader(
-        dataset.train,
-        batch_size=cfg["batch_size"],
-        shuffle=True,
-        num_workers=cfg["loader_threads"],
-        collate_fn=dataset.collate_fn,
-    )
-    val_dataloader = DataLoader(
-        dataset.val,
-        batch_size=cfg["batch_size"],
-        shuffle=False,
-        num_workers=cfg["loader_threads"],
-        collate_fn=dataset.collate_fn,
-    )
-    test_dataloader = DataLoader(
-        dataset.test,
-        batch_size=cfg["batch_size"],
-        shuffle=False,
-        num_workers=cfg["loader_threads"],
-        collate_fn=dataset.collate_fn,
-    )
-
-    data = []
-    rows = []
-    columns = []
-    num_entities = len(dataset.vocab_model.in_word_vocab)
-    num_relations = len(dataset.vocab_model.out_word_vocab)
-
-    if cfg["preprocess"]:
-        for i, str2var in enumerate(train_dataloader):
-            print("batch number:", i)
-            for j in range(str2var["e1"].shape[0]):
-                for k in range(str2var["e2_multi1"][j].shape[0]):
-                    if str2var["e2_multi1"][j][k] != 0:
-                        data.append(str2var["rel"][j].tolist()[0])
-                        rows.append(str2var["e1"][j].tolist()[0])
-                        columns.append(str2var["e2_multi1"][j][k].tolist())
-                    else:
-                        break
-
-        from graph4nlp.pytorch.data.data import GraphData
-
-        KG_graph = GraphData()
-        KG_graph.add_nodes(num_entities)
-        for e1, rel, e2 in zip(rows, data, columns):
-            KG_graph.add_edge(e1, e2)
-            eid = KG_graph.edge_ids(e1, e2)[0]
-            KG_graph.edge_attributes[eid]["token"] = rel
-
-        torch.save(KG_graph, os.path.join(dataset_dir, "processed", "kgc", "KG_graph.pt"))
-    else:
-        graph_path = os.path.join(dataset_dir, "processed", "kgc", "KG_graph.pt")
-        KG_graph = torch.load(graph_path)
-
-    if cfg["cuda"] is True:
-        KG_graph = KG_graph.to("cuda")
-    else:
-        KG_graph = KG_graph.to("cpu")
-
-    model = KGC(cfg, num_entities, num_relations)
-
-    if cfg["cuda"] is True:
-        model.to("cuda")
-
-    if cfg["resume"]:
-        model_params = torch.load(model_path)
-        print(model)
-        total_param_size = []
-        params = [(key, value.size(), value.numel()) for key, value in model_params.items()]
-        for key, size, count in params:
-            total_param_size.append(count)
-            print(key, size, count)
-        print(np.array(total_param_size).sum())
-        model.load_state_dict(model_params)
-        model.eval()
-        ranking_and_hits_this(
-            cfg,
-            model,
-            test_dataloader,
-            dataset.vocab_model,
-            "test_evaluation",
-            kg_graph=KG_graph,
-            logger=logger,
-            labels=labels
+    # TODO(lucas): Custom validation with classification
+    # TODO(lucas): Save checkpoints
+    # TODO(lucas): Replace pipeline with training/val loops?
+    _ = pipeline(
+        dataset=dataset,
+        model=model,
+        loss=loss,
+        negative_sampler=negative_sampler,
+        negative_sampler_kwargs=dict(num_negs_per_pos=cfg["negative_samples"]),
+        optimizer=optimizer,
+        stopper=stopper,
+        training_kwargs=dict(
+            num_epochs=cfg["epochs"],
+            batch_size=cfg["batch_size"],
         )
-        ranking_and_hits_this(
-            cfg,
-            model,
-            val_dataloader,
-            dataset.vocab_model,
-            "dev_evaluation",
-            kg_graph=KG_graph,
-            logger=logger,
-            labels=labels
-        )
-    else:
-        model.init()
+    )
 
-    # total_param_size = []
-    # params = [value.numel() for value in model.parameters()]
-    # print(params)
-    # print(np.sum(params))
+    test_loop = LCWAEvaluationLoop(model=model, triples_factory=dataset.testing,
+                                   evaluator=evaluator)
+    results = test_loop.evaluate()
 
-    # Result is accuracy if using labels and MRR if not using labels
-    best_result = 0.0
+    os.makedirs(cfg["out_dir"], exist_ok=True)
+    kgc_result_path = os.path.join(cfg["out_dir"], "result_kgc.json")
+    with open(kgc_result_path, "w", encoding="utf-8") as f:
+        json.dump(results.to_dict(), f, indent=4)
 
-    opt = torch.optim.Adam(model.parameters(), lr=cfg["lr"], weight_decay=cfg["l2"])
-    for epoch in range(cfg["epochs"]):
-        model.train()
-        for str2var in train_dataloader:
-            opt.zero_grad()
-            e1_tensor = str2var["e1_tensor"]
-            rel_tensor = str2var["rel_tensor"]
-            e2_multi = str2var["e2_multi1_binary"].float()
-            if cfg["cuda"]:
-                e1_tensor = e1_tensor.to("cuda")
-                rel_tensor = rel_tensor.to("cuda")
-                e2_multi = e2_multi.to("cuda")
-            # label smoothing
-            e2_multi = ((1.0 - cfg["label_smoothing"]) * e2_multi) + (1.0 / e2_multi.size(1))
-
-            pred = model(e1_tensor, rel_tensor, KG_graph)
-            loss = model.loss(pred, e2_multi)
-            loss.backward()
-            opt.step()
-
-            # train_batcher.state.loss = loss.cpu()
-
-        model.eval()
-        with torch.no_grad():
-            if epoch % 2 == 0 and epoch > 0:
-                result = ranking_and_hits_this(
-                    cfg,
-                    model,
-                    val_dataloader,
-                    dataset.vocab_model,
-                    "dev_evaluation",
-                    kg_graph=KG_graph,
-                    logger=logger,
-                    labels=labels
-                )
-                if result > best_result:
-                    best_result = result
-                    logger.write("Best model")
-                    print("saving best model to {0}".format(model_path))
-                    torch.save(model.state_dict(), model_path)
-            if epoch % 2 == 0:
-                if epoch > 0:
-                    ranking_and_hits_this(
-                        cfg,
-                        model,
-                        test_dataloader,
-                        dataset.vocab_model,
-                        "test_evaluation",
-                        kg_graph=KG_graph,
-                        logger=logger,
-                        labels=labels
-                    )
+    classify(model, dataset, cfg["out_dir"])
