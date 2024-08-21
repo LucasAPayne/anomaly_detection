@@ -165,7 +165,7 @@ def kg_completion(cfg: dict):
     optimizer = Adam(params=model.get_grad_params(), lr=cfg["lr"],)
     negative_sampler = BasicNegativeSampler(mapped_triples=training_triples_factory.mapped_triples)
     loss = SoftplusLoss()
-    evaluator = RankBasedEvaluator()
+    evaluator = RankBasedEvaluator(batch_size=cfg["val_batch_size"], automatic_memory_optimization=False)
 
     # TODO(lucas): Use NopStopper if use_stopper is false?
     stopper = None
@@ -173,11 +173,15 @@ def kg_completion(cfg: dict):
         stopper = EarlyStopper(model, evaluator, training_triples_factory, val_triples_factory,
                                frequency=cfg["frequency"], patience=cfg["patience"],
                                metric=cfg["metric"])
+        # NOTE(lucas): PyKEEN tries to override the evaluation batch size
+        # on the first evaluation unless this value is set.
+        stopper.evaluation_batch_size = evaluator.batch_size
 
     # TODO(lucas): Custom validation with classification
     # TODO(lucas): Save checkpoints
     # TODO(lucas): Replace pipeline with training/val loops?
     _ = pipeline(
+        random_seed=cfg["seed"],
         dataset=dataset,
         model=model,
         loss=loss,
@@ -188,12 +192,14 @@ def kg_completion(cfg: dict):
         training_kwargs=dict(
             num_epochs=cfg["epochs"],
             batch_size=cfg["batch_size"],
-        )
+        ),
     )
 
     test_loop = LCWAEvaluationLoop(model=model, triples_factory=dataset.testing,
                                    evaluator=evaluator)
-    results = test_loop.evaluate()
+    results = test_loop.evaluate(batch_size=cfg["val_batch_size"])
+    # results = evaluator.evaluate(model=model, mapped_triples=dataset.testing.mapped_triples,
+    #                              batch_size=cfg["val_batch_size"], automatic_memory_optimization=False)
 
     os.makedirs(cfg["out_dir"], exist_ok=True)
     kgc_result_path = os.path.join(cfg["out_dir"], "result_kgc.json")

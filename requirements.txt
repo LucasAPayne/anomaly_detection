@@ -6,3 +6,4 @@ requests
 Pillow
 python-dateutil
 ruamel.yaml
+pykeen

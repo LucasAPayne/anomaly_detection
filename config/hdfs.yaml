@@ -1,6 +1,6 @@
 # Data
-dataset: AIT
-out_dir: results/kgc/AIT
+dataset: HDFS
+out_dir: results/kgc/HDFS
 
 # Training
 model: distmult # distmult, complex, conve

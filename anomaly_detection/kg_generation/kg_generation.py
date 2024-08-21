@@ -34,7 +34,7 @@ def join_path(*paths: str) -> str:
     """
     return os.path.join(os.path.dirname(__file__), *paths)
 
-def make_dir(path: str) -> None:
+def make_dir(path: str) -> str:
     """
     Wrapper around os.mkdir that creates a directory if it does not exist
 
@@ -45,7 +45,9 @@ def make_dir(path: str) -> None:
     # NOTE(lucas): Use join_path to make the path relative to the file
     # making the directory
     if not os.path.exists(join_path(path)):
-        os.mkdir(join_path(path))
+        os.makedirs(join_path(path), exist_ok=True)
+
+    return path
 
 def file_in_dataset(path: str, dataset: str):
     """
@@ -146,7 +148,7 @@ def parse_log(in_log_file: str,
             line = line.rstrip()
 
             # TODO(lucas): See about removing this to preserve timestamp/additional information
-            line = line.partition(": ")[2]
+            # line = line.partition(": ")[2]
 
             result = template_miner.add_log_message(line)
             result["params"] = template_miner.extract_parameters(
@@ -198,19 +200,37 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
     - `out_path`: the file to which to write the extracted triples
     - `labels`: whether log lines contain labels (i.e., number that indicates suspicion).
     """
+
+    def clean_element(el: str) -> str:
+        """
+        Replace spaces in an element with underscores. Multiple spaces are replaced with
+        one underscore, and any trailing spaces are discarded.
+        """
+        words: list[str] = [word for word in el.lower().split(" ") if word != ""]
+        result: str = "_".join(words)
+        return result
+
     # TODO(lucas): Replace this mapping with mappings to ontologies
     type_map = {"IP": "ip_address",
                 "PORT": "port",
                 "UID": "user_id",
                 "EUID": "effective_user_id",
                 "PID": "process_id",
+                "AUTH_METHOD": "authentication_method",
+                "TIMESTAMP": "timestamp",
+                "FILE_PATH": "file_path",
+                "EMAIL": "email_address",
                 "USER": "user",
                 "PROCESS": "process",
+                "SUBMODULE": "submodule",
                 "SERVICE": "service",
+                "MODULE": "module",
+                "PROTOCOL": "protocol",
+                "SECURITY_STATUS": "security_status",
+                "SESSION_ID": "session_id",
                 "EVENT": "event",
                 "HOST": "host",
                 "SESSION": "session",
-                "MODULE": "module",
                 "DATANODES": "datanodes",
                 "FILEPATH": "filepath",
                 "BLOCK": "block"}
@@ -229,10 +249,12 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
         templates = json.load(template_file)["templates"]
 
         for entry in os.listdir(template_dir):
+            print(join_path(template_dir, entry))
             with open(join_path(template_dir, entry), "r", encoding="utf-8") as infile:
                 # For each line, search for a matching template
 
                 buffer = []
+                type_triples = set()
                 for parsed_line in infile:
                     for template in templates:
                         parse_result = json.loads(parsed_line)
@@ -244,9 +266,9 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
                             for relation in template["triples"]:
                                 sub_index = relation["subject"]
                                 obj_index = relation["object"]
-                                sub = str(parse_result["params"][sub_index][0]).lower()
-                                obj = str(parse_result["params"][obj_index][0]).lower()
-                                rel = str(relation["relation"]).lower()
+                                sub = clean_element(str(parse_result["params"][sub_index][0]))
+                                obj = clean_element(str(parse_result["params"][obj_index][0]))
+                                rel = clean_element(str(relation["relation"]))
                                 label = parse_result["label"]
                                 log_id = parse_result["log_id"]
 
@@ -272,24 +294,28 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
 
                                 # TODO(lucas): Add type relations for objects
                                 # Add type relation if subject
-                                sub_type = parse_result["params"][sub_index][1]
-                                obj_type = parse_result["params"][obj_index][1]
-                                if file_in_dataset(infile.name, "train") and sub_type in type_map:
-                                    # TODO(lucas): replace with RDF type relation
-                                    rel = "a"
-                                    obj = type_map[sub_type].lower()
-                                    if labels:
-                                        buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
-                                    else:
-                                        buffer.append(f"{sub}\t{rel}\t{obj}\n")
-                                if file_in_dataset(infile.name, "train") and obj_type in type_map:
-                                    sub = parse_result["params"][obj_index][0].lower()
-                                    rel = "a"
-                                    obj = type_map[obj_type].lower()
-                                    if labels:
-                                        buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
-                                    else:
-                                        buffer.append(f"{sub}\t{rel}\t{obj}\n")
+                                # sub_type = parse_result["params"][sub_index][1]
+                                # obj_type = parse_result["params"][obj_index][1]
+                                # if file_in_dataset(infile.name, "train") and sub_type in type_map \
+                                #     and sub not in type_triples:
+                                #     type_triples.add(sub)
+                                #     # TODO(lucas): replace with RDF type relation
+                                #     rel = "a"
+                                #     obj = type_map[sub_type].lower()
+                                #     if labels:
+                                #         buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
+                                #     else:
+                                #         buffer.append(f"{sub}\t{rel}\t{obj}\n")
+                                # if file_in_dataset(infile.name, "train") and obj_type in type_map:
+                                #     sub = parse_result["params"][obj_index][0].lower()
+                                #     if sub not in type_triples:
+                                #         type_triples.add(sub)
+                                #         rel = "a"
+                                #         obj = type_map[obj_type].lower()
+                                #         if labels:
+                                #             buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
+                                #         else:
+                                #             buffer.append(f"{sub}\t{rel}\t{obj}\n")
 
                     if len(buffer) == chunk_size:
                         out_file.writelines(buffer)
@@ -479,12 +505,11 @@ def generate_kg(raw_data_dir: str, dataset_name: str, labels: bool=True, gen_ids
     logger = logging.getLogger(__name__)
     logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(message)s')
 
-    # Directory to write KG data to
-    preprocessed_data_dir = os.path.join(raw_data_dir, "preprocessed")
+    # Directory to write extracted templates to for each log file
+    template_dir = make_dir(join_path("templates", dataset_name))
 
-    make_dir("templates")
-    make_dir(os.path.join("templates", dataset_name))
-    make_dir(preprocessed_data_dir)
+    # Write final KG data to a place where the KG completion module can read it
+    preprocessed_data_dir = make_dir(join_path("..", "kg_completion", "datasets", dataset_name))
 
     for root, _, files in os.walk(raw_data_dir):
         for file in files:
@@ -501,11 +526,9 @@ def generate_kg(raw_data_dir: str, dataset_name: str, labels: bool=True, gen_ids
                 result_prefix = result_prefix.replace("\\", "_") \
                                              .replace("/", "_") \
                                              .replace("\\\\", "_") + "_"
-                result_prefix = os.path.join(match, result_prefix)
 
-                make_dir(join_path("templates", match))
-
-                result_file = join_path("templates", result_prefix + filename + "_result.jsonl")
+                result_dir = make_dir(join_path(template_dir, match))
+                result_file = join_path(result_dir, result_prefix + filename + "_result.jsonl")
                 parse_log(os.path.join(root, file), result_file, dataset_name,
                           logger=logger, labels=labels)
 
@@ -514,21 +537,11 @@ def generate_kg(raw_data_dir: str, dataset_name: str, labels: bool=True, gen_ids
     test_kg_file = os.path.join(preprocessed_data_dir, "test.txt")
     val_kg_file = os.path.join(preprocessed_data_dir, "valid.txt")
 
-    # TODO(lucas): Remove triples from test/val sets that have entities and relations that do not exist in train set
-    # Use Sets
-    extract_relations_templates(join_path("templates", "train"), train_kg_file,
-                                                      dataset_name, labels=labels)
-    extract_relations_templates(join_path("templates", "test"), test_kg_file,
-                                dataset_name, labels=labels)
+    extract_relations_templates(join_path(template_dir, "train"), train_kg_file, dataset_name, labels=labels)
+    extract_relations_templates(join_path(template_dir, "test"), test_kg_file, dataset_name, labels=labels)
     # remove_duplicate_lines(train_kg_file)
     # remove_duplicate_lines(test_kg_file)
     generate_val_set(test_kg_file, val_kg_file, val_ratio=0.5)
-
-    # Make a copy of the dataset in kg_completion/datasets/name
-    kgc_prefix = join_path("..", "kg_completion", "datasets", dataset_name)
-    shutil.copy(train_kg_file, join_path(kgc_prefix, "train.txt"))
-    shutil.copy(test_kg_file, join_path(kgc_prefix, "test.txt"))
-    shutil.copy(val_kg_file, join_path(kgc_prefix, "valid.txt"))
 
     # Optionally generate ID mappings for each entity and relation and regenerate the triple sets
     # using those IDs

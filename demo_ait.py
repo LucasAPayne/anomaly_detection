@@ -4,7 +4,6 @@ as well as knowledge graph completion for anomaly detection
 """
 
 import os
-import numpy as np
 import yaml
 
 from anomaly_detection.kg_generation import ait_dataset
@@ -15,7 +14,6 @@ def main():
     """
     The demo code
     """
-    np.random.seed(1234)
     ait_raw_data_dir = os.path.join(os.path.dirname(__file__), "data", "AIT")
     labels = True
     exclude_errors = True
