@@ -8,7 +8,6 @@ import fileinput
 import json
 import logging
 import os
-import shutil
 import sys
 import time
 
@@ -23,7 +22,7 @@ relations = set()
 
 # TODO(lucas): Put os wrappers in separate file to be shared
 # (For some reason, this function did not work when placed in a separate file)
-# TODO(lucas); Give a more precise name like rel_path or relative_path
+# TODO(lucas): Give a more precise name like rel_path or relative_path
 def join_path(*paths: str) -> str:
     """
     Wrapper around os.path.join to prepend the path of the file from which this function is called
@@ -104,8 +103,7 @@ def parse_log(in_log_file: str,
               out_file: str,
               dataset_name: str,
               batch_size: int = 10000,
-              logger: logging.Logger = None,
-              labels=True) -> None:
+              logger: logging.Logger = None) -> None:
     """
     Parse a log file, writing the templates and extracted parameters to a JSON file.
 
@@ -115,7 +113,6 @@ def parse_log(in_log_file: str,
     - `out_file`: the file to which to write the results
     - `dataset_name`: the name of the dataset
     - `logger`: optional logger to print progress messages to terminal
-    - `label_file`: path to label file if lines include labels
     """
 
     config = TemplateMinerConfig()
@@ -139,16 +136,9 @@ def parse_log(in_log_file: str,
             line = line.rstrip()
             # NOTE(lucas): Temporarily lift label if it comes from test/val set
             # so it does not appear in template. Then put it back
-            label = ""
-            # if labels and (file_in_dataset(outfile.name, "test") or \
-            #                file_in_dataset(outfile.name, "val")):
-            if labels:
-                _, *_, label = line.split()
-                line = line.rsplit(None, 1)[0]
+            _, *_, label = line.split()
+            line = line.rsplit(None, 1)[0]
             line = line.rstrip()
-
-            # TODO(lucas): See about removing this to preserve timestamp/additional information
-            # line = line.partition(": ")[2]
 
             result = template_miner.add_log_message(line)
             result["params"] = template_miner.extract_parameters(
@@ -189,7 +179,7 @@ def parse_log(in_log_file: str,
     template_miner.profiler.report(0)
 
 def extract_relations_templates(template_dir: str, out_path: str, dataset_name: str,
-                                labels: bool=True, chunk_size: int=10000) -> None:
+                                chunk_size: int=10000) -> None:
     """
     Extract relations from parsed log files using templates,
     and write the resulting triples to a file.
@@ -198,7 +188,6 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
     ----------
     - `template_dir`: the directory containing log template files
     - `out_path`: the file to which to write the extracted triples
-    - `labels`: whether log lines contain labels (i.e., number that indicates suspicion).
     """
 
     def clean_element(el: str) -> str:
@@ -287,10 +276,7 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
                                         triples_discarded += 1
                                         continue
 
-                                if labels:
-                                    buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
-                                else:
-                                    buffer.append(f"{sub}\t{rel}\t{obj}\n")
+                                buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
 
                                 # TODO(lucas): Add type relations for objects
                                 # Add type relation if subject
@@ -302,20 +288,14 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
                                 #     # TODO(lucas): replace with RDF type relation
                                 #     rel = "a"
                                 #     obj = type_map[sub_type].lower()
-                                #     if labels:
-                                #         buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
-                                #     else:
-                                #         buffer.append(f"{sub}\t{rel}\t{obj}\n")
+                                #     buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
                                 # if file_in_dataset(infile.name, "train") and obj_type in type_map:
                                 #     sub = parse_result["params"][obj_index][0].lower()
                                 #     if sub not in type_triples:
                                 #         type_triples.add(sub)
                                 #         rel = "a"
                                 #         obj = type_map[obj_type].lower()
-                                #         if labels:
-                                #             buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
-                                #         else:
-                                #             buffer.append(f"{sub}\t{rel}\t{obj}\n")
+                                #         buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
 
                     if len(buffer) == chunk_size:
                         out_file.writelines(buffer)
@@ -353,150 +333,14 @@ def generate_val_set(train_path: str, out_val_path: str, val_ratio: float) -> No
     with open(out_val_path, "w", encoding="utf-8") as val_file:
         val_file.writelines(test_data[val_indices])
 
-def _save_ids(path: str, mapping: dict, chunk_size: int=10000):
-    """
-    Save mapping of IDs to strings to a file. Internal function
-
-    Parameters
-    ----------
-    - `path`: location to write the file
-    - `mapping`: dictionary containing mappings of entities or relations to IDs 
-    """
-    # Sort the dictionary by value (outputs list of tuples)
-    mapping = sorted(mapping.items(), key=lambda x : x[1])
-
-    with open(path, "w", encoding="utf-8") as outfile:
-        buffer = []
-        for i in mapping:
-            buffer.append(str(i[1]) + '\t' + str(i[0]) + '\n')
-            if len(buffer) == chunk_size:
-                outfile.writelines(buffer)
-                buffer.clear()
-        
-        outfile.writelines(buffer)
-        buffer.clear()
-
-def _regenerate_triples_with_ids(triples_path: str, ent_ids: dict, rel_ids: dict,
-                                 labels: bool=True, str=None, chunk_size: int=10000):
-    """
-    Regenerate triples in a dataset using saved ID mappings.
-
-    Parameters
-    ----------
-    - `triples_path`: path to triples to regenerate (i.e., train/test/val set)
-    - `ent_ids`: mapping of entity strings to IDs
-    - `rel_ids`: mapping of relation strings to IDs
-    """
-    # Check that triples_path is saved as a TTL file
-    # If not, rename it to a TTL file
-    triples_path_root, triples_path_ext = os.path.splitext(triples_path)
-    new_triples_path = triples_path
-    if triples_path_ext != ".ttl":
-        new_triples_path = triples_path_root + ".ttl"
-        os.rename(triples_path, new_triples_path)
-
-    # NOTE(lucas): Create a new file with a different extension for output.
-    # Take each line from the input file and write it to the output file, looking up strings in the
-    # entity/relation mappings and replacing them with IDs in the output file.
-    # If an entity or relation does not exist in the mapping, discard the triple.
-    discarded_tripes = 0
-    out_path = triples_path_root + ".txt"
-    with open(new_triples_path, "r", encoding="utf-8") as infile, \
-         open(out_path, "w", encoding="utf-8") as outfile:
-        buffer = []
-        for line in infile:
-            line = line.rstrip().split('\t')
-
-            if line[0] not in ent_ids:
-                print(f"{line[0]} does not exist in entity mapping. Discarding triple.")
-                discarded_tripes += 1
-                continue
-            if line[1] not in rel_ids:
-                print(f"{line[1]} does not exist in relation mapping. Discarding triple.")
-                discarded_tripes += 1
-                continue
-            if line[2] not in ent_ids:
-                print(f"{line[2]} does not exist in entity mapping. Discarding triple.")
-                discarded_tripes += 1
-                continue
-
-            # All mappings exist
-            sub = str(ent_ids[line[0]])
-            rel = str(rel_ids[line[1]])
-            obj = str(ent_ids[line[2]])
-
-            if labels:
-                label = line[3]
-                buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\n")
-            else:
-                buffer.append(f"{sub}\t{rel}\t{obj}\n")
-
-            if len(buffer) == chunk_size:
-                outfile.writelines(buffer)
-                buffer.clear()
-
-        outfile.writelines(buffer)
-        buffer.clear()
-
-    triples_filename = triples_path_root[triples_path_root.rfind(os.sep)+1:]
-    print(f"{discarded_tripes} triples discarded from {triples_filename}")
-
-def _generate_ids(preprpocessed_data_dir: str, train_path: str, test_path: str, val_path: str,
-                  labels: bool=True) -> None:
-    """
-    Generate a mapping of entities/relations to IDs based on the training dataset. Then, rebuild
-    the KG using those IDs rather than the entities/relations themselves. This can be helpful to
-    reduce the size on disk of a dataset, and can also lead to better performance, depending on the
-    dataset.
-
-    Parameters
-    ----------
-    - `preprocessed_data_dir`: directory containing preprocessed data
-    - `train_path`: path to preprocessed training set
-    - `preserve_old`: whether to preserve old string-based dataset
-    """
-    ent_ids = {}
-    rel_ids = {}
-
-    ent_count = 0
-    rel_count = 0
-
-    with open(train_path, "r", encoding="utf-8") as infile:
-        for line in infile:
-            # Skip prefix definitions in TTL files
-            if line.startswith("@prefix") or line == '\n':
-                continue
-
-            # Strip trailing whitespace/newline from line and split on tabs to get triple elements
-            line = line.rstrip()
-            triple = line.split('\t')
-
-            # Add each entity/relation to its corresponding dictionary and increment the count
-            if triple[0] not in ent_ids:
-                ent_ids[triple[0]] = ent_count
-                ent_count += 1
-            if triple[1] not in rel_ids:
-                rel_ids[triple[1]] = rel_count
-                rel_count += 1
-            if triple[2] not in ent_ids:
-                ent_ids[triple[2]] = ent_count
-                ent_count += 1
-
-    _save_ids(os.path.join(preprpocessed_data_dir, "entity_ids.txt"), ent_ids)
-    _save_ids(os.path.join(preprpocessed_data_dir, "relation_ids.txt"), rel_ids)
-
-    _regenerate_triples_with_ids(train_path, ent_ids, rel_ids)
-    _regenerate_triples_with_ids(test_path, ent_ids, rel_ids)
-    _regenerate_triples_with_ids(val_path, ent_ids, rel_ids)
-
-def generate_kg(raw_data_dir: str, dataset_name: str, labels: bool=True, gen_ids: bool=False) -> None:
+def generate_kg(raw_data_dir: str, dataset_name: str) -> None:
     """
     Generate a knowledge graph from a set of log files using entity and relation extraction.
 
     Parameters
     ----------
     - `raw_data_dir`: path to directory containing raw log data
-    - `labels`: whether the testing data should be labeled
+    - `dataset_name`: name of the dataset being processed
     """
     # TODO(lucas): Think about converting to all lowercase. Names appear as both, so irwin and
     # Irwin are technically two different entities.
@@ -530,20 +374,15 @@ def generate_kg(raw_data_dir: str, dataset_name: str, labels: bool=True, gen_ids
                 result_dir = make_dir(join_path(template_dir, match))
                 result_file = join_path(result_dir, result_prefix + filename + "_result.jsonl")
                 parse_log(os.path.join(root, file), result_file, dataset_name,
-                          logger=logger, labels=labels)
+                          logger=logger)
 
     # TODO(lucas): Have option to remove generated template files and templates directory
     train_kg_file = os.path.join(preprocessed_data_dir, "train.txt")
     test_kg_file = os.path.join(preprocessed_data_dir, "test.txt")
     val_kg_file = os.path.join(preprocessed_data_dir, "valid.txt")
 
-    extract_relations_templates(join_path(template_dir, "train"), train_kg_file, dataset_name, labels=labels)
-    extract_relations_templates(join_path(template_dir, "test"), test_kg_file, dataset_name, labels=labels)
+    extract_relations_templates(join_path(template_dir, "train"), train_kg_file, dataset_name)
+    extract_relations_templates(join_path(template_dir, "test"), test_kg_file, dataset_name)
     # remove_duplicate_lines(train_kg_file)
     # remove_duplicate_lines(test_kg_file)
     generate_val_set(test_kg_file, val_kg_file, val_ratio=0.5)
-
-    # Optionally generate ID mappings for each entity and relation and regenerate the triple sets
-    # using those IDs
-    if gen_ids:
-        _generate_ids(preprocessed_data_dir, train_kg_file, test_kg_file, val_kg_file)

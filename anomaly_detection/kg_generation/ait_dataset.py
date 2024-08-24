@@ -200,7 +200,7 @@ def exclude_line(line: str, exclusion_list: list[str]) -> bool:
     return exclude
 
 def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: list[str],
-                         labels: bool=True, chunk_size: int=10000) -> None:
+                         chunk_size: int=10000) -> None:
     """
     Extract training over a 1-day period
     Attacks occur on 03/04/2020 and 03/05/2020
@@ -210,7 +210,6 @@ def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: li
     - `root_dir`: root data directory
     - `data_file_list`: list of all file names to be processed, without the root directory
     - `exclusion_list`: list of words used to exclude log lines
-    - `labels`: Whether to include labels in output files
     - `chunk_size`: How many lines to buffer before flushing to file
     """
     for file in data_file_list:
@@ -243,10 +242,7 @@ def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: li
             for line in in_file:
                 if get_date(log_type, line) in valid_dates and not \
                    exclude_line(line, exclusion_list):
-                    if labels:
-                        buffer.append(line.rstrip() + "\t\t0\n")
-                    else:
-                        buffer.append(line)
+                    buffer.append(line.rstrip() + "\t\t0\n")
 
                 # Flush buffer to file once it reaches target size
                 if len(buffer) == chunk_size:
@@ -263,7 +259,7 @@ def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: li
 
 
 def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list: list[str],
-                        labels: bool=True, chunk_size: int=10000) ->None:
+                        chunk_size: int=10000) ->None:
     """
     Extract all attack data by looping through each line of each file and comparing to the same
     label file
@@ -274,7 +270,6 @@ def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list
     - `root_dir`: root directory for raw data
     - `data_file_list`: list of all file names to be processed, without the root directory
     - `exclusion_list`: list of words used to exclude log lines
-    - `labels`: Whether to include labels in output files
     - `chunk_size`: How many lines to buffer before flushing to file
     """
     for file in data_file_list:
@@ -299,10 +294,7 @@ def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list
 
             for label_line, data_line in zip(in_label_file, in_data_file):
                 if label_line.strip() != "0,0" and not exclude_line(data_line, exclusion_list):
-                    if labels:
-                        buffer.append(data_line.rstrip() + "\t\t1\n")
-                    else:
-                        buffer.append(data_line)
+                    buffer.append(data_line.rstrip() + "\t\t1\n")
 
                 if len(buffer) == chunk_size:
                     out_data_file.writelines(buffer)
@@ -316,7 +308,7 @@ def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list
 
 
 def inject_testing_set(raw_data_dir: str, data_file_list: list[str], lines: int,
-                       labels: bool=True, chunk_size: int=10000) -> None:
+                       chunk_size: int=10000) -> None:
     """
     Put the last few lines of each file in the training set into the testing set
 
@@ -366,8 +358,7 @@ def inject_testing_set(raw_data_dir: str, data_file_list: list[str], lines: int,
     print("Done")
 
 
-def extract_dataset(raw_data_dir: str, exclude_errors: bool=True, labels: bool=True,
-                    chunk_size: int=10000) -> None:
+def extract_dataset(raw_data_dir: str, exclude_errors: bool=True, chunk_size: int=10000) -> None:
     """
     Extract a smaller version of the AIT log dataset,
     optionally excluding log lines or zipped files
@@ -386,9 +377,9 @@ def extract_dataset(raw_data_dir: str, exclude_errors: bool=True, labels: bool=T
     data_file_list = gather_files(os.path.join(raw_data_dir, "data"))
     # extract_archives(data_file_list, "data/")
     # extract_archives(label_file_list, "labels/")
-    extract_training_set(raw_data_dir, data_file_list, exclusion_list)
-    extract_testing_set(raw_data_dir, data_file_list, exclusion_list)
-    inject_testing_set(raw_data_dir, data_file_list, 5)
+    extract_training_set(raw_data_dir, data_file_list, exclusion_list, chunk_size)
+    extract_testing_set(raw_data_dir, data_file_list, exclusion_list, chunk_size)
+    inject_testing_set(raw_data_dir, data_file_list, 5, chunk_size)
 
     # Delete unzipped files
     # for file in data_file_list:

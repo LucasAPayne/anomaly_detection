@@ -9,8 +9,7 @@ import shutil
 
 from . import kg_generation
 
-def extract_train_set(root_dir: str, out_path: str, labels: bool=True,
-                      chunk_size: int=10000) -> None:
+def extract_train_set(root_dir: str, out_path: str, chunk_size: int=10000) -> None:
     """
     Extract train set. The train set is already preprocessed into a KG and is an appropriate format,
     so just copy the file.
@@ -28,11 +27,7 @@ def extract_train_set(root_dir: str, out_path: str, labels: bool=True,
          open(out_path, "w", encoding="utf-8") as out_file:
         buffer = []
         for line in in_file:
-            # If using labels, need to put a normal label by default
-            if labels:
-                buffer.append(line.rstrip() + '\t0\n')
-            else:
-                buffer.append(line.rstrip() + '\n')
+            buffer.append(line.rstrip() + '\t0\n')
 
             if len(buffer) == chunk_size:
                 out_file.writelines(buffer)
@@ -41,8 +36,7 @@ def extract_train_set(root_dir: str, out_path: str, labels: bool=True,
         out_file.writelines(buffer)
         buffer.clear()
 
-def extract_test_set(root_dir: str, out_path: str, labels: bool=True,
-                     chunk_size: int=10000) -> None:
+def extract_test_set(root_dir: str, out_path: str, chunk_size: int=10000) -> None:
     """
     Extract test set. Test files are divided into categories, so concatenate all data into one file.
 
@@ -64,19 +58,16 @@ def extract_test_set(root_dir: str, out_path: str, labels: bool=True,
                     split_line = line.split('\t')[:-1]
                     out_line = '\t'.join(split_line)
 
-                    if not labels:
-                        buffer.append(out_line + '\n')
-                    else:
-                        # NOTE(lucas): For now, labels will changed for binary classifier
-                        # [0, 1, 2] -> 1: suspicious
-                        # [3,4] -> 0: normal
-                        label = int(line.split('\t')[-1].strip())
-                        if label in [0, 1, 2]:
-                            label = 1
-                        elif label in [3, 4]:
-                            label = 0
+                    # NOTE(lucas): For now, labels will changed for binary classifier
+                    # [0, 1, 2] -> 1: suspicious
+                    # [3,4] -> 0: normal
+                    label = int(line.split('\t')[-1].strip())
+                    if label in [0, 1, 2]:
+                        label = 1
+                    elif label in [3, 4]:
+                        label = 0
 
-                        buffer.append(out_line + '\t' + str(label) + '\n')
+                    buffer.append(out_line + '\t' + str(label) + '\n')
 
                     if len(buffer) == chunk_size:
                         out_test_file.writelines(buffer)
@@ -85,7 +76,7 @@ def extract_test_set(root_dir: str, out_path: str, labels: bool=True,
                 out_test_file.writelines(buffer)
                 buffer.clear()
 
-def extract_dataset(root_dir: str, val_ratio: float, labels: bool=True) -> None:
+def extract_dataset(root_dir: str, val_ratio: float) -> None:
     """
     Extract data from the cyberML dataset.
     Use a portion based on `val_ratio` of the training dataset for validation data.
@@ -104,8 +95,8 @@ def extract_dataset(root_dir: str, val_ratio: float, labels: bool=True) -> None:
     test_path = os.path.join(preprocessed_data_dir, "test.txt")
     val_path = os.path.join(preprocessed_data_dir, "valid.txt")
 
-    extract_train_set(root_dir, train_path, labels=labels)
-    extract_test_set(root_dir, test_path, labels=labels)
+    extract_train_set(root_dir, train_path)
+    extract_test_set(root_dir, test_path)
     kg_generation.generate_val_set(test_path, val_path, val_ratio)
 
     # Make a copy of the dataset in kg_completion/datasets/name

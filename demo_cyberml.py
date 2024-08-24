@@ -13,9 +13,8 @@ def main():
     """
     The demo code
     """
-    labels = True
     cyberml_raw_data_dir = os.path.join(os.path.dirname(__file__), "data", "CyberML")
-    cyberml_dataset.extract_dataset(cyberml_raw_data_dir, val_ratio=0.5, labels=labels)
+    cyberml_dataset.extract_dataset(cyberml_raw_data_dir, val_ratio=0.5)
 
     cfg_path = "config/cyberml.yaml"
     cfg: dict = {}

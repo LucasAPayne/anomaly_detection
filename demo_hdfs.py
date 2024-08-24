@@ -10,10 +10,9 @@ def main():
     The demo code
     """
     raw_data_dir = os.path.join(os.path.dirname(__file__), "data", "HDFS")
-    labels = True
     exclude_errors = True
     ait_dataset.extract_dataset(raw_data_dir, exclude_errors)
-    generate_kg(raw_data_dir, "HDFS", labels, gen_ids=False)
+    generate_kg(raw_data_dir, "HDFS")
 
     cfg_path = "config/hdfs.yaml"
     cfg: dict = {}

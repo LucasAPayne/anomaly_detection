@@ -15,10 +15,9 @@ def main():
     The demo code
     """
     ait_raw_data_dir = os.path.join(os.path.dirname(__file__), "data", "AIT")
-    labels = True
     exclude_errors = True
     ait_dataset.extract_dataset(ait_raw_data_dir, exclude_errors)
-    generate_kg(ait_raw_data_dir, "AIT", labels, gen_ids=False)
+    generate_kg(ait_raw_data_dir, "AIT")
 
     cfg_path = "config/ait.yaml"
     cfg: dict = {}
