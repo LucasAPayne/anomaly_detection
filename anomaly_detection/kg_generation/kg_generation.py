@@ -122,11 +122,11 @@ def parse_log(in_log_file: str,
 
     line_count = 0
 
-    print(in_log_file)
-    print(out_file)
+    # print(in_log_file)
+    # print(out_file)
 
-    with open(in_log_file, "r", encoding="utf-8") as infile, \
-        open(out_file, "w", encoding="utf-8") as outfile:
+    with open(in_log_file, "r", encoding="utf-8") as infile:
+        # open(out_file, "w", encoding="utf-8") as outfile:
         start_time = time.time()
         batch_start_time = start_time
 
@@ -159,12 +159,12 @@ def parse_log(in_log_file: str,
             #     json.dumps(result)
 
             buffer.append(json.dumps(result) + "\n")
-            if len(buffer) == batch_size:
-                outfile.writelines(buffer)
-                buffer.clear()
+            # if len(buffer) == batch_size:
+            #     outfile.writelines(buffer)
+            #     buffer.clear()
 
-        outfile.writelines(buffer)
-        buffer.clear()
+        # outfile.writelines(buffer)
+        # buffer.clear()
 
     time_taken = time.time() - start_time
     rate = line_count / time_taken if time_taken > 0 else 0
@@ -177,6 +177,8 @@ def parse_log(in_log_file: str,
         logger.info(cluster)
 
     template_miner.profiler.report(0)
+
+    return buffer
 
 def extract_relations_templates(template_dir: str, out_path: str, dataset_name: str,
                                 chunk_size: int=10000) -> None:
@@ -232,77 +234,82 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
     triples_discarded = 0
 
     template_path = join_path("config", dataset_name, "templates.json")
-    # TODO(lucas): Try to reduce nesting
-    with open(out_path, "w", encoding="utf-8") as out_file, \
-         open(template_path, "r", encoding="utf-8") as template_file:
+    templates = []
+    with open(template_path, "r", encoding="utf-8") as template_file:
         templates = json.load(template_file)["templates"]
 
-        for entry in os.listdir(template_dir):
-            print(join_path(template_dir, entry))
-            with open(join_path(template_dir, entry), "r", encoding="utf-8") as infile:
-                # For each line, search for a matching template
+    # for entry in os.listdir(template_dir):
+        # print(join_path(template_dir, entry))
+        # with open(join_path(template_dir, entry), "r", encoding="utf-8") as infile:
+    parsed_lines = []
+    with open(template_dir, "r", encoding="utf-8") as infile:
+        parsed_lines = infile.readlines()
 
-                buffer = []
-                type_triples = set()
-                for parsed_line in infile:
-                    for template in templates:
-                        parse_result = json.loads(parsed_line)
-                        if template["template_mined"] == parse_result["template_mined"]:
-                            # If a matching template is found, get the subject, relation, and object
-                            # and write a triple to the output file.
-                            # The template contains the index into the "params" field of the parsed
-                            # log file
-                            for relation in template["triples"]:
-                                sub_index = relation["subject"]
-                                obj_index = relation["object"]
-                                sub = clean_element(str(parse_result["params"][sub_index][0]))
-                                obj = clean_element(str(parse_result["params"][obj_index][0]))
-                                rel = clean_element(str(relation["relation"]))
-                                label = parse_result["label"]
-                                log_id = parse_result["log_id"]
+    buffer = []
+    type_triples = set()
 
-                                if template_dir.endswith("train"):
-                                    entities.add(sub)
-                                    relations.add(rel)
-                                else:
-                                    skip = False
-                                    if sub not in entities or obj not in entities:
-                                        entities_discarded += 1
-                                        skip = True
-                                    if rel not in relations:
-                                        relations_discarded += 1
-                                        skip = True
-                                    if skip:
-                                        triples_discarded += 1
-                                        continue
+    # TODO(lucas): Try to reduce nesting
+    # For each line, search for a matching template
+    for parsed_line in parsed_lines:
+        for template in templates:
+            parse_result = json.loads(parsed_line)
+            if template["template_mined"] == parse_result["template_mined"]:
+                # If a matching template is found, get the subject, relation, and object
+                # and write a triple to the output file.
+                # The template contains the index into the "params" field of the parsed
+                # log file
+                for relation in template["triples"]:
+                    sub_index = relation["subject"]
+                    obj_index = relation["object"]
+                    sub = clean_element(str(parse_result["params"][sub_index][0]))
+                    obj = clean_element(str(parse_result["params"][obj_index][0]))
+                    rel = clean_element(str(relation["relation"]))
+                    label = parse_result["label"]
+                    log_id = parse_result["log_id"]
 
-                                buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
+                    if "train" in template_dir:
+                        entities.add(sub)
+                        relations.add(rel)
+                    else:
+                        skip = False
+                        if sub not in entities or obj not in entities:
+                            entities_discarded += 1
+                            skip = True
+                        if rel not in relations:
+                            relations_discarded += 1
+                            skip = True
+                        if skip:
+                            triples_discarded += 1
+                            continue
 
-                                # TODO(lucas): Add type relations for objects
-                                # Add type relation if subject
-                                # sub_type = parse_result["params"][sub_index][1]
-                                # obj_type = parse_result["params"][obj_index][1]
-                                # if file_in_dataset(infile.name, "train") and sub_type in type_map \
-                                #     and sub not in type_triples:
-                                #     type_triples.add(sub)
-                                #     # TODO(lucas): replace with RDF type relation
-                                #     rel = "a"
-                                #     obj = type_map[sub_type].lower()
-                                #     buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
-                                # if file_in_dataset(infile.name, "train") and obj_type in type_map:
-                                #     sub = parse_result["params"][obj_index][0].lower()
-                                #     if sub not in type_triples:
-                                #         type_triples.add(sub)
-                                #         rel = "a"
-                                #         obj = type_map[obj_type].lower()
-                                #         buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
+                    buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
 
-                    if len(buffer) == chunk_size:
-                        out_file.writelines(buffer)
-                        buffer.clear()
+                    # TODO(lucas): Add type relations for objects
+                    # Add type relation if subject
+                    # sub_type = parse_result["params"][sub_index][1]
+                    # obj_type = parse_result["params"][obj_index][1]
+                    # if file_in_dataset(infile.name, "train") and sub_type in type_map \
+                    #     and sub not in type_triples:
+                    #     type_triples.add(sub)
+                    #     # TODO(lucas): replace with RDF type relation
+                    #     rel = "a"
+                    #     obj = type_map[sub_type].lower()
+                    #     buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
+                    # if file_in_dataset(infile.name, "train") and obj_type in type_map:
+                    #     sub = parse_result["params"][obj_index][0].lower()
+                    #     if sub not in type_triples:
+                    #         type_triples.add(sub)
+                    #         rel = "a"
+                    #         obj = type_map[obj_type].lower()
+                    #         buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
 
-                out_file.writelines(buffer)
-                buffer.clear()
+            # if len(buffer) == chunk_size:
+            #     out_file.writelines(buffer)
+            #     buffer.clear()
+
+    with open(out_path, "w", encoding="utf-8") as out_file:
+        out_file.writelines(buffer)
+        # buffer.clear()
 
     if triples_discarded:
         print(f"{entities_discarded} entities and {relations_discarded} relations were not found in the train set.")
@@ -355,34 +362,58 @@ def generate_kg(raw_data_dir: str, dataset_name: str) -> None:
     # Write final KG data to a place where the KG completion module can read it
     preprocessed_data_dir = make_dir(join_path("..", "kg_completion", "datasets", dataset_name))
 
-    for root, _, files in os.walk(raw_data_dir):
+    buffer = []
+    # for root, _, files in os.walk(raw_data_dir):
+    train_dir = join_path(raw_data_dir, "train")
+    train_file = join_path(template_dir, "train.jsonl")
+    test_dir = join_path(raw_data_dir, "test")
+    test_file = join_path(template_dir, "test.jsonl")
+    for root, _, files in os.walk(train_dir):
         for file in files:
-            filename = os.path.splitext(file)[0]
+            # filename = os.path.splitext(file)[0]
 
             # TODO(lucas): Is there a better way to keep these files separate?
             # TODO(lucas): Map the matches below to train/test/val to be more consistent
             # after this step
-            matches = ["train", "training", "test", "testing",
-                       "val", "valid", "validation", "validate"]
-            match = next((x for x in matches if x in root), False)
-            if match:
-                result_prefix = root[root.find(match)+len(match)+1:]
-                result_prefix = result_prefix.replace("\\", "_") \
-                                             .replace("/", "_") \
-                                             .replace("\\\\", "_") + "_"
+            # matches = ["train", "training", "test", "testing",
+            #            "val", "valid", "validation", "validate"]
+            # match = next((x for x in matches if x in root), False)
+            # if match:
+            #     result_prefix = root[root.find(match)+len(match)+1:]
+            #     result_prefix = result_prefix.replace("\\", "_") \
+            #                                  .replace("/", "_") \
+            #                                  .replace("\\\\", "_") + "_"
 
-                result_dir = make_dir(join_path(template_dir, match))
-                result_file = join_path(result_dir, result_prefix + filename + "_result.jsonl")
-                parse_log(os.path.join(root, file), result_file, dataset_name,
-                          logger=logger)
+            # result_dir = make_dir(join_path(template_dir, match))
+            # result_file = join_path(result_dir, result_prefix + filename + "_result.jsonl")
+            in_log_file = join_path(root, file)
+            result_file = join_path(template_dir, "train.jsonl")
+            templates = parse_log(in_log_file, result_file, dataset_name,
+                        logger=logger)
+            buffer.extend(templates)
+
+    with open(train_file, "w", encoding="utf-8") as outfile:
+        outfile.writelines(buffer)
+
+    buffer.clear()
+    for root, _, files in os.walk(test_dir):
+        for file in files:
+            in_log_file = join_path(root, file)
+            result_file = join_path(template_dir, "test.jsonl")
+            templates = parse_log(in_log_file, result_file, dataset_name,
+                        logger=logger)
+            buffer.extend(templates)
+
+    with open(test_file, "w", encoding="utf-8") as outfile:
+        outfile.writelines(buffer)
 
     # TODO(lucas): Have option to remove generated template files and templates directory
     train_kg_file = os.path.join(preprocessed_data_dir, "train.txt")
     test_kg_file = os.path.join(preprocessed_data_dir, "test.txt")
     val_kg_file = os.path.join(preprocessed_data_dir, "valid.txt")
 
-    extract_relations_templates(join_path(template_dir, "train"), train_kg_file, dataset_name)
-    extract_relations_templates(join_path(template_dir, "test"), test_kg_file, dataset_name)
+    extract_relations_templates(train_file, train_kg_file, dataset_name)
+    extract_relations_templates(test_file, test_kg_file, dataset_name)
     # remove_duplicate_lines(train_kg_file)
     # remove_duplicate_lines(test_kg_file)
     generate_val_set(test_kg_file, val_kg_file, val_ratio=0.5)
