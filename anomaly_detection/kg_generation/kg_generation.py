@@ -100,7 +100,6 @@ def remove_duplicate_lines(path: str):
     os.remove(path + ".bak")
 
 def parse_log(in_log_file: str,
-              out_file: str,
               dataset_name: str,
               batch_size: int = 10000,
               logger: logging.Logger = None) -> None:
@@ -110,7 +109,6 @@ def parse_log(in_log_file: str,
     Parameters
     ----------
     - `in_log_file`: the log file to parse
-    - `out_file`: the file to which to write the results
     - `dataset_name`: the name of the dataset
     - `logger`: optional logger to print progress messages to terminal
     """
@@ -122,49 +120,40 @@ def parse_log(in_log_file: str,
 
     line_count = 0
 
-    # print(in_log_file)
-    # print(out_file)
-
+    lines = []
     with open(in_log_file, "r", encoding="utf-8") as infile:
-        # open(out_file, "w", encoding="utf-8") as outfile:
-        start_time = time.time()
-        batch_start_time = start_time
+        lines = infile.readlines()
 
-        buffer = []
+    start_time = time.time()
+    batch_start_time = start_time
 
-        for i, line in enumerate(infile):
-            line = line.rstrip()
-            # NOTE(lucas): Temporarily lift label if it comes from test/val set
-            # so it does not appear in template. Then put it back
-            _, *_, label = line.split()
-            line = line.rsplit(None, 1)[0]
-            line = line.rstrip()
+    buffer = []
 
-            result = template_miner.add_log_message(line)
-            result["params"] = template_miner.extract_parameters(
-                    result["template_mined"],
-                    line,
-                    exact_matching=True)
-            result["label"] = label
-            result["log_id"] = i
+    for i, line in enumerate(lines):
+        line = line.rstrip()
+        # NOTE(lucas): Temporarily lift label if it comes from test/val set
+        # so it does not appear in template. Then put it back
+        _, *_, label = line.split()
+        line = line.rsplit(None, 1)[0]
+        line = line.rstrip()
 
-            line_count += 1
-            if line_count % batch_size == 0:
-                time_taken = time.time() - batch_start_time
-                rate = batch_size / time_taken
-                logger.info(f"Processing line: {line_count}, rate {rate:.1f} lines/sec, "
-                            f"{len(template_miner.drain.clusters)} clusters so far.")
-                batch_start_time = time.time()
-            # if result["change_type"] != "none":
-            #     json.dumps(result)
+        result = template_miner.add_log_message(line)
+        result["params"] = template_miner.extract_parameters(
+                result["template_mined"],
+                line,
+                exact_matching=True)
+        result["label"] = label
+        result["log_id"] = i
 
-            buffer.append(json.dumps(result) + "\n")
-            # if len(buffer) == batch_size:
-            #     outfile.writelines(buffer)
-            #     buffer.clear()
+        line_count += 1
+        if line_count % batch_size == 0:
+            time_taken = time.time() - batch_start_time
+            rate = batch_size / time_taken
+            logger.info(f"Processing line: {line_count}, rate {rate:.1f} lines/sec, "
+                        f"{len(template_miner.drain.clusters)} clusters so far.")
+            batch_start_time = time.time()
 
-        # outfile.writelines(buffer)
-        # buffer.clear()
+        buffer.append(json.dumps(result) + "\n")
 
     time_taken = time.time() - start_time
     rate = line_count / time_taken if time_taken > 0 else 0
@@ -180,8 +169,7 @@ def parse_log(in_log_file: str,
 
     return buffer
 
-def extract_relations_templates(template_dir: str, out_path: str, dataset_name: str,
-                                chunk_size: int=10000) -> None:
+def extract_relations_templates(template_dir: str, out_path: str, dataset_name: str) -> None:
     """
     Extract relations from parsed log files using templates,
     and write the resulting triples to a file.
@@ -238,9 +226,6 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
     with open(template_path, "r", encoding="utf-8") as template_file:
         templates = json.load(template_file)["templates"]
 
-    # for entry in os.listdir(template_dir):
-        # print(join_path(template_dir, entry))
-        # with open(join_path(template_dir, entry), "r", encoding="utf-8") as infile:
     parsed_lines = []
     with open(template_dir, "r", encoding="utf-8") as infile:
         parsed_lines = infile.readlines()
@@ -303,13 +288,8 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
                     #         obj = type_map[obj_type].lower()
                     #         buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
 
-            # if len(buffer) == chunk_size:
-            #     out_file.writelines(buffer)
-            #     buffer.clear()
-
     with open(out_path, "w", encoding="utf-8") as out_file:
         out_file.writelines(buffer)
-        # buffer.clear()
 
     if triples_discarded:
         print(f"{entities_discarded} entities and {relations_discarded} relations were not found in the train set.")
@@ -349,10 +329,6 @@ def generate_kg(raw_data_dir: str, dataset_name: str) -> None:
     - `raw_data_dir`: path to directory containing raw log data
     - `dataset_name`: name of the dataset being processed
     """
-    # TODO(lucas): Think about converting to all lowercase. Names appear as both, so irwin and
-    # Irwin are technically two different entities.
-    # TODO(lucas): For the AIT dataset, map names to email addresses to be clear that they refer
-    # to the same person
     logger = logging.getLogger(__name__)
     logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(message)s')
 
@@ -363,45 +339,24 @@ def generate_kg(raw_data_dir: str, dataset_name: str) -> None:
     preprocessed_data_dir = make_dir(join_path("..", "kg_completion", "datasets", dataset_name))
 
     buffer = []
-    # for root, _, files in os.walk(raw_data_dir):
     train_dir = join_path(raw_data_dir, "train")
     train_file = join_path(template_dir, "train.jsonl")
     test_dir = join_path(raw_data_dir, "test")
     test_file = join_path(template_dir, "test.jsonl")
     for root, _, files in os.walk(train_dir):
         for file in files:
-            # filename = os.path.splitext(file)[0]
-
-            # TODO(lucas): Is there a better way to keep these files separate?
-            # TODO(lucas): Map the matches below to train/test/val to be more consistent
-            # after this step
-            # matches = ["train", "training", "test", "testing",
-            #            "val", "valid", "validation", "validate"]
-            # match = next((x for x in matches if x in root), False)
-            # if match:
-            #     result_prefix = root[root.find(match)+len(match)+1:]
-            #     result_prefix = result_prefix.replace("\\", "_") \
-            #                                  .replace("/", "_") \
-            #                                  .replace("\\\\", "_") + "_"
-
-            # result_dir = make_dir(join_path(template_dir, match))
-            # result_file = join_path(result_dir, result_prefix + filename + "_result.jsonl")
             in_log_file = join_path(root, file)
             result_file = join_path(template_dir, "train.jsonl")
-            templates = parse_log(in_log_file, result_file, dataset_name,
-                        logger=logger)
+            templates = parse_log(in_log_file,dataset_name, logger=logger)
             buffer.extend(templates)
 
     with open(train_file, "w", encoding="utf-8") as outfile:
         outfile.writelines(buffer)
 
-    buffer.clear()
     for root, _, files in os.walk(test_dir):
         for file in files:
             in_log_file = join_path(root, file)
-            result_file = join_path(template_dir, "test.jsonl")
-            templates = parse_log(in_log_file, result_file, dataset_name,
-                        logger=logger)
+            templates = parse_log(in_log_file, dataset_name, logger=logger)
             buffer.extend(templates)
 
     with open(test_file, "w", encoding="utf-8") as outfile:

@@ -199,8 +199,7 @@ def exclude_line(line: str, exclusion_list: list[str]) -> bool:
             break
     return exclude
 
-def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: list[str],
-                         chunk_size: int=10000) -> None:
+def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: list[str]) -> None:
     """
     Extract training over a 1-day period
     Attacks occur on 03/04/2020 and 03/05/2020
@@ -210,7 +209,6 @@ def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: li
     - `root_dir`: root data directory
     - `data_file_list`: list of all file names to be processed, without the root directory
     - `exclusion_list`: list of words used to exclude log lines
-    - `chunk_size`: How many lines to buffer before flushing to file
     """
     for file in data_file_list:
         if file.endswith("zip"):
@@ -224,42 +222,38 @@ def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: li
         if not os.path.exists(parent_dir(out_file_to_open)):
             os.makedirs(parent_dir(out_file_to_open))
 
-        with open(data_file_to_open, "r", encoding="utf-8") as in_file, \
-             open(out_file_to_open, "w", encoding="utf-8") as out_file:
-            print(f"Extracting training data from {file}...", end=' ', flush=True)
+        lines = []
+        with open(data_file_to_open, "r", encoding="utf-8") as infile:
+            lines = infile.readlines()
 
-            buffer = []
+        print(f"Extracting training data from {file}...", end=' ', flush=True)
 
-            # To find the log type, return the name found between the last slash and the last period
-            # If the log file contains the server name (e.g., mail.cup.com-access),
-            # remove the last period and everything before
-            # Also, remove the "com-" part
-            log_type = file[file.rfind(os.sep)+1:]
-            log_type = log_type.replace(".log", "").replace(".info", "")
-            log_type = log_type[log_type.rfind(".")+1:]
-            log_type = log_type.replace("com-", "")
-            valid_dates = ["02/29/2020", "03/01/2020", "03/02/2020", "03/03/2020"]
-            for line in in_file:
-                if get_date(log_type, line) in valid_dates and not \
-                   exclude_line(line, exclusion_list):
-                    buffer.append(line.rstrip() + "\t\t0\n")
+        buffer = []
 
-                # Flush buffer to file once it reaches target size
-                if len(buffer) == chunk_size:
-                    out_file.writelines(buffer)
-                    buffer.clear()
+        # To find the log type, return the name found between the last slash and the last period
+        # If the log file contains the server name (e.g., mail.cup.com-access),
+        # remove the last period and everything before
+        # Also, remove the "com-" part
+        log_type = file[file.rfind(os.sep)+1:]
+        log_type = log_type.replace(".log", "").replace(".info", "")
+        log_type = log_type[log_type.rfind(".")+1:]
+        log_type = log_type.replace("com-", "")
+        valid_dates = ["02/29/2020", "03/01/2020", "03/02/2020", "03/03/2020"]
+        for line in lines:
+            if get_date(log_type, line) in valid_dates and not \
+                exclude_line(line, exclusion_list):
+                buffer.append(line.rstrip() + "\t\t0\n")
 
-            # Flush any remaining entries in the buffer
-            out_file.writelines(buffer)
-            buffer.clear()
+        # Flush any remaining entries in the buffer
+        with open(out_file_to_open, "w", encoding="utf-8") as outfile:
+            outfile.writelines(buffer)
 
-            print("Done")
+        print("Done")
 
     print("Training data extracted")
 
 
-def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list: list[str],
-                        chunk_size: int=10000) ->None:
+def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list: list[str]) -> None:
     """
     Extract all attack data by looping through each line of each file and comparing to the same
     label file
@@ -270,7 +264,6 @@ def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list
     - `root_dir`: root directory for raw data
     - `data_file_list`: list of all file names to be processed, without the root directory
     - `exclusion_list`: list of words used to exclude log lines
-    - `chunk_size`: How many lines to buffer before flushing to file
     """
     for file in data_file_list:
         if file.endswith("zip"):
@@ -285,30 +278,31 @@ def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list
         if not os.path.exists(parent_dir(out_data_file_to_open)):
             os.makedirs(parent_dir(out_data_file_to_open))
 
-        with open(in_label_file_to_open,  "r", encoding="utf-8") as in_label_file, \
-             open(in_data_file_to_open,   "r", encoding="utf-8") as in_data_file, \
-             open(out_data_file_to_open,  "w", encoding="utf-8") as out_data_file:
-            print(f"Extracting attack data from {file}...", end=' ', flush=True)
+        labels = []
+        with open(in_label_file_to_open,  "r", encoding="utf-8") as in_label_file:
+            labels = in_label_file.readlines()
 
-            buffer = []
+        lines = []
+        with open(in_data_file_to_open,   "r", encoding="utf-8") as in_data_file:
+            lines = in_data_file.readlines()
 
-            for label_line, data_line in zip(in_label_file, in_data_file):
-                if label_line.strip() != "0,0" and not exclude_line(data_line, exclusion_list):
-                    buffer.append(data_line.rstrip() + "\t\t1\n")
+        print(f"Extracting attack data from {file}...", end=' ', flush=True)
 
-                if len(buffer) == chunk_size:
-                    out_data_file.writelines(buffer)
-                    buffer.clear()
+        buffer = []
 
+        for label_line, data_line in zip(labels, lines):
+            if label_line.strip() != "0,0" and not exclude_line(data_line, exclusion_list):
+                buffer.append(data_line.rstrip() + "\t\t1\n")
+
+        with open(out_data_file_to_open,  "w", encoding="utf-8") as out_data_file:
             out_data_file.writelines(buffer)
-            buffer.clear()
-            print("Done")
+
+        print("Done")
 
     print("Attack data extracted")
 
 
-def inject_testing_set(raw_data_dir: str, data_file_list: list[str], lines: int,
-                       chunk_size: int=10000) -> None:
+def inject_testing_set(raw_data_dir: str, data_file_list: list[str], lines: int) -> None:
     """
     Put the last few lines of each file in the training set into the testing set
 
@@ -333,9 +327,8 @@ def inject_testing_set(raw_data_dir: str, data_file_list: list[str], lines: int,
         else:
             lines = 5
 
-        with open(train_file_to_open, "r+", encoding="utf-8") as in_file, \
-             open(test_file_to_open,  "a",  encoding="utf-8") as out_data_file:
-            train_lines = in_file.readlines()
+        with open(train_file_to_open, "r+", encoding="utf-8") as infile:
+            train_lines = infile.readlines()
 
             # TODO(lucas): Variable number of lines depending on type of log file?
             # Much higher for long logs, fewer or nothing for short logs
@@ -345,20 +338,16 @@ def inject_testing_set(raw_data_dir: str, data_file_list: list[str], lines: int,
             for line in lines_to_write:
                 buffer.append(line)
 
-                if len(buffer) == chunk_size:
-                    out_data_file.writelines(buffer)
-                    buffer.clear()
-
-            out_data_file.writelines(buffer)
-            buffer.clear()
-
             # Delete the last n lines from training file to prevent duplication
-            in_file.writelines(train_lines[:-lines])
+            infile.writelines(train_lines[:-lines])
+
+        with open(test_file_to_open, "a",  encoding="utf-8") as out_data_file:
+            out_data_file.writelines(buffer)
 
     print("Done")
 
 
-def extract_dataset(raw_data_dir: str, exclude_errors: bool=True, chunk_size: int=10000) -> None:
+def extract_dataset(raw_data_dir: str, exclude_errors: bool=True) -> None:
     """
     Extract a smaller version of the AIT log dataset,
     optionally excluding log lines or zipped files
@@ -377,9 +366,9 @@ def extract_dataset(raw_data_dir: str, exclude_errors: bool=True, chunk_size: in
     data_file_list = gather_files(os.path.join(raw_data_dir, "data"))
     # extract_archives(data_file_list, "data/")
     # extract_archives(label_file_list, "labels/")
-    extract_training_set(raw_data_dir, data_file_list, exclusion_list, chunk_size)
-    extract_testing_set(raw_data_dir, data_file_list, exclusion_list, chunk_size)
-    inject_testing_set(raw_data_dir, data_file_list, 5, chunk_size)
+    extract_training_set(raw_data_dir, data_file_list, exclusion_list)
+    extract_testing_set(raw_data_dir, data_file_list, exclusion_list)
+    inject_testing_set(raw_data_dir, data_file_list, 5)
 
     # Delete unzipped files
     # for file in data_file_list:
