@@ -137,6 +137,10 @@ def parse_log(in_log_file: str,
         line = line.rsplit(None, 1)[0]
         line = line.rstrip()
 
+        # FIXME(lucas): Temporary! HDFS templates need to be updated.
+        if dataset_name.lower() == "hdfs":
+            line = line.partition(": ")[2]
+
         result = template_miner.add_log_message(line)
         result["params"] = template_miner.extract_parameters(
                 result["template_mined"],
