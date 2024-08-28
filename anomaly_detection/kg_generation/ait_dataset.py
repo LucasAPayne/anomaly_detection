@@ -123,7 +123,6 @@ def gather_files(root_dir: str) -> list[str]:
     ---------
     A list of the file names that were gathered
     """
-    # FIXME(lucas): Files are gathered twice, once with data/ and again with labels/
     print("gather files")
     file_list = []
     for root, _, files in os.walk(root_dir):
