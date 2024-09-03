@@ -13,6 +13,7 @@ import os
 import shutil
 from datetime import datetime
 
+import numpy as np
 
 # TODO(lucas): Put os wrappers in separate file to be shared
 # (For some reason, this function did not work when placed in a separate file)
@@ -209,13 +210,14 @@ def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: li
     - `data_file_list`: list of all file names to be processed, without the root directory
     - `exclusion_list`: list of words used to exclude log lines
     """
+    out_file_to_open = os.path.join(root_dir, "train", "train.log")
+    buffer = []
     for file in data_file_list:
         if file.endswith("zip"):
             continue
 
         # NOTE(lucas): input and output paths should be relative to data root directory
         data_file_to_open = os.path.join(root_dir, "data", file)
-        out_file_to_open = os.path.join(root_dir, "train", file)
         # If there is not already a folder for output, create one
         # (make sure not to make the target output file into a directory)
         if not os.path.exists(parent_dir(out_file_to_open)):
@@ -226,8 +228,6 @@ def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: li
             lines = infile.readlines()
 
         print(f"Extracting training data from {file}...", end=' ', flush=True)
-
-        buffer = []
 
         # To find the log type, return the name found between the last slash and the last period
         # If the log file contains the server name (e.g., mail.cup.com-access),
@@ -243,16 +243,14 @@ def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: li
                 exclude_line(line, exclusion_list):
                 buffer.append(line.rstrip() + "\t\t0\n")
 
-        # Flush any remaining entries in the buffer
-        with open(out_file_to_open, "w", encoding="utf-8") as outfile:
-            outfile.writelines(buffer)
-
         print("Done")
+
+    with open(out_file_to_open, "w", encoding="utf-8") as outfile:
+        outfile.writelines(buffer)
 
     print("Training data extracted")
 
-
-def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list: list[str]) -> None:
+def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list: list[str]) -> int:
     """
     Extract all attack data by looping through each line of each file and comparing to the same
     label file
@@ -264,6 +262,8 @@ def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list
     - `data_file_list`: list of all file names to be processed, without the root directory
     - `exclusion_list`: list of words used to exclude log lines
     """
+    out_data_file_to_open = os.path.join(root_dir, "test", "test.log")
+    buffer = []
     for file in data_file_list:
         if file.endswith("zip"):
             continue
@@ -271,11 +271,6 @@ def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list
         # NOTE(lucas): Input and output files should be relative to root data directory
         in_label_file_to_open = os.path.join(root_dir, "labels", file)
         in_data_file_to_open = os.path.join(root_dir, "data", file)
-        out_data_file_to_open = os.path.join(root_dir, "test", file)
-        # If there is not already a folder for output, create one
-        # (make sure not to make the target output file into a directory)
-        if not os.path.exists(parent_dir(out_data_file_to_open)):
-            os.makedirs(parent_dir(out_data_file_to_open))
 
         labels = []
         with open(in_label_file_to_open,  "r", encoding="utf-8") as in_label_file:
@@ -287,64 +282,42 @@ def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list
 
         print(f"Extracting attack data from {file}...", end=' ', flush=True)
 
-        buffer = []
-
         for label_line, data_line in zip(labels, lines):
             if label_line.strip() != "0,0" and not exclude_line(data_line, exclusion_list):
                 buffer.append(data_line.rstrip() + "\t\t1\n")
 
-        with open(out_data_file_to_open,  "w", encoding="utf-8") as out_data_file:
-            out_data_file.writelines(buffer)
-
         print("Done")
 
+    with open(out_data_file_to_open,  "w", encoding="utf-8") as out_data_file:
+        out_data_file.writelines(buffer)
+
     print("Attack data extracted")
+    return len(buffer)
 
-
-def inject_testing_set(raw_data_dir: str, data_file_list: list[str], lines: int) -> None:
+def inject_testing_set(data_dir: str, test_size: int):
     """
-    Put the last few lines of each file in the training set into the testing set
+    Move some normal data from the train set to the set set so that the test set
+    has an equal amount of normal and suspicious data.
 
     Parameters
     ----------
-    - `data_file_list`: list of all file names to be processed, without the root directory
-    - `lines`: the number of lines to copy from each training file to each testing file
+    - `data_dir`: directory containing raw log file
+    - `test_size`: the number of entries in the test set
     """
     print("Injecting training data into test set...", end=' ', flush=True)
-    for file in data_file_list:
-        if file.endswith("zip"):
-            continue
 
-        # NOTE(lucas): output files should be relative to root data directory
-        train_file_to_open = os.path.join(raw_data_dir, "train", file)
-        test_file_to_open  = os.path.join(raw_data_dir, "test", file)
+    train_path = os.path.join(data_dir, "train", "train.log")
+    test_path = os.path.join(data_dir, "test", "test.log")
 
-        if train_file_to_open.endswith("auth.log") or train_file_to_open.endswith("messages"):
-            lines = 1000
-        elif train_file_to_open.endswith("mainlog"):
-            lines = 50
-        else:
-            lines = 5
-
-        with open(train_file_to_open, "r+", encoding="utf-8") as infile:
-            train_lines = infile.readlines()
-
-            # TODO(lucas): Variable number of lines depending on type of log file?
-            # Much higher for long logs, fewer or nothing for short logs
-            buffer = []
-            # Append an "observed during training" label to each line from the training set
-            lines_to_write = train_lines[-lines:]
-            for line in lines_to_write:
-                buffer.append(line)
-
-            # Delete the last n lines from training file to prevent duplication
-            infile.writelines(train_lines[:-lines])
-
-        with open(test_file_to_open, "a",  encoding="utf-8") as out_data_file:
-            out_data_file.writelines(buffer)
+    with open(train_path, "r+", encoding="utf-8") as train_file, \
+         open(test_path, "a", encoding="utf-8") as test_file:
+        # NOTE(lucas): Shuffle lines to include data from each original log file
+        train_lines = train_file.readlines()
+        np.random.shuffle(train_lines)
+        test_file.writelines(train_lines[-test_size:])
+        train_file.writelines(train_lines[:-test_size])
 
     print("Done")
-
 
 def extract_dataset(raw_data_dir: str, exclude_errors: bool=True) -> None:
     """
@@ -366,8 +339,8 @@ def extract_dataset(raw_data_dir: str, exclude_errors: bool=True) -> None:
     # extract_archives(data_file_list, "data/")
     # extract_archives(label_file_list, "labels/")
     extract_training_set(raw_data_dir, data_file_list, exclusion_list)
-    extract_testing_set(raw_data_dir, data_file_list, exclusion_list)
-    inject_testing_set(raw_data_dir, data_file_list, 5)
+    test_size = extract_testing_set(raw_data_dir, data_file_list, exclusion_list)
+    inject_testing_set(raw_data_dir, test_size)
 
     # Delete unzipped files
     # for file in data_file_list:

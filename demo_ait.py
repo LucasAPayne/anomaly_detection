@@ -9,6 +9,8 @@ import pstats
 import os
 import yaml
 
+import numpy as np
+
 from anomaly_detection.kg_generation import ait_dataset
 from anomaly_detection.kg_generation.kg_generation import generate_kg
 from anomaly_detection.kg_completion.kg_completion import kg_completion
@@ -17,6 +19,8 @@ def main():
     """
     The demo code
     """
+    np.random.seed(1234)
+
     ait_raw_data_dir = os.path.join(os.path.dirname(__file__), "data", "AIT")
     exclude_errors = True
     ait_dataset.extract_dataset(ait_raw_data_dir, exclude_errors)
@@ -31,7 +35,8 @@ def main():
     ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
     ps.print_stats()
 
-    with open ("profile.txt", "w+", encoding="utf-8") as f:
+    profile_path = os.path.join("results", "profile.txt")
+    with open (profile_path, "w+", encoding="utf-8") as f:
         f.write(s.getvalue())
 
     # cfg_path = "config/ait.yaml"

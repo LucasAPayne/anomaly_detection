@@ -25,7 +25,8 @@ def main():
     ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
     ps.print_stats()
 
-    with open ("profile.txt", "w+", encoding="utf-8") as f:
+    profile_path = os.path.join("results", "profile.txt")
+    with open (profile_path, "w+", encoding="utf-8") as f:
         f.write(s.getvalue())
 
     # cfg_path = "config/hdfs.yaml"
