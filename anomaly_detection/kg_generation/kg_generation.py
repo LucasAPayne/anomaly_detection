@@ -7,6 +7,8 @@ This module generates a KG from raw log files
 import fileinput
 import json
 import logging
+import multiprocessing
+import multiprocessing.pool
 import os
 import sys
 import time
@@ -99,9 +101,8 @@ def remove_duplicate_lines(path: str):
     # Successfully removed duplicates and closed files, now delete backup file
     os.remove(path + ".bak")
 
-def parse_log(in_log_file: str,
+def parse_log(lines: list[str],
               dataset_name: str,
-              batch_size: int = 10000,
               logger: logging.Logger = None) -> None:
     """
     Parse a log file, writing the templates and extracted parameters to a JSON file.
@@ -110,19 +111,15 @@ def parse_log(in_log_file: str,
     ----------
     - `in_log_file`: the log file to parse
     - `dataset_name`: the name of the dataset
-    - `logger`: optional logger to print progress messages to terminal
+    - `logger`: optional logger to print progress messages
     """
-
     config = TemplateMinerConfig()
     config.load(join_path("config", dataset_name, "drain3.ini"))
     config.profiling_enabled = True
     template_miner = TemplateMiner(config=config)
 
+    batch_size = 10_000
     line_count = 0
-
-    lines = []
-    with open(in_log_file, "r", encoding="utf-8") as infile:
-        lines = infile.readlines()
 
     start_time = time.time()
     batch_start_time = start_time
@@ -347,11 +344,27 @@ def generate_kg(raw_data_dir: str, dataset_name: str) -> None:
     train_file = join_path(template_dir, "train.jsonl")
     test_dir = join_path(raw_data_dir, "test")
     test_file = join_path(template_dir, "test.jsonl")
+
+    num_cores = multiprocessing.cpu_count()
     for root, _, files in os.walk(train_dir):
         for file in files:
             in_log_file = join_path(root, file)
-            result_file = join_path(template_dir, "train.jsonl")
-            templates = parse_log(in_log_file,dataset_name, logger=logger)
+            lines = []
+            with open(in_log_file, "r", encoding="utf-8") as infile:
+                lines = infile.readlines()
+
+            # Divide lines into as many chunks as there are cores
+            num_lines = len(lines)
+            chunk_size = num_lines // num_cores
+            chunks = [lines[i:i + chunk_size] for i in range(0, num_lines, chunk_size)]
+
+            # Make as many processes as there are cores, and collect all their results
+            with multiprocessing.pool.Pool(processes=num_cores) as pool:
+                args = [(chunk, dataset_name, logger) for chunk in chunks]
+                results = pool.starmap(parse_log, args)
+
+            # Put the results into one continuous list
+            templates = [item for sublist in results for item in sublist]
             buffer.extend(templates)
 
     with open(train_file, "w", encoding="utf-8") as outfile:
@@ -360,13 +373,27 @@ def generate_kg(raw_data_dir: str, dataset_name: str) -> None:
     for root, _, files in os.walk(test_dir):
         for file in files:
             in_log_file = join_path(root, file)
-            templates = parse_log(in_log_file, dataset_name, logger=logger)
-            buffer.extend(templates)
+            lines = []
+            with open(in_log_file, "r", encoding="utf-8") as infile:
+                lines = infile.readlines()
 
+            # Divide lines into as many chunks as there are cores
+            num_lines = len(lines)
+            chunk_size = num_lines // num_cores
+            chunks = [lines[i:i + chunk_size] for i in range(0, num_lines, chunk_size)]
+
+            # Make as many processes as there are cores, and collect all their results
+            with multiprocessing.pool.Pool(processes=num_cores) as pool:
+                args = [(chunk, dataset_name, logger) for chunk in chunks]
+                results = pool.starmap(parse_log, args)
+
+            # Put the results into one continuous list
+            templates = [item for sublist in results for item in sublist]
+
+    # TODO(lucas): Have option to not save generated template files
     with open(test_file, "w", encoding="utf-8") as outfile:
         outfile.writelines(buffer)
 
-    # TODO(lucas): Have option to remove generated template files and templates directory
     train_kg_file = os.path.join(preprocessed_data_dir, "train.txt")
     test_kg_file = os.path.join(preprocessed_data_dir, "test.txt")
     val_kg_file = os.path.join(preprocessed_data_dir, "valid.txt")
