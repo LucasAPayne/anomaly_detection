@@ -5,15 +5,18 @@ This module generates a KG from raw log files
 # TODO(lucas): Add more logging
 
 import fileinput
-import json
 import logging
 import multiprocessing
 import multiprocessing.pool
 import os
+import psutil
 import sys
 import time
 
+import orjson
+
 from drain3 import TemplateMiner
+from drain3.template_miner import ExtractedParameter
 from drain3.template_miner_config import TemplateMinerConfig
 
 import numpy as np
@@ -113,6 +116,13 @@ def parse_log(lines: list[str],
     - `dataset_name`: the name of the dataset
     - `logger`: optional logger to print progress messages
     """
+    def serialize_default(obj) -> list:
+        if isinstance(obj, ExtractedParameter):
+            result = [obj.value, obj.mask_name]
+            return result
+
+        raise TypeError(f"Type {type(obj)} not serializable")
+
     config = TemplateMinerConfig()
     config.load(join_path("config", dataset_name, "drain3.ini"))
     config.profiling_enabled = True
@@ -154,7 +164,7 @@ def parse_log(lines: list[str],
                         f"{len(template_miner.drain.clusters)} clusters so far.")
             batch_start_time = time.time()
 
-        buffer.append(json.dumps(result) + "\n")
+        buffer.append(orjson.dumps(result, default=serialize_default) + b"\n")
 
     time_taken = time.time() - start_time
     rate = line_count / time_taken if time_taken > 0 else 0
@@ -224,12 +234,16 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
 
     template_path = join_path("config", dataset_name, "templates.json")
     templates = []
-    with open(template_path, "r", encoding="utf-8") as template_file:
-        templates = json.load(template_file)["templates"]
+    with open(template_path, "rb") as template_file:
+        file_contents = template_file.read()
+        templates = orjson.loads(file_contents)["templates"]
 
     parsed_lines = []
-    with open(template_dir, "r", encoding="utf-8") as infile:
-        parsed_lines = infile.readlines()
+    with open(template_dir, "rb") as infile:
+        for line in infile:
+            parsed_lines.append(orjson.loads(line))
+    
+    print(parsed_lines[0])
 
     buffer = []
     type_triples = set()
@@ -238,8 +252,7 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
     # For each line, search for a matching template
     for parsed_line in parsed_lines:
         for template in templates:
-            parse_result = json.loads(parsed_line)
-            if template["template_mined"] == parse_result["template_mined"]:
+            if template["template_mined"] == parsed_line["template_mined"]:
                 # If a matching template is found, get the subject, relation, and object
                 # and write a triple to the output file.
                 # The template contains the index into the "params" field of the parsed
@@ -247,11 +260,11 @@ def extract_relations_templates(template_dir: str, out_path: str, dataset_name: 
                 for relation in template["triples"]:
                     sub_index = relation["subject"]
                     obj_index = relation["object"]
-                    sub = clean_element(str(parse_result["params"][sub_index][0]))
-                    obj = clean_element(str(parse_result["params"][obj_index][0]))
+                    sub = clean_element(str(parsed_line["params"][sub_index][0]))
+                    obj = clean_element(str(parsed_line["params"][obj_index][0]))
                     rel = clean_element(str(relation["relation"]))
-                    label = parse_result["label"]
-                    log_id = parse_result["log_id"]
+                    label = parsed_line["label"]
+                    log_id = parsed_line["log_id"]
 
                     if "train" in template_dir:
                         entities.add(sub)
@@ -345,7 +358,8 @@ def generate_kg(raw_data_dir: str, dataset_name: str) -> None:
     test_dir = join_path(raw_data_dir, "test")
     test_file = join_path(template_dir, "test.jsonl")
 
-    num_cores = multiprocessing.cpu_count()
+    # Get only the number of physical cores (no hyperthreading)
+    num_cores = psutil.cpu_count(logical=False)
     for root, _, files in os.walk(train_dir):
         for file in files:
             in_log_file = join_path(root, file)
@@ -367,7 +381,7 @@ def generate_kg(raw_data_dir: str, dataset_name: str) -> None:
             templates = [item for sublist in results for item in sublist]
             buffer.extend(templates)
 
-    with open(train_file, "w", encoding="utf-8") as outfile:
+    with open(train_file, "wb") as outfile:
         outfile.writelines(buffer)
 
     for root, _, files in os.walk(test_dir):
@@ -391,7 +405,7 @@ def generate_kg(raw_data_dir: str, dataset_name: str) -> None:
             templates = [item for sublist in results for item in sublist]
 
     # TODO(lucas): Have option to not save generated template files
-    with open(test_file, "w", encoding="utf-8") as outfile:
+    with open(test_file, "wb") as outfile:
         outfile.writelines(buffer)
 
     train_kg_file = os.path.join(preprocessed_data_dir, "train.txt")
