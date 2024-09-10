@@ -10,6 +10,7 @@ from pykeen.stoppers import EarlyStopper
 from pykeen.losses import SoftplusLoss
 from pykeen.sampling import BasicNegativeSampler
 
+import torch
 from torch.optim import Adam
 
 # For reporting classification metrics
@@ -19,6 +20,16 @@ import sklearn
 from .datasets.AIT import AIT
 from .datasets.CyberML import CyberML
 from .datasets.HDFS import HDFS
+
+def join_path(*paths: str) -> str:
+    """
+    Wrapper around os.path.join to prepend the path of the file from which this function is called
+
+    Parameters
+    ----------
+    - `*paths`: List of paths to join
+    """
+    return os.path.join(os.path.dirname(__file__), *paths)
 
 def report_classification_results(true_labels: list, pred_labels: list, file_path: str):
     label_names = ["normal", "suspicious"]
@@ -147,6 +158,31 @@ def kg_completion(cfg: dict):
 
     training_triples_factory = dataset.training
     val_triples_factory = dataset.validation
+    test_triples = dataset.testing.triples
+    train_triples = dataset.training.triples
+    head_entities = train_triples[:, 0].tolist()
+    tail_entities = train_triples[:, 2].tolist()
+    train_entities = set(head_entities + tail_entities)
+
+    # Filter out any test triples that contain entities not found in the training set and
+    # ensure that the labels and log IDs are still mapped correctly
+    valid_indices = []
+    for i, test_triple in enumerate(test_triples):
+        sub, _, obj = test_triple
+        if sub in train_entities and obj in train_entities:
+            valid_indices.append(i)
+
+    labels: list[str] = dataset.metadata["test"]["labels"]
+    log_ids: list[str] = dataset.metadata["test"]["log_ids"]
+    filtered_labels = [int(labels[i]) for i in valid_indices]
+    filtered_log_ids = [int(log_ids[i]) for i in valid_indices]
+
+    dataset.metadata["test"]["labels"] = filtered_labels
+    dataset.metadata["test"]["log_ids"] = filtered_log_ids
+
+    meta_path = join_path("datasets", cfg["dataset"], "metadata.json")
+    with open(meta_path, "w", encoding="utf-8") as meta_file:
+        json.dump(dataset.metadata["test"], meta_file, indent=4)
 
     model = None
     kgc_model_str = cfg["model"].lower()
@@ -193,13 +229,12 @@ def kg_completion(cfg: dict):
             num_epochs=cfg["epochs"],
             batch_size=cfg["batch_size"],
         ),
+        evaluator=evaluator
     )
 
     test_loop = LCWAEvaluationLoop(model=model, triples_factory=dataset.testing,
                                    evaluator=evaluator)
     results = test_loop.evaluate(batch_size=cfg["val_batch_size"])
-    # results = evaluator.evaluate(model=model, mapped_triples=dataset.testing.mapped_triples,
-    #                              batch_size=cfg["val_batch_size"], automatic_memory_optimization=False)
 
     os.makedirs(cfg["out_dir"], exist_ok=True)
     kgc_result_path = os.path.join(cfg["out_dir"], "result_kgc.json")

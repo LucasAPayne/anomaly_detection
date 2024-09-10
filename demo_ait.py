@@ -19,31 +19,31 @@ def main():
     """
     The demo code
     """
-    np.random.seed(1234)
+    # np.random.seed(1234)
 
-    ait_raw_data_dir = os.path.join(os.path.dirname(__file__), "data", "AIT")
-    exclude_errors = True
-    ait_dataset.extract_dataset(ait_raw_data_dir, exclude_errors)
+    # ait_raw_data_dir = os.path.join(os.path.dirname(__file__), "data", "AIT")
+    # exclude_errors = True
+    # ait_dataset.extract_dataset(ait_raw_data_dir, exclude_errors)
 
-    pr = cProfile.Profile()
-    pr.enable()
-    generate_kg(ait_raw_data_dir, "AIT")
-    pr.disable()
+    # pr = cProfile.Profile()
+    # pr.enable()
+    # generate_kg(ait_raw_data_dir, "AIT")
+    # pr.disable()
 
-    s = io.StringIO()
-    sortby = pstats.SortKey.TIME
-    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-    ps.print_stats()
+    # s = io.StringIO()
+    # sortby = pstats.SortKey.TIME
+    # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    # ps.print_stats()
 
-    profile_path = os.path.join("results", "profile.txt")
-    with open (profile_path, "w+", encoding="utf-8") as f:
-        f.write(s.getvalue())
+    # profile_path = os.path.join("results", "profile.txt")
+    # with open (profile_path, "w+", encoding="utf-8") as f:
+    #     f.write(s.getvalue())
 
-    # cfg_path = "config/ait.yaml"
-    # cfg: dict = {}
-    # with open(cfg_path, "r", encoding="utf-8") as cfg_file:
-    #     cfg = yaml.safe_load(cfg_file)
-    # kg_completion(cfg)
+    cfg_path = "config/ait.yaml"
+    cfg: dict = {}
+    with open(cfg_path, "r", encoding="utf-8") as cfg_file:
+        cfg = yaml.safe_load(cfg_file)
+    kg_completion(cfg)
 
 if __name__ == "__main__":
     main()

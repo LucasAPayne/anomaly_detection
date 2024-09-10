@@ -61,7 +61,7 @@ class CyberML(PathDataset):
         self.metadata = {"test": {"labels": test_labels, "log_ids": []},
                          "valid": {"labels": val_labels}, "log_ids": []}
 
-        with open(HERE.joinpath("metadata.txt"), "w", encoding="utf-8") as meta_file:
+        with open(HERE.joinpath("metadata.json"), "w", encoding="utf-8") as meta_file:
             json.dump(self.metadata["test"], meta_file, indent=4)
 
 if __name__ == "__main__":
