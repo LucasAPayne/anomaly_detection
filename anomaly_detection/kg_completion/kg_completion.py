@@ -10,7 +10,6 @@ from pykeen.stoppers import EarlyStopper
 from pykeen.losses import SoftplusLoss
 from pykeen.sampling import BasicNegativeSampler
 
-import torch
 from torch.optim import Adam
 
 # For reporting classification metrics
@@ -158,6 +157,7 @@ def kg_completion(cfg: dict):
 
     training_triples_factory = dataset.training
     val_triples_factory = dataset.validation
+
     test_triples = dataset.testing.triples
     train_triples = dataset.training.triples
     head_entities = train_triples[:, 0].tolist()
