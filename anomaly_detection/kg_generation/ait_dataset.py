@@ -9,10 +9,14 @@ The testing set also contains some normal activity.
 """
 
 import calendar
+import itertools
+import multiprocessing
+import multiprocessing.pool
 import os
 import shutil
 from datetime import datetime
 
+import psutil
 import numpy as np
 
 # TODO(lucas): Put os wrappers in separate file to be shared
@@ -124,7 +128,6 @@ def gather_files(root_dir: str) -> list[str]:
     ---------
     A list of the file names that were gathered
     """
-    print("gather files")
     file_list = []
     for root, _, files in os.walk(root_dir):
         for file in files:
@@ -199,41 +202,17 @@ def exclude_line(line: str, exclusion_list: list[str]) -> bool:
             break
     return exclude
 
-def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: list[str]) -> None:
-    """
-    Extract training over a 1-day period
-    Attacks occur on 03/04/2020 and 03/05/2020
-
-    Parameters
-    ----------
-    - `root_dir`: root data directory
-    - `data_file_list`: list of all file names to be processed, without the root directory
-    - `exclusion_list`: list of words used to exclude log lines
-    """
-    out_file_to_open = os.path.join(root_dir, "train", "train.log")
+def extract_training_file(file_path: str, exclusion_list: list[str]) -> list[str]:
     buffer = []
-    for file in data_file_list:
-        if file.endswith("zip"):
-            continue
-
-        # NOTE(lucas): input and output paths should be relative to data root directory
-        data_file_to_open = os.path.join(root_dir, "data", file)
-        # If there is not already a folder for output, create one
-        # (make sure not to make the target output file into a directory)
-        if not os.path.exists(parent_dir(out_file_to_open)):
-            os.makedirs(parent_dir(out_file_to_open))
-
-        lines = []
-        with open(data_file_to_open, "r", encoding="utf-8") as infile:
-            lines = infile.readlines()
-
-        print(f"Extracting training data from {file}...", end=' ', flush=True)
-
+    lines = []
+    print(f"Extracting training data from {file_path}.")
+    with open(file_path, "r", encoding="utf-8") as infile:
+        lines = infile.readlines()
         # To find the log type, return the name found between the last slash and the last period
         # If the log file contains the server name (e.g., mail.cup.com-access),
         # remove the last period and everything before
         # Also, remove the "com-" part
-        log_type = file[file.rfind(os.sep)+1:]
+        log_type = file_path[file_path.rfind(os.sep)+1:]
         log_type = log_type.replace(".log", "").replace(".info", "")
         log_type = log_type[log_type.rfind(".")+1:]
         log_type = log_type.replace("com-", "")
@@ -243,12 +222,68 @@ def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: li
                 exclude_line(line, exclusion_list):
                 buffer.append(line.rstrip() + "\t\t0\n")
 
-        print("Done")
+    return buffer
 
-    with open(out_file_to_open, "w", encoding="utf-8") as outfile:
-        outfile.writelines(buffer)
+def extract_training_set(root_dir: str, data_file_list: list, exclusion_list: list[str]) -> None:
+    """
+    Extract training data
+    Attacks occur on 03/04/2020 and 03/05/2020
 
-    print("Training data extracted")
+    Parameters
+    ----------
+    - `root_dir`: root data directory
+    - `data_file_list`: list of all file names to be processed, without the root directory
+    - `exclusion_list`: list of words used to exclude log lines
+    """
+    out_dir = os.path.join(root_dir, "train")
+    if not os.path.exists(out_dir):
+        os.mkdir(out_dir)
+
+    # NOTE(lucas): Each process will work asynchronously on separate files,
+    # and they grab another file as soon as their current one is finished.
+    num_cores = psutil.cpu_count(logical=False)
+    result_path = os.path.join(out_dir, "train.log")
+    buffer = []
+    with multiprocessing.pool.Pool(processes=num_cores) as pool:
+        results = []
+        for file in data_file_list:
+            if file.endswith("zip"):
+                continue
+
+            file_path = os.path.join(root_dir, "data", file)
+            results.append(pool.apply_async(extract_training_file,
+                                            args=(file_path, exclusion_list)))
+
+        # Flatten the result list
+        buffer = list(itertools.chain.from_iterable(result.get() for result in results))
+
+    with open(result_path, "w", encoding="utf-8") as result_file:
+        result_file.writelines(buffer)
+
+    print("Training data extracted.")
+
+def extract_testing_file(root_dir: str, file: str, exclusion_list: list[str]) -> list[str]:
+    buffer = []
+
+    # NOTE(lucas): Input and output files should be relative to root data directory
+    label_file_path = os.path.join(root_dir, "labels", file)
+    data_file_path = os.path.join(root_dir, "data", file)
+
+    labels = []
+    with open(label_file_path, "r", encoding="utf-8") as label_file:
+        labels = label_file.readlines()
+
+    lines = []
+    with open(data_file_path, "r", encoding="utf-8") as data_file:
+        lines = data_file.readlines()
+
+    print(f"Extracting attack data from {data_file_path}")
+
+    for label_line, data_line in zip(labels, lines):
+        if label_line.strip() != "0,0" and not exclude_line(data_line, exclusion_list):
+            buffer.append(data_line.rstrip() + "\t\t1\n")
+
+    return buffer
 
 def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list: list[str]) -> int:
     """
@@ -262,36 +297,28 @@ def extract_testing_set(root_dir: str, data_file_list: list[str], exclusion_list
     - `data_file_list`: list of all file names to be processed, without the root directory
     - `exclusion_list`: list of words used to exclude log lines
     """
-    out_data_file_to_open = os.path.join(root_dir, "test", "test.log")
+    out_dir = os.path.join(root_dir, "test")
+    if not os.path.exists(out_dir):
+        os.mkdir(out_dir)
+
+    result_path = os.path.join(out_dir, "test.log")
+    num_cores = psutil.cpu_count(logical=False)
     buffer = []
-    for file in data_file_list:
-        if file.endswith("zip"):
-            continue
+    with multiprocessing.pool.Pool(processes=num_cores) as pool:
+        results = []
+        for file in data_file_list:
+            if file.endswith("zip"):
+                continue
 
-        # NOTE(lucas): Input and output files should be relative to root data directory
-        in_label_file_to_open = os.path.join(root_dir, "labels", file)
-        in_data_file_to_open = os.path.join(root_dir, "data", file)
+            results.append(pool.apply_async(extract_testing_file,
+                                            args=(root_dir, file, exclusion_list)))
 
-        labels = []
-        with open(in_label_file_to_open,  "r", encoding="utf-8") as in_label_file:
-            labels = in_label_file.readlines()
+        buffer = list(itertools.chain.from_iterable(result.get() for result in results))
 
-        lines = []
-        with open(in_data_file_to_open,   "r", encoding="utf-8") as in_data_file:
-            lines = in_data_file.readlines()
+    with open(result_path, "w", encoding="utf-8") as result_file:
+        result_file.writelines(buffer)
 
-        print(f"Extracting attack data from {file}...", end=' ', flush=True)
-
-        for label_line, data_line in zip(labels, lines):
-            if label_line.strip() != "0,0" and not exclude_line(data_line, exclusion_list):
-                buffer.append(data_line.rstrip() + "\t\t1\n")
-
-        print("Done")
-
-    with open(out_data_file_to_open,  "w", encoding="utf-8") as out_data_file:
-        out_data_file.writelines(buffer)
-
-    print("Attack data extracted")
+    print("Attack data extracted.")
     return len(buffer)
 
 def inject_testing_set(data_dir: str, test_size: int):
@@ -338,6 +365,7 @@ def extract_dataset(raw_data_dir: str, exclude_errors: bool=True) -> None:
     data_file_list = gather_files(os.path.join(raw_data_dir, "data"))
     # extract_archives(data_file_list, "data/")
     # extract_archives(label_file_list, "labels/")
+
     extract_training_set(raw_data_dir, data_file_list, exclusion_list)
     test_size = extract_testing_set(raw_data_dir, data_file_list, exclusion_list)
     inject_testing_set(raw_data_dir, test_size)
