@@ -9,3 +9,5 @@ __pycache__/
 **/results/*
 **/saved_models/*
 **/config_backup/*
+
+profile.txt

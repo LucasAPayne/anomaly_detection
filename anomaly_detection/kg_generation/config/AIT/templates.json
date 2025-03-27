@@ -107,7 +107,7 @@
             "triples":
             [
                 {"subject": 0, "relation": "recorded_event", "object": 4},
-                {"subject": 1, "relation": "loggeed_event", "object": 4},
+                {"subject": 1, "relation": "logged_event", "object": 4},
                 {"subject": 1, "relation": "processed_message_from_sender", "object": 7},
                 {"subject": 2, "relation": "handled_message_from_sender", "object": 7},
                 {"subject": 2, "relation": "used_submodule", "object": 3},

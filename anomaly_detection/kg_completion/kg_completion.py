@@ -201,7 +201,8 @@ def kg_completion(cfg: dict):
     optimizer = Adam(params=model.get_grad_params(), lr=cfg["lr"],)
     negative_sampler = BasicNegativeSampler(mapped_triples=training_triples_factory.mapped_triples)
     loss = SoftplusLoss()
-    evaluator = RankBasedEvaluator(batch_size=cfg["val_batch_size"], automatic_memory_optimization=False)
+    # evaluator = RankBasedEvaluator(batch_size=cfg["val_batch_size"], automatic_memory_optimization=False)
+    evaluator = RankBasedEvaluator(batch_size=cfg["val_batch_size"])
 
     # TODO(lucas): Use NopStopper if use_stopper is false?
     stopper = None

@@ -21,6 +21,9 @@ from drain3.template_miner_config import TemplateMinerConfig
 
 import numpy as np
 
+entities = set()
+relations = set()
+
 # TODO(lucas): Put os wrappers in separate file to be shared
 # (For some reason, this function did not work when placed in a separate file)
 # TODO(lucas): Give a more precise name like rel_path or relative_path
@@ -169,14 +172,15 @@ def parse_log(lines: list[str],
 
     return buffer
 
-def extract_relations(extracted_templates: list[dict], train_entities: dict, train_relations: set,
-                      dataset_name: str, train_set: bool=True) -> list[str]:
+def extract_triples(parsed_lines_path: str, out_path: str, dataset_name: str) -> None:
     """
-    Extract relations from parsed log files using templates,
+    Extract triples from parsed log files using templates,
     and write the resulting triples to a file.
 
     Parameters
     ----------
+    - `parsed_lines_path`: the file that contains the output of the log parser
+    - `out_path`: the file to which to write the extracted triples
     """
 
     def clean_element(el: str) -> str:
@@ -213,20 +217,35 @@ def extract_relations(extracted_templates: list[dict], train_entities: dict, tra
                 "FILEPATH": "filepath",
                 "BLOCK": "block"}
 
-    template_path = join_path("config", dataset_name, "templates.json")
+    global entities
+    global relations
+
+    entities_discarded = 0
+    relations_discarded = 0
+    triples_discarded = 0
+
+    templates_path = join_path("config", dataset_name, "templates.json")
     templates = []
-    with open(template_path, "rb") as template_file:
-        file_contents = template_file.read()
+    with open(templates_path, "rb") as templates_file:
+        file_contents = templates_file.read()
         templates = orjson.loads(file_contents)["templates"]
+
+    parsed_lines = []
+    with open(parsed_lines_path, "rb") as infile:
+        print(parsed_lines_path)
+        for line in infile:
+            parsed_lines.append(orjson.loads(line))
+
+    print(parsed_lines[0])
 
     buffer = []
     type_triples = set()
 
     # TODO(lucas): Try to reduce nesting
     # For each line, search for a matching template
-    for extracted_template in extracted_templates:
+    for parsed_line in parsed_lines:
         for template in templates:
-            if template["template_mined"] == extracted_template["template_mined"]:
+            if template["template_mined"] == parsed_line["template_mined"]:
                 # If a matching template is found, get the subject, relation, and object
                 # and write a triple to the output file.
                 # The template contains the index into the "params" field of the parsed
@@ -234,11 +253,26 @@ def extract_relations(extracted_templates: list[dict], train_entities: dict, tra
                 for relation in template["triples"]:
                     sub_index = relation["subject"]
                     obj_index = relation["object"]
-                    sub = clean_element(str(extracted_template["params"][sub_index][0]))
-                    obj = clean_element(str(extracted_template["params"][obj_index][0]))
+                    sub = clean_element(str(parsed_line["params"][sub_index][0]))
+                    obj = clean_element(str(parsed_line["params"][obj_index][0]))
                     rel = clean_element(str(relation["relation"]))
-                    label = extracted_template["label"]
-                    log_id = extracted_template["log_id"]
+                    label = parsed_line["label"]
+                    log_id = parsed_line["log_id"]
+
+                    if "train" in parsed_lines_path:
+                        entities.add(sub)
+                        relations.add(rel)
+                    else:
+                        skip = False
+                        if sub not in entities or obj not in entities:
+                            entities_discarded += 1
+                            skip = True
+                        if rel not in relations:
+                            relations_discarded += 1
+                            skip = True
+                        if skip:
+                            triples_discarded += 1
+                            continue
 
                     buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
 
@@ -261,7 +295,12 @@ def extract_relations(extracted_templates: list[dict], train_entities: dict, tra
                     #         obj = type_map[obj_type].lower()
                     #         buffer.append(f"{sub}\t{rel}\t{obj}\t{label}\t{log_id}\n")
 
-    return buffer
+    with open(out_path, "w", encoding="utf-8") as out_file:
+        out_file.writelines(buffer)
+
+    if triples_discarded:
+        print(f"{entities_discarded} entities and {relations_discarded} relations were not found in the train set.")
+        print(f"In total, {triples_discarded} triples were discarded.")
 
 def generate_val_set(train_path: str, out_val_path: str, val_ratio: float) -> None:
     """
@@ -393,21 +432,10 @@ def generate_kg(raw_data_dir: str, dataset_name: str) -> None:
     test_kg_file = os.path.join(preprocessed_data_dir, "test.txt")
     val_kg_file = os.path.join(preprocessed_data_dir, "valid.txt")
 
-    with multiprocessing.Manager() as manager:
-        # NOTE(lucas): Sets to be shared among proceses,
-        # containing unique entities and relations from train set
-        train_entities = manager.dict()
-        train_relations = manager.dict()
-
-        extract_triples_multiprocess(train_extracted_templates, train_entities,
-                                     train_relations, dataset_name, train_kg_file,
-                                     num_cores)
-        extract_triples_multiprocess(test_extracted_templates, train_entities,
-                                     train_relations, dataset_name, test_kg_file,
-                                     num_cores)
-
-    # extract_relations(train_extracted_templates, train_kg_file, dataset_name)
-    # extract_relations(test_extracted_templates, test_kg_file, dataset_name)
+    train_template_path = join_path(template_dir, "train.jsonl")
+    test_template_path = join_path(template_dir, "test.jsonl")
+    extract_triples(train_template_path, train_kg_file, dataset_name)
+    extract_triples(test_template_path, test_kg_file, dataset_name)
 
     # remove_duplicate_lines(train_kg_file)
     # remove_duplicate_lines(test_kg_file)
