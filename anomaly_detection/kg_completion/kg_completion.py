@@ -158,28 +158,6 @@ def kg_completion(cfg: dict):
     training_triples_factory = dataset.training
     val_triples_factory = dataset.validation
 
-    test_triples = dataset.testing.triples
-    train_triples = dataset.training.triples
-    head_entities = train_triples[:, 0].tolist()
-    tail_entities = train_triples[:, 2].tolist()
-    train_entities = set(head_entities + tail_entities)
-
-    # Filter out any test triples that contain entities not found in the training set and
-    # ensure that the labels and log IDs are still mapped correctly
-    valid_indices = []
-    for i, test_triple in enumerate(test_triples):
-        sub, _, obj = test_triple
-        if sub in train_entities and obj in train_entities:
-            valid_indices.append(i)
-
-    labels: list[str] = dataset.metadata["test"]["labels"]
-    log_ids: list[str] = dataset.metadata["test"]["log_ids"]
-    filtered_labels = [int(labels[i]) for i in valid_indices]
-    filtered_log_ids = [int(log_ids[i]) for i in valid_indices]
-
-    dataset.metadata["test"]["labels"] = filtered_labels
-    dataset.metadata["test"]["log_ids"] = filtered_log_ids
-
     meta_path = join_path("datasets", cfg["dataset"], "metadata.json")
     with open(meta_path, "w", encoding="utf-8") as meta_file:
         json.dump(dataset.metadata["test"], meta_file, indent=4)

@@ -10,4 +10,6 @@ __pycache__/
 **/saved_models/*
 **/config_backup/*
 
+venv/
+
 profile.txt

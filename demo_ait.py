@@ -64,6 +64,8 @@ def main():
     ps.print_stats()
 
     profile_path = os.path.join("results", "profile.txt")
+    if not os.path.exists("results"):
+        os.mkdir("results")
     with open (profile_path, "w+", encoding="utf-8") as f:
         f.write(s.getvalue())
 
