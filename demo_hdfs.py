@@ -29,11 +29,11 @@ def main():
     with open (profile_path, "w+", encoding="utf-8") as f:
         f.write(s.getvalue())
 
-    # cfg_path = "config/hdfs.yaml"
-    # cfg: dict = {}
-    # with open(cfg_path, "r", encoding="utf-8") as cfg_file:
-    #     cfg = yaml.safe_load(cfg_file)
-    # kg_completion(cfg)
+    cfg_path = "config/hdfs.yaml"
+    cfg: dict = {}
+    with open(cfg_path, "r", encoding="utf-8") as cfg_file:
+        cfg = yaml.safe_load(cfg_file)
+    kg_completion(cfg)
 
 if __name__ == "__main__":
     main()

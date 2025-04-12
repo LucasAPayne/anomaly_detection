@@ -37,7 +37,7 @@ def report_classification_results(true_labels: list, pred_labels: list, file_pat
         sklearn.metrics.precision_recall_fscore_support(true_labels, pred_labels,
                                                         labels=label_names, pos_label="suspicious",
                                                         average="binary", zero_division=0)
-    tn, fp, fn, tp = sklearn.metrics.confusion_matrix(true_labels, pred_labels).ravel()
+    tn, fp, fn, tp = sklearn.metrics.confusion_matrix(true_labels, pred_labels, labels=label_names).ravel()
 
     # Prevent divide by 0
     tpr = tp / (tp + fn) if tp + fn > 0 else 0.0
