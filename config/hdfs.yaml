@@ -1,0 +1,20 @@
+# Data
+dataset: HDFS
+out_dir: results/kgc/HDFS
+
+# Training
+model: distmult # distmult, complex, conve
+embedding_dim: 256
+seed: 1234
+epochs: 200 # max training epochs
+batch_size: 4096 # training batch size
+val_batch_size: 16 # evaluation batch size
+lr: 0.00256 # learning rate
+l2: 0.0
+negative_samples: 4
+
+# Early stopping
+use_stopper: true
+frequency: 25 # How many epochs to wait before evaluating for early stopping
+patience: 2 # Number of evaluations before stopping early
+metric: mrr

@@ -10,11 +10,14 @@ Clone the repository with
 
 Use Anaconda to create and activate a virtual environment, then install the additional dependencies of this repository:
 
-    conda create --name anomaly_detection
-    conda activate anomaly_detection
     cd path/to/repo
-    pip3 install -r requirements.txt
-    ./setup
+    python -m venv venv
+    venv\Scripts\activate
+    pip install -r requirements.txt
+    cd lib/pykeen
+    pip install .
+
+Finally, install `torch` by following the instructions on [pytorch.org](https://pytorch.org), making sure to install an appropriate version depending on your GPU and CUDA version if available.
 
 ## Running the Demo
 

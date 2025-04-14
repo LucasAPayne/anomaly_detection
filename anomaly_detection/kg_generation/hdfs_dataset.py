@@ -37,8 +37,7 @@ def inject_testing_set(data_dir: str, test_size: int):
 
     print("Done")
 
-
-def extract_dataset(data_dir: str, chunk_size: int=10000) -> None:
+def extract_dataset(data_dir: str) -> None:
     """
     Extract the HDFS dataset and break up into train, test, and val sets.
 
@@ -64,24 +63,29 @@ def extract_dataset(data_dir: str, chunk_size: int=10000) -> None:
     train_size = 0
     test_size = 0
 
-    with open(data_file_path, "r", encoding="utf-8") as data_file, \
-         open(label_file_path, "r", encoding="utf-8") as label_file, \
-         open(train_file_path, "w", encoding="utf-8") as train_file, \
-         open(test_file_path, "w", encoding="utf-8") as test_file:
-        print(f"Extracting data from {data_file_path}...", end=' ', flush=True)
-        for line, label in zip(data_file, label_file):
-            if label.strip() == "0 -1": # Normal label
-                train_buffer.append(line.strip() + "\t\t0\n")
-                train_size += 1
-            else:
-                test_buffer.append(line.strip() + "\t\t1\n")
-                test_size += 1
+    lines = []
+    with open(data_file_path, "r", encoding="utf-8") as data_file:
+        lines = data_file.readlines()
 
-            flush_buffer_to_file(train_buffer, train_file, chunk_size)
-            flush_buffer_to_file(test_buffer, test_file, chunk_size)
+    labels = []
+    with open(label_file_path, "r", encoding="utf-8") as label_file:
+        labels = label_file.readlines()
 
-        flush_buffer_to_file(train_buffer, train_file)
-        flush_buffer_to_file(test_buffer, test_file)
-        print("Done")
+    print(f"Extracting data from {data_file_path}...", end=' ', flush=True)
+    for line, label in zip(lines, labels):
+        if label.strip() == "0 -1": # Normal label
+            train_buffer.append(line.strip() + "\t\t0\n")
+            train_size += 1
+        else:
+            test_buffer.append(line.strip() + "\t\t1\n")
+            test_size += 1
+
+    print("Done")
+
+    with open(train_file_path, "w", encoding="utf-8") as train_file:
+        train_file.writelines(train_buffer)
+
+    with open(test_file_path, "w", encoding="utf-8") as test_file:
+        test_file.writelines(test_buffer)
 
     inject_testing_set(data_dir, test_size)

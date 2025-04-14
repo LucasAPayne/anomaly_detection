@@ -9,3 +9,7 @@ __pycache__/
 **/results/*
 **/saved_models/*
 **/config_backup/*
+
+venv/
+
+profile.txt

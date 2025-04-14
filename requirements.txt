@@ -1,8 +1,10 @@
 drain3
 torch
 torchtext
+psutil
 pyyaml
 requests
 Pillow
 python-dateutil
 ruamel.yaml
+orjson

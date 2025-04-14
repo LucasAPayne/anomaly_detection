@@ -20,6 +20,16 @@ from .datasets.AIT import AIT
 from .datasets.CyberML import CyberML
 from .datasets.HDFS import HDFS
 
+def join_path(*paths: str) -> str:
+    """
+    Wrapper around os.path.join to prepend the path of the file from which this function is called
+
+    Parameters
+    ----------
+    - `*paths`: List of paths to join
+    """
+    return os.path.join(os.path.dirname(__file__), *paths)
+
 def report_classification_results(true_labels: list, pred_labels: list, file_path: str):
     label_names = ["normal", "suspicious"]
     accuracy = sklearn.metrics.accuracy_score(true_labels, pred_labels)
@@ -27,7 +37,7 @@ def report_classification_results(true_labels: list, pred_labels: list, file_pat
         sklearn.metrics.precision_recall_fscore_support(true_labels, pred_labels,
                                                         labels=label_names, pos_label="suspicious",
                                                         average="binary", zero_division=0)
-    tn, fp, fn, tp = sklearn.metrics.confusion_matrix(true_labels, pred_labels).ravel()
+    tn, fp, fn, tp = sklearn.metrics.confusion_matrix(true_labels, pred_labels, labels=label_names).ravel()
 
     # Prevent divide by 0
     tpr = tp / (tp + fn) if tp + fn > 0 else 0.0
@@ -148,6 +158,10 @@ def kg_completion(cfg: dict):
     training_triples_factory = dataset.training
     val_triples_factory = dataset.validation
 
+    meta_path = join_path("datasets", cfg["dataset"], "metadata.json")
+    with open(meta_path, "w", encoding="utf-8") as meta_file:
+        json.dump(dataset.metadata["test"], meta_file, indent=4)
+
     model = None
     kgc_model_str = cfg["model"].lower()
     if kgc_model_str == "complex":
@@ -165,7 +179,8 @@ def kg_completion(cfg: dict):
     optimizer = Adam(params=model.get_grad_params(), lr=cfg["lr"],)
     negative_sampler = BasicNegativeSampler(mapped_triples=training_triples_factory.mapped_triples)
     loss = SoftplusLoss()
-    evaluator = RankBasedEvaluator()
+    # evaluator = RankBasedEvaluator(batch_size=cfg["val_batch_size"], automatic_memory_optimization=False)
+    evaluator = RankBasedEvaluator(batch_size=cfg["val_batch_size"])
 
     # TODO(lucas): Use NopStopper if use_stopper is false?
     stopper = None
@@ -173,11 +188,15 @@ def kg_completion(cfg: dict):
         stopper = EarlyStopper(model, evaluator, training_triples_factory, val_triples_factory,
                                frequency=cfg["frequency"], patience=cfg["patience"],
                                metric=cfg["metric"])
+        # NOTE(lucas): PyKEEN tries to override the evaluation batch size
+        # on the first evaluation unless this value is set.
+        stopper.evaluation_batch_size = evaluator.batch_size
 
     # TODO(lucas): Custom validation with classification
     # TODO(lucas): Save checkpoints
     # TODO(lucas): Replace pipeline with training/val loops?
     _ = pipeline(
+        random_seed=cfg["seed"],
         dataset=dataset,
         model=model,
         loss=loss,
@@ -188,12 +207,13 @@ def kg_completion(cfg: dict):
         training_kwargs=dict(
             num_epochs=cfg["epochs"],
             batch_size=cfg["batch_size"],
-        )
+        ),
+        evaluator=evaluator
     )
 
     test_loop = LCWAEvaluationLoop(model=model, triples_factory=dataset.testing,
                                    evaluator=evaluator)
-    results = test_loop.evaluate()
+    results = test_loop.evaluate(batch_size=cfg["val_batch_size"])
 
     os.makedirs(cfg["out_dir"], exist_ok=True)
     kgc_result_path = os.path.join(cfg["out_dir"], "result_kgc.json")

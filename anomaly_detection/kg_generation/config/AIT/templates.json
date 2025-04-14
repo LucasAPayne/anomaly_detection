@@ -2,99 +2,260 @@
     "templates":
     [
         {
-            "template_mined": "<:PROCESS:>(dovecot:auth): authentication failure; logname= uid=<:UID:> euid=<:UID:> tty=dovecot ruser=<:USER:> rhost=<:IP:> user=<:USER:>",
+            "template_mined": "<:TIMESTAMP:> <:SERVER:> <:SERVICE:>: <:PROCESS:>(<:SERVICE:>:<:MODULE:>): <:EVENT:>; logname= uid=<:UID:> euid=<:EUID:> tty=<:SERVICE:> ruser=<:USER:> rhost=<:IP:> user=<:USER:>",
             "triples":
             [
-                {"subject": 0, "relation": "has_user", "object": 5},
-                {"subject": 5, "relation": "has_ip", "object": 4},
-                {"subject": 5, "relation": "authentication_failure", "object": 0}
+                {"subject": 0, "relation": "recorded_event", "object": 6},
+                {"subject": 1, "relation": "logged_event", "object": 6},
+                {"subject": 2, "relation": "handled_by_module", "object": 3},
+                {"subject": 3, "relation": "was_used_for_service", "object": 4},
+                {"subject": 4, "relation": "was_accessed_by_user", "object": 12},
+                {"subject": 6, "relation": "involved_user", "object": 12},
+                {"subject": 6, "relation": "occurred_on_server", "object": 1},
+                {"subject": 6, "relation": "occurred_at_timestamp", "object": 0},
+                {"subject": 6, "relation": "was_attempted_from_host", "object": 11},
+                {"subject": 6, "relation": "was_logged_by_module", "object": 5},
+                {"subject": 7, "relation": "belongs_to_user", "object": 12},
+                {"subject": 8, "relation": "belongs_to_user", "object": 12},
+                {"subject": 11, "relation": "belongs_to_user", "object": 12},
+                {"subject": 12, "relation": "has_uid", "object": 7},
+                {"subject": 12, "relation": "has_euid", "object": 8},
+                {"subject": 12, "relation": "has_ip", "object": 11},
+                {"subject": 12, "relation": "was_logged_in_to_tty", "object": 9}
             ]
         },
         {
-            "template_mined": "[<:PROCESS:>] Login success for <:USER:> to <:PROCESS:> (<:IP:>) [pid <:PID:> on line <:NUM:> of \"/var/www/<:HOST:>/login.php\"]",
+            "template_mined": "<:TIMESTAMP:> <:SERVER:> <:PROCESS:>: [<:SUBMODULE:>] <:EVENT:> for <:USER:> to <:SUBMODULE:> (<:IP:>) [pid <:PID:> on line <:NUM:> of \"<:FILE_PATH:>\"]",
             "triples":
             [
-                {"subject": 0, "relation": "has_user", "object": 1},
-                {"subject": 1, "relation": "has_ip", "object": 3},
-                {"subject": 1, "relation": "on_host", "object": 6},
-                {"subject": 1, "relation": "logged_in", "object": 0}
+                {"subject": 0, "relation": "recorded_event", "object": 4},
+                {"subject": 1, "relation": "logged_event", "object": 4},
+                {"subject": 1, "relation": "processed_login_for_user", "object": 5},
+                {"subject": 2, "relation": "handled_login_for_user", "object": 5},
+                {"subject": 2, "relation": "used_submodule", "object": 3},
+                {"subject": 2, "relation": "has_pid", "object": 8},
+                {"subject": 3, "relation": "is_submodule_of", "object": 2},
+                {"subject": 3, "relation": "was_accessed_by_user", "object": 5},
+                {"subject": 4, "relation": "involved_user", "object": 5},
+                {"subject": 4, "relation": "occurred_on_server", "object": 1},
+                {"subject": 4, "relation": "occurred_at_timestamp", "object": 0},
+                {"subject": 4, "relation": "was_performed_from_host", "object": 7},
+                {"subject": 5, "relation": "has_ip", "object": 7},
+                {"subject": 5, "relation": "accessed_process", "object": 3},
+                {"subject": 7, "relation": "was_source_for_login", "object": 5},
+                {"subject": 8, "relation": "managed_by_service", "object": 2},
+                {"subject": 8, "relation": "executed_for_user", "object": 5},
+                {"subject": 10, "relation": "contained_login_logic_on_line", "object": 9}
             ]
         },
         {
-            "template_mined": "[<:PROCESS:>] Login success for <:USER:> (<:IP:>) to {<:PROCESS:>://localhost/} [pid <:PID:> on line <:NUM:> of \"/var/www/<:HOST:>/<:PROCESS:>/lib/Auth.php\"]",
+            "template_mined": "<:TIMESTAMP:> <:SERVER:> <:PROCESS:>: [<:SUBMODULE:>] <:EVENT:> for <:USER:> (<:IP:>) to {<:PROTOCOL:>://<:HOST:>/} [pid <:PID:> on line <:NUM:> of \"<:FILE_PATH:>\"]",
             "triples":
             [
-                {"subject": 0, "relation": "has_user", "object": 1},
-                {"subject": 1, "relation": "has_ip", "object": 2},
-                {"subject": 1, "relation": "on_host", "object": 6},
-                {"subject": 1, "relation": "logged_in", "object": 0}
+                {"subject": 0, "relation": "recorded_event", "object": 4},
+                {"subject": 1, "relation": "logged_event", "object": 4},
+                {"subject": 1, "relation": "processed_login_for_user", "object": 5},
+                {"subject": 2, "relation": "handled_login_for_user", "object": 5},
+                {"subject": 2, "relation": "used_submodule", "object": 3},
+                {"subject": 2, "relation": "has_pid", "object": 9},
+                {"subject": 3, "relation": "is_submodule_of", "object": 2},
+                {"subject": 3, "relation": "was_accessed_by_user", "object": 5},
+                {"subject": 4, "relation": "involved_user", "object": 5},
+                {"subject": 4, "relation": "occurred_on_server", "object": 1},
+                {"subject": 4, "relation": "occurred_at_timestamp", "object": 0},
+                {"subject": 4, "relation": "was_performed_from_host", "object": 6},
+                {"subject": 5, "relation": "has_ip", "object": 6},
+                {"subject": 5, "relation": "accessed_process", "object": 3},
+                {"subject": 6, "relation": "was_source_for_login", "object": 5},
+                {"subject": 7, "relation": "was_used_to_access", "object": 8},
+                {"subject": 8, "relation": "was_accessed_by_user", "object": 5},
+                {"subject": 8, "relation": "was_accessed_via_protocol", "object": 7},
+                {"subject": 9, "relation": "managed_by_service", "object": 2},
+                {"subject": 9, "relation": "executed_for_user", "object": 5},
+                {"subject": 11, "relation": "contained_login_logic_on_line", "object": 10}
             ]
         },
         {
-            "template_mined": "[<:PROCESS:>] FAILED LOGIN for <:USER:> (<:IP:>) to {<:PROCESS:>://localhost/} [pid <:PID:> on line <:NUM:> of \"/var/www/<:HOST:>/<:PROCESS:>/lib/Auth.php\"]",
+            "template_mined": "<:TIMESTAMP:> <:SERVER:> <:SERVICE:>: <:SUBMODULE:>: <:EVENT:>: user=<<:USER:>>, method=<:AUTH_METHOD:>, rip=<:IP:>, lip=<:IP:>, mpid=<:PID:>, <:SECURITY_STATUS:>, session=<<:SESSION_ID:>>",
             "triples":
             [
-                {"subject": 0, "relation": "has_user", "object": 1},
-                {"subject": 1, "relation": "authentication_failure", "object": 0},
-                {"subject": 1, "relation": "has_ip", "object": 2},
-                {"subject": 1, "relation": "on_host", "object": 6}
+                {"subject": 0, "relation": "recorded_event", "object": 4},
+                {"subject": 1, "relation": "logged_event", "object": 4},
+                {"subject": 1, "relation": "processed_login_for_user", "object": 5},
+                {"subject": 2, "relation": "handled_login_for_user", "object": 5},
+                {"subject": 2, "relation": "used_submodule", "object": 3},
+                {"subject": 2, "relation": "has_pid", "object": 9},
+                {"subject": 3, "relation": "is_submodule_of", "object": 2},
+                {"subject": 3, "relation": "was_accessed_by_user", "object": 5},
+                {"subject": 4, "relation": "involved_user", "object": 5},
+                {"subject": 4, "relation": "occurred_on_server", "object": 1},
+                {"subject": 4, "relation": "occurred_at_timestamp", "object": 0},
+                {"subject": 4, "relation": "was_performed_from_host", "object": 7},
+                {"subject": 5, "relation": "has_ip", "object": 7},
+                {"subject": 5, "relation": "accessed_process", "object": 3},
+                {"subject": 6, "relation": "was_used_for_user", "object": 5},
+                {"subject": 7, "relation": "was_source_for_login", "object": 5},
+                {"subject": 8, "relation": "was_destination_for_login", "object": 5},
+                {"subject": 9, "relation": "managed_by_service", "object": 2},
+                {"subject": 9, "relation": "executed_for_user", "object": 5},
+                {"subject": 10, "relation": "applies_to_session", "object": 11},
+                {"subject": 11, "relation": "was_assigned_to_user", "object": 5}
             ]
         },
         {
-            "template_mined": "<:PROCESS:>-login: Login: user=<<:USER:>>, method=PLAIN, rip=<:IP:>, lip=<:IP:>, mpid=<:PID:>, secured, session=<<:SESSION:>>",
+            "template_mined": "<:TIMESTAMP:> <:SERVER:> <:PROCESS:>: [<:SUBMODULE:>] <:EVENT:> to <:USER:> <<:EMAIL:>> from <:USER:> (<:IP:>) [pid <:PID:> on line <:NUM:> of \"<:FILE_PATH:>\"]",
             "triples":
             [
-                {"subject": 0, "relation": "has_user", "object": 1},
-                {"subject": 1, "relation": "logged_in", "object": 0},
-                {"subject": 1, "relation": "has_ip", "object": 2}
-            ]
-        },
-        {
-            "template_mined": "[<:PROCESS:>] Message sent to <:USER:> <<:EMAIL:>> from <:USER:> (<:IP:>) [pid <:PID:> on line <:NUM:> of \"/var/www/<:HOST:>/<:PROCESS:>/lib/Compose.php\"]",
-            "triples":
-            [
-                {"subject": 1, "relation": "has_email", "object": 2},
-                {"subject": 3, "relation": "sent_message", "object": 1},
-                {"subject": 3, "relation": "has_ip", "object": 4}
-            ]
-        },
-        {
-            "template_mined": "[<:PROCESS:>] Message sent to <:USER:> <<:EMAIL:>>, <:USER:> <<:EMAIL:>> from <:USER:> (<:IP:>) [pid <:PID:> on line <:NUM:> of \"/var/www/<:HOST:>/<:PROCESS:>/lib/Compose.php\"]",
-            "triples":
-            [
-                {"subject": 1, "relation": "has_email", "object": 2},
-                {"subject": 3, "relation": "has_email", "object": 4},
-                {"subject": 5, "relation": "sent_message", "object": 1},
-                {"subject": 5, "relation": "sent_message", "object": 3},
-                {"subject": 5, "relation": "has_ip", "object": 6}
-            ]
-        },
-        {
-            "template_mined": "[<:PROCESS:>] Message sent to <:USER:> <<:EMAIL:>>, <:USER:> <<:EMAIL:>>, <:USER:> <<:EMAIL:>> from <:USER:> (<:IP:>) [pid <:PID:> on line <:NUM:> of \"/var/www/<:HOST:>/<:PROCESS:>/lib/Compose.php\"]",
-            "triples":
-            [
-                {"subject": 1, "relation": "has_email", "object": 2},
-                {"subject": 3, "relation": "has_email", "object": 4},
+                {"subject": 0, "relation": "recorded_event", "object": 4},
+                {"subject": 1, "relation": "logged_event", "object": 4},
+                {"subject": 1, "relation": "processed_message_from_sender", "object": 7},
+                {"subject": 2, "relation": "handled_message_from_sender", "object": 7},
+                {"subject": 2, "relation": "used_submodule", "object": 3},
+                {"subject": 2, "relation": "has_pid", "object": 9},
+                {"subject": 3, "relation": "is_submodule_of", "object": 2},
+                {"subject": 3, "relation": "was_used_to_send_message_from_user", "object": 7},
+                {"subject": 4, "relation": "involved_user", "object": 5},
+                {"subject": 4, "relation": "involved_user", "object": 7},
+                {"subject": 4, "relation": "occurred_on_server", "object": 1},
+                {"subject": 4, "relation": "occurred_at_timestamp", "object": 0},
+                {"subject": 4, "relation": "was_performed_from_host", "object": 8},
+                {"subject": 5, "relation": "received_message_from_user", "object": 7},
                 {"subject": 5, "relation": "has_email", "object": 6},
-                {"subject": 7, "relation": "sent_message", "object": 1},
-                {"subject": 7, "relation": "sent_message", "object": 3},
-                {"subject": 7, "relation": "sent_message", "object": 5},
-                {"subject": 7, "relation": "has_ip", "object": 8}
+                {"subject": 6, "relation": "belongs_to_user", "object": 5},
+                {"subject": 7, "relation": "sent_message_to_user", "object": 5},
+                {"subject": 7, "relation": "sent_message_to_email", "object": 6},
+                {"subject": 7, "relation": "has_ip", "object": 8},
+                {"subject": 7, "relation": "used_pid", "object": 9},
+                {"subject": 8, "relation": "was_source_for_message_from_user", "object": 7},
+                {"subject": 9, "relation": "was_responsible_for_message_from_user", "object": 7},
+                {"subject": 9, "relation": "managed_by_service", "object": 2},
+                {"subject": 11, "relation": "contained_message_logic_on_line", "object": 10}
             ]
         },
         {
-            "template_mined": "[<:PROCESS:>] Message sent to <:USER:> <<:EMAIL:>>, <:USER:> <<:EMAIL:>>, <:USER:> <<:EMAIL:>>, <:USER:> <<:EMAIL:>> from <:USER:> (<:IP:>) [pid <:PID:> on line <:NUM:> of \"/var/www/<:HOST:>/<:PROCESS:>/lib/Compose.php\"]",
+            "template_mined": "<:TIMESTAMP:> <:SERVER:> <:PROCESS:>: [<:SUBMODULE:>] <:EVENT:> to <:USER:> <<:EMAIL:>>, <:USER:> <<:EMAIL:>> from <:USER:> (<:IP:>) [pid <:PID:> on line <:NUM:> of \"<:FILE_PATH:>\"]",
             "triples":
             [
-                {"subject": 1, "relation": "has_email", "object": 2},
-                {"subject": 3, "relation": "has_email", "object": 4},
+                {"subject": 0, "relation": "recorded_event", "object": 4},
+                {"subject": 1, "relation": "loggeed_event", "object": 4},
+                {"subject": 1, "relation": "processed_message_from_sender", "object": 9},
+                {"subject": 2, "relation": "handled_message_from_sender", "object": 9},
+                {"subject": 2, "relation": "used_submodule", "object": 3},
+                {"subject": 2, "relation": "has_pid", "object": 11},
+                {"subject": 3, "relation": "is_submodule_of", "object": 2},
+                {"subject": 3, "relation": "was_used_to_send_message_from_user", "object": 9},
+                {"subject": 4, "relation": "involved_user", "object": 5},
+                {"subject": 4, "relation": "involved_user", "object": 7},
+                {"subject": 4, "relation": "involved_user", "object": 9},
+                {"subject": 4, "relation": "occurred_on_server", "object": 1},
+                {"subject": 4, "relation": "occurred_at_timestamp", "object": 0},
+                {"subject": 4, "relation": "was_performed_from_host", "object": 10},
+                {"subject": 5, "relation": "received_message_from_user", "object": 9},
                 {"subject": 5, "relation": "has_email", "object": 6},
+                {"subject": 6, "relation": "belongs_to_user", "object": 5},
+                {"subject": 7, "relation": "received_message_from_user", "object": 9},
                 {"subject": 7, "relation": "has_email", "object": 8},
-                {"subject": 9, "relation": "sent_message", "object": 1},
-                {"subject": 9, "relation": "sent_message", "object": 3},
-                {"subject": 9, "relation": "sent_message", "object": 5},
-                {"subject": 9, "relation": "sent_message", "object": 7},
-                {"subject": 9, "relation": "has_ip", "object": 10}
+                {"subject": 8, "relation": "belongs_to_user", "object": 7},
+                {"subject": 9, "relation": "sent_message_to_user", "object": 5},
+                {"subject": 9, "relation": "sent_message_to_user", "object": 7},
+                {"subject": 9, "relation": "sent_message_to_email", "object": 6},
+                {"subject": 9, "relation": "sent_message_to_email", "object": 8},
+                {"subject": 9, "relation": "has_ip", "object": 10},
+                {"subject": 9, "relation": "used_pid", "object": 11},
+                {"subject": 10, "relation": "was_source_for_message_from_user", "object": 9},
+                {"subject": 11, "relation": "was_responsible_for_message_from_user", "object": 9},
+                {"subject": 11, "relation": "managed_by_service", "object": 2},
+                {"subject": 13, "relation": "contained_message_logic_on_line", "object": 12}
+            ]
+        },
+        {
+            "template_mined": "<:TIMESTAMP:> <:SERVER:> <:PROCESS:>: [<:SUBMODULE:>] <:EVENT:> to <:USER:> <<:EMAIL:>>, <:USER:> <<:EMAIL:>>, <:USER:> <<:EMAIL:>> from <:USER:> (<:IP:>) [pid <:PID:> on line <:NUM:> of \"<:FILE_PATH:>\"]",
+            "triples":
+            [
+                {"subject": 0, "relation": "recorded_event", "object": 4},
+                {"subject": 1, "relation": "loggeed_event", "object": 4},
+                {"subject": 1, "relation": "processed_message_from_sender", "object": 11},
+                {"subject": 2, "relation": "handled_message_from_sender", "object": 11},
+                {"subject": 2, "relation": "used_submodule", "object": 3},
+                {"subject": 2, "relation": "has_pid", "object": 13},
+                {"subject": 3, "relation": "is_submodule_of", "object": 2},
+                {"subject": 3, "relation": "was_used_to_send_message_from_user", "object": 11},
+                {"subject": 4, "relation": "involved_user", "object": 5},
+                {"subject": 4, "relation": "involved_user", "object": 7},
+                {"subject": 4, "relation": "involved_user", "object": 9},
+                {"subject": 4, "relation": "involved_user", "object": 11},
+                {"subject": 4, "relation": "occurred_on_server", "object": 1},
+                {"subject": 4, "relation": "occurred_at_timestamp", "object": 0},
+                {"subject": 4, "relation": "was_performed_from_host", "object": 12},
+                {"subject": 5, "relation": "received_message_from_user", "object": 11},
+                {"subject": 5, "relation": "has_email", "object": 6},
+                {"subject": 6, "relation": "belongs_to_user", "object": 5},
+                {"subject": 7, "relation": "received_message_from_user", "object": 11},
+                {"subject": 7, "relation": "has_email", "object": 8},
+                {"subject": 8, "relation": "belongs_to_user", "object": 7},
+                {"subject": 9, "relation": "received_message_from_user", "object": 11},
+                {"subject": 9, "relation": "has_email", "object": 10},
+                {"subject": 10, "relation": "belongs_to_user", "object": 9},
+                {"subject": 11, "relation": "sent_message_to_user", "object": 5},
+                {"subject": 11, "relation": "sent_message_to_user", "object": 7},
+                {"subject": 11, "relation": "sent_message_to_user", "object": 9},
+                {"subject": 11, "relation": "sent_message_to_email", "object": 6},
+                {"subject": 11, "relation": "sent_message_to_email", "object": 8},
+                {"subject": 11, "relation": "sent_message_to_email", "object": 10},
+                {"subject": 11, "relation": "has_ip", "object": 12},
+                {"subject": 11, "relation": "used_pid", "object": 13},
+                {"subject": 12, "relation": "was_source_for_message_from_user", "object": 11},
+                {"subject": 13, "relation": "was_responsible_for_message_from_user", "object": 11},
+                {"subject": 13, "relation": "managed_by_service", "object": 2},
+                {"subject": 15, "relation": "contained_message_logic_on_line", "object": 14}
+            ]
+        },
+        {
+            "template_mined": "<:TIMESTAMP:> <:SERVER:> <:PROCESS:>: [<:SUBMODULE:>] <:EVENT:> to <:USER:> <<:EMAIL:>>, <:USER:> <<:EMAIL:>>, <:USER:> <<:EMAIL:>>, <:USER:> <<:EMAIL:>> from <:USER:> (<:IP:>) [pid <:PID:> on line <:NUM:> of \"<:FILE_PATH:>\"]",
+            "triples":
+            [
+                {"subject": 0, "relation": "recorded_event", "object": 4},
+                {"subject": 1, "relation": "loggeed_event", "object": 4},
+                {"subject": 1, "relation": "processed_message_from_sender", "object": 13},
+                {"subject": 2, "relation": "handled_message_from_sender", "object": 13},
+                {"subject": 2, "relation": "used_submodule", "object": 3},
+                {"subject": 2, "relation": "has_pid", "object": 15},
+                {"subject": 3, "relation": "is_submodule_of", "object": 2},
+                {"subject": 3, "relation": "was_used_to_send_message_from_user", "object": 13},
+                {"subject": 4, "relation": "involved_user", "object": 5},
+                {"subject": 4, "relation": "involved_user", "object": 7},
+                {"subject": 4, "relation": "involved_user", "object": 9},
+                {"subject": 4, "relation": "involved_user", "object": 11},
+                {"subject": 4, "relation": "involved_user", "object": 13},
+                {"subject": 4, "relation": "occurred_on_server", "object": 1},
+                {"subject": 4, "relation": "occurred_at_timestamp", "object": 0},
+                {"subject": 4, "relation": "was_performed_from_host", "object": 14},
+                {"subject": 5, "relation": "received_message_from_user", "object": 13},
+                {"subject": 5, "relation": "has_email", "object": 6},
+                {"subject": 6, "relation": "belongs_to_user", "object": 5},
+                {"subject": 7, "relation": "received_message_from_user", "object": 13},
+                {"subject": 7, "relation": "has_email", "object": 8},
+                {"subject": 8, "relation": "belongs_to_user", "object": 7},
+                {"subject": 9, "relation": "received_message_from_user", "object": 13},
+                {"subject": 9, "relation": "has_email", "object": 10},
+                {"subject": 10, "relation": "belongs_to_user", "object": 9},
+                {"subject": 11, "relation": "received_message_from_user", "object": 13},
+                {"subject": 11, "relation": "has_email", "object": 12},
+                {"subject": 12, "relation": "belongs_to_user", "object": 11},
+                {"subject": 13, "relation": "sent_message_to_user", "object": 5},
+                {"subject": 13, "relation": "sent_message_to_user", "object": 7},
+                {"subject": 13, "relation": "sent_message_to_user", "object": 9},
+                {"subject": 13, "relation": "sent_message_to_user", "object": 11},
+                {"subject": 13, "relation": "sent_message_to_email", "object": 6},
+                {"subject": 13, "relation": "sent_message_to_email", "object": 8},
+                {"subject": 13, "relation": "sent_message_to_email", "object": 10},
+                {"subject": 13, "relation": "sent_message_to_email", "object": 12},
+                {"subject": 13, "relation": "has_ip", "object": 14},
+                {"subject": 13, "relation": "used_pid", "object": 15},
+                {"subject": 14, "relation": "was_source_for_message_from_user", "object": 13},
+                {"subject": 15, "relation": "was_responsible_for_message_from_user", "object": 13},
+                {"subject": 15, "relation": "managed_by_service", "object": 2},
+                {"subject": 17, "relation": "contained_message_logic_on_line", "object": 16}
             ]
         }
     ]
