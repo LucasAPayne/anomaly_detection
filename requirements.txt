@@ -1,3 +1,4 @@
+accelerate
 drain3
 torch
 torchtext
@@ -8,3 +9,4 @@ Pillow
 python-dateutil
 ruamel.yaml
 orjson
+transformers

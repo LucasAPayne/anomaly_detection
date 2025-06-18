@@ -1,0 +1,32 @@
+model_id: "meta-llama/Llama-3.3-70B-Instruct"
+
+prompts:
+    - >
+      Extract all named entities from the following log message and list them in the exact order that they appear.
+      Return your answer as a nicely-formatted list.
+      Combine dates and times into one timestamp entity.
+      Do not include the type fields or prefixes of the log message, such as "user="; only include their values.
+      Do not return any code for this step.
+      Only consider the following log message:
+      
+    - >
+      Classify each entity in the given list.
+      Return your answer as a nicely-formatted list of (entity, type) pairs.
+      For each entity, give ONLY ONE classification.
+
+    - >
+      Generate regular expressions, using only Python extensions, that would recognize each of entities you extracted in the previous steps.
+      Use positive lookbehinds to make sure the regular expressions only match the extracted entities and nothing else.
+      Do not return any code for this step.
+      Only generate regular expressions for the entities you extracted, and your answer should be only the regular expressions.
+      It is imperative that you return only one answer; do NOT provide additional explanation or examples.
+      Only consider the following log message.
+
+    - >
+      Generate as many triples as possible from the following log message.
+      Return as many triples as possible, and each entity should appear in a triple at least once.
+      Triples should be of the form (subject, relation, object).
+      It is imperative that you return ONLY the list of triples; do NOT return any additional information.
+      Return ONLY ONE list of triples; do not offer further examples or try to correct yourself.
+      Do not return any code for this step.
+      Here is the log message to consider:

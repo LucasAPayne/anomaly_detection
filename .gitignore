@@ -3,12 +3,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-**/.vector_cache/*
-**/templates/*
-**/data/*
-**/results/*
-**/saved_models/*
-**/config_backup/*
+**/.vector_cache
+**/backup
+**/config_backup
+**/data
+**/logs
+**/results
+**/saved_models
+**/templates
 
 venv/
 

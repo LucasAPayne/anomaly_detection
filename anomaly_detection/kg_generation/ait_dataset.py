@@ -116,6 +116,7 @@ def parent_dir(path: str) -> str:
     """
     return path[:path.rfind(os.sep)]
 
+# TODO(lucas): Consider keeping the root directory in the file paths
 def gather_files(root_dir: str) -> list[str]:
     """
     Gather relevant files recursively from root_dir

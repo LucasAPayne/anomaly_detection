@@ -5,6 +5,7 @@ as well as knowledge graph completion for anomaly detection
 
 import cProfile
 import io
+import logging
 import pstats
 import os
 import shutil
@@ -13,8 +14,11 @@ import yaml
 import numpy as np
 
 from anomaly_detection.kg_generation import ait_dataset
+from anomaly_detection.kg_generation.llm import find_unique_log_formats, generate_templates
 from anomaly_detection.kg_generation.kg_generation import generate_kg
 from anomaly_detection.kg_completion.kg_completion import kg_completion
+
+logger = logging.getLogger(__name__)
 
 def clean_preprocessed_files(raw_data_dir: str, dataset_name: str) -> None:
     """
@@ -43,37 +47,72 @@ def main():
     """
     The demo code
     """
+    logging.basicConfig(
+        filename=os.path.join("results", "AIT", "log.txt"),
+        level=logging.DEBUG,
+        format="[%(asctime)s]: %(name)s: %(levelname)s: %(message)s"
+    )
+
     np.random.seed(1234)
-    ait_raw_data_dir = os.path.join(os.path.dirname(__file__), "data", "AIT")
+    current_dir = os.path.dirname(__file__)
+    raw_data_dir = os.path.join(current_dir, "data", "AIT")
+    preprocessed_data_dir = os.path.join(raw_data_dir, "preprocessed")
+    unique_logs_path = os.path.join(preprocessed_data_dir, "unique_logs.txt")
 
-    clean = True
-    if clean:
-        clean_preprocessed_files(ait_raw_data_dir, "AIT")
+    llm_config_path = os.path.join(current_dir, "config", "llm_config.yaml")
+    valid_types_path = os.path.join(current_dir, "config", "valid_types.txt")
+    valid_rels_path = os.path.join(current_dir, "config", "valid_rels.txt")
+    gen_templates_path = os.path.join(current_dir, "results", "AIT", "templates.json")
 
-    exclude_errors = True
-    ait_dataset.extract_dataset(ait_raw_data_dir, exclude_errors)
+    should_clean = True
+    if should_clean:
+        clean_preprocessed_files(raw_data_dir, "AIT")
 
-    pr = cProfile.Profile()
-    pr.enable()
-    generate_kg(ait_raw_data_dir, "AIT")
-    pr.disable()
+    # TODO(lucas): If templates have already been generated, consider using Drain3's persistence and inference mode
+    # (inference mode uses template_miner.match(log_line) instead of template_miner.add_log_message(log_line))
 
-    s = io.StringIO()
-    sortby = pstats.SortKey.TIME
-    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-    ps.print_stats()
+    """
+    Use a default configuration of the Drain3 log parser to find all unique
+    log message formats in a dataset. Writes Drain output to JSON lines file,
+    and writes the first example of each message to an output text file.
+    The contents of the text file will be used as examples to construct a
+    set of templates to extract a list of triples from other messages of
+    that format. The Drain output can be used to dial in the default
+    configuration to ensure that there are few or no duplicate formats.
+    """
+    # log_dir = os.path.join(raw_data_dir, "data")
+    # log_list = ait_dataset.gather_files(log_dir)
+    # for i, log in enumerate(log_list):
+        # log_list[i] = os.path.join(log_dir, log)
+    # find_unique_log_formats(log_list, preprocessed_data_dir)
 
-    profile_path = os.path.join("results", "profile.txt")
-    if not os.path.exists("results"):
-        os.mkdir("results")
-    with open (profile_path, "w+", encoding="utf-8") as f:
-        f.write(s.getvalue())
+    generate_templates(unique_logs_path, llm_config_path, valid_types_path,
+                       valid_rels_path, gen_templates_path)
 
-    cfg_path = "config/ait.yaml"
-    cfg: dict = {}
-    with open(cfg_path, "r", encoding="utf-8") as cfg_file:
-        cfg = yaml.safe_load(cfg_file)
-    kg_completion(cfg)
+    # exclude_errors = True
+    # ait_dataset.extract_dataset(raw_data_dir, exclude_errors)
+
+    # pr = cProfile.Profile()
+    # pr.enable()
+    # generate_kg(raw_data_dir, "AIT")
+    # pr.disable()
+
+    # s = io.StringIO()
+    # sortby = pstats.SortKey.TIME
+    # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    # ps.print_stats()
+
+    # profile_path = os.path.join("results", "profile.txt")
+    # if not os.path.exists("results"):
+    #     os.mkdir("results")
+    # with open (profile_path, "w+", encoding="utf-8") as f:
+    #     f.write(s.getvalue())
+
+    # cfg_path = "config/ait.yaml"
+    # cfg: dict = {}
+    # with open(cfg_path, "r", encoding="utf-8") as cfg_file:
+    #     cfg = yaml.safe_load(cfg_file)
+    # kg_completion(cfg)
 
 if __name__ == "__main__":
     main()
