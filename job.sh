@@ -18,25 +18,8 @@ source /etc/profile.d/modules.sh
 module load cuda
 module load python/3.10
 module load gcc
+module load mpich
 
 source venv/bin/activate
 
-MASTER_ADDR=$(scontrol show hostnames $SLURM_NODELIST | head -n 1)
-MASTER_PORT=29500
-RANK=$SLURM_PROCID
-LOCAL_RANK=$SLURM_LOCALID
-NUM_PROC=$(($SLURM_NNODES * $GPUS_PER_NODE))
-
-export LAUNCHER="accelerate launch \
-  --num_processes $NUM_PROC \
-  --num_machines $SLURM_NNODES \
-  --rdzv_backend c10d \
-  --main_process_ip $MASTER_ADDR \
-  --main_process_port $MASTER_PORT \
-  "
-
-export SCRIPT="tests/llm_stability.py"
-export SCRIPT_ARGS="-i 1"
-
-export CMD="$LAUNCHER $SCRIPT $SCRIPT_ARGS"
-srun $CMD
+python tests/llm_stability.py -i 2

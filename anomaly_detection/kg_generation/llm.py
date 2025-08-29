@@ -6,11 +6,9 @@ import socket
 import time
 import yaml
 
-import accelerate
-from accelerate import Accelerator, load_checkpoint_and_dispatch
 from drain3 import TemplateMiner
 from drain3.template_miner_config import TemplateMinerConfig
-from huggingface_hub import snapshot_download
+from mpi4py import MPI
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 import torch
@@ -195,18 +193,19 @@ def get_entity_pairs(classified_entity_list: set[str]) -> list[list[str]]:
     return entity_pairs
 
 def llm(model, tokenizer, prompt: str, max_new_tokens: int=128, rep_penaly: float=1.2, temp: float=0.2) -> str:
-    input_ids = tokenizer(prompt, return_tensors="pt").input_ids.to(model.device)
+    inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True).to(model.device)
     outputs = model.generate(
-        input_ids,
+        input_ids=inputs["input_ids"],
+        attention_mask=inputs["attention_mask"],
         max_new_tokens=max_new_tokens,
         pad_token_id=tokenizer.eos_token_id,
         eos_token_id=tokenizer.eos_token_id,
         repetition_penalty=rep_penaly,
         temperature=temp)
-    response = tokenizer.decode(outputs[0][input_ids.shape[-1]:], skip_special_tokens=True)
+    response = tokenizer.decode(outputs[0][inputs["input_ids"].shape[-1]:], skip_special_tokens=True)
     return response
 
-def generate_next_template(log: str, cfg: dict, valid_types: str, valid_rels: str,
+def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types: str, valid_rels: str,
                            model, tokenizer) -> dict:
     user_prompts = cfg["prompts"]
     # prompts = [user_prompts[0] + "\n" + log,
@@ -216,15 +215,17 @@ def generate_next_template(log: str, cfg: dict, valid_types: str, valid_rels: st
     #         user_prompts[3] + "\n" + log]
 
     ner_prompt = user_prompts[0] + "\n" + log
+
+    logging.info(f"NER Prompt: {ner_prompt}")
     response = llm(model, tokenizer, ner_prompt)
-    logging.info(f"Response:\n{response}")
+    logging.info(f"NER Response:\n{response}")
     entity_list = get_entity_list(response)
     logging.info(f"Entity list:\n{entity_list}")
 
     entity_classification_prompt = "These are the valid types to consider for the following prompt:\n" + valid_types + \
                                 "\nFor context, this is the log message in which the entities appear:\n" + log + "\n" + user_prompts[1] + "This is the list of entities to classify:\n" + str(entity_list)
     response = llm(model, tokenizer, entity_classification_prompt, max_new_tokens=256)
-    logging.info(f"Response:\n{response}\n")
+    logging.info(f"Entity Classification Response:\n{response}\n")
 
     # TODO(lucas): Protect lists from being None/empty.
     #  If they are, just redo the prompt with more tokens?
@@ -233,7 +234,7 @@ def generate_next_template(log: str, cfg: dict, valid_types: str, valid_rels: st
 
     missing_entities = set()
     # If any entity types do not exist in the list of valid types,
-    #  add the corresponding entities to a list to be reclassified
+    # add the corresponding entities to a list to be reclassified
     for pair in entity_pairs:
         if pair[1] not in valid_types:
             missing_entities.add(pair[0])
@@ -245,8 +246,8 @@ def generate_next_template(log: str, cfg: dict, valid_types: str, valid_rels: st
                                 "\nThese are the valid relations to consider for the following prompt:\n" + valid_rels + \
                                 "\n" + user_prompts[3] + "\n" + log
     response = llm(model, tokenizer, triple_extraction_prompt, max_new_tokens=256)
-    logging.info(f"Prompt:\n{triple_extraction_prompt}")
-    logging.info(f"Response:\n{response}\n")
+    logging.info(f"Triple Extraction Prompt:\n{triple_extraction_prompt}")
+    logging.info(f"Triple Extraction Response:\n{response}\n")
 
     triples_out = []
     triples = response.split('\n')
@@ -259,7 +260,7 @@ def generate_next_template(log: str, cfg: dict, valid_types: str, valid_rels: st
 
     for triple in triples:
         try:
-            sub, _, obj = filter_chars(triple, ["\'", "\""]).split(",")
+            sub, _, obj = filter_chars(triple, ["\'", "\"", "‘", "’"]).split(",")
         except ValueError:
             logging.error(f"Problematic triple (not enough values to split): {triple}")
             continue
@@ -279,8 +280,8 @@ def generate_next_template(log: str, cfg: dict, valid_types: str, valid_rels: st
         entity_classification_prompt = "These are the valid types to consider for the following prompt:\n" + valid_types + \
                                     "\nFor context, this is the log message in which they appear:\n" + log + "\n" + user_prompts[1] + "This is the list of entities to classify:\n" + str(missing_entities)
         response = llm(model, tokenizer, entity_classification_prompt, max_new_tokens=256)
-        logging.info(f"Prompt:\n{entity_classification_prompt}")
-        logging.info(f"Response:\n{response}")
+        logging.info(f"Entity Classification Prompt:\n{entity_classification_prompt}")
+        logging.info(f"Entity Classification Response:\n{response}")
 
         missing_entity_classification_list = get_entity_list(response)
         missing_entity_pairs = get_entity_pairs(missing_entity_classification_list)
@@ -332,34 +333,34 @@ def generate_next_template(log: str, cfg: dict, valid_types: str, valid_rels: st
 
         triples_out.append([sub_idx, rel, obj_idx])
 
-    entity_mask_pattern = re.compile(r"(?<![\w-])(" + "|".join(re.escape(entity) for entity, _ in entity_pairs) + r")(?![\w-])")
-    entity_dict = dict(entity_pairs)
-
-    def replacement(match):
-        try:
-            return entity_dict[match.group(0)]
-        except KeyError:
-            return None
+    # entity_dict = dict(entity_pairs)
 
     # NOTE(lucas): Since these are output to JSON, any quotes need to be escaped
-    quote_chars = ["'", '"', "“", "”", "＂"]
-    escape_quotes_pattern = re.compile(r"[" + "".join(re.escape(c) for c in quote_chars) + r"]")
-    masked_log = escape_quotes_pattern.sub(lambda m: "\\" + m.group(0), log)
-    # trans_table = str.maketrans("\'''\"“”＂", "\\\'\\\'\\\'\\\"\\\"\\\"\\\"\\\"")
-    # masked_log = entity_mask_pattern.sub(replacement, log).strip.translate(trans_table)
-    # if masked_log is None:
-        # logging.error(f"Invalid key (f{match.group(0)}) encountered while masking log {log}")
+    # quote_chars = ["'", '"', "“", "”", "＂"]
+    # escape_quotes_pattern = re.compile(r"[" + "".join(re.escape(c) for c in quote_chars) + r"]")
+    # masked_log = escape_quotes_pattern.sub(lambda m: "\\" + m.group(0), log)
+    masked_log = log.replace('"', '\\"')
+    for entity_pair in entity_pairs:
+        masked_log = masked_log.replace(entity_pair[0], entity_pair[1])
+    
+    drain_template = drain_template.replace('"', '\\"')
 
-    logging.info(f"Masked log message:\n{masked_log}\n")
+    # TODO(lucas): Change this back to info when info messages start appearing again
+    logging.warning(f"Masked log message:\n{masked_log}\n")
 
     triples_discarded = len(triples) - len(triples_out)
     if len(triples_out) < len(triples):
         logging.info(f"{triples_discarded} triples were discarded due to entities not being found.")
 
-    result = {"masked_log": masked_log, "triples": triples_out}
+    result = {"drain_template": drain_template, "masked_log": masked_log, "triples": triples_out}
     return result
 
 def write_templates_to_file(templates: list[dict], out_path: str) -> None:
+    def format_row(sub_str, rel_str, obj_str):
+        sub_field = (sub_str + ", ").ljust(len(sub_str) + 2)
+        rel_field = (rel_str + ", ").ljust(len(rel_str) + 2)
+        return indent*4 + "{" + sub_field + rel_field + obj_str + "}"
+
     dir_path = os.path.dirname(out_path)
     os.makedirs(dir_path, exist_ok=True)
 
@@ -368,39 +369,42 @@ def write_templates_to_file(templates: list[dict], out_path: str) -> None:
         f.write("{\n")
         f.write(f"{indent}\"templates\":\n")
         f.write(f"{indent}[\n")
-        for template in templates:
-            masked_log = template["masked_log"]
+        for template_idx, template in enumerate(templates):
+            drain_template = template["drain_template"]
+            masked_log = template["masked_log"].rstrip()
             triples = template["triples"]
             logging.info(f"template[\"triples\"]: {triples}")
             f.write(f"{indent*2}{{\n")
+            f.write(f"{indent*3}\"drain_template\": \"{drain_template}\",\n")
             f.write(f"{indent*3}\"template_mined\": \"{masked_log}\",\n")
             f.write(f"{indent*3}\"triples\":\n{indent*3}[\n")
 
+            if len(triples) == 0:
+                logging.error("Empty triples in template. Discarding.")
+                f.write(f"\n{indent*3}]\n{indent*2}}},\n")
+                continue
+
             sub_entries = [f'"subject": {t[0]}' for t in triples]
-            rel_entries = [f'"relation": "{t[1]}' for t in triples]
+            rel_entries = [f'"relation": "{t[1]}"' for t in triples]
             max_sub_len = max(len(s) for s in sub_entries)
             max_rel_len = max(len(r) for r in rel_entries)
 
-            for i, t in enumerate(triples):
-                sub_str = f'"subject": {t[0]}'
-                rel_str = f'"relation": {t[1]}'
-                obj_str = f'"object": {t[2]}'
+            for triple_idx, triple in enumerate(triples):
+                sub_str = f'"subject": {triple[0]}'
+                rel_str = f'"relation": "{triple[1]}"'
+                obj_str = f'"object": {triple[2]}'
 
-                # Align keys within the same set of triples
-                formatted_line = (
-                    f"{indent*4}{{"
-                    f"{sub_str.ljust(max_sub_len)}, "
-                    f"{rel_str.ljust(max_rel_len)}, "
-                    f"{obj_str}"
-                    f"}}"
-                )
+                formatted_line = format_row(sub_str, rel_str, obj_str)
 
                 f.write(formatted_line)
-                if i < len(triples) - 1:
+                if triple_idx < len(triples) - 1:
                     f.write(",\n")
 
             f.write(f"\n{indent*3}]\n");
-            f.write(f"{indent*2}}},\n")
+            if template_idx < len(templates) - 1:
+                f.write(f"{indent*2}}},\n")
+            else:
+                f.write(f"{indent*2}}}\n")
         f.write(f"{indent}]\n")
         f.write("}\n")
 
@@ -411,8 +415,8 @@ def split_between_nodes(logs: list[str], node_idx: int, num_nodes: int) -> list[
     end = start + per_node + (1 if node_idx < rem else 0)
     return logs[start:end]
 
-def generate_templates(log_path: str, config_path: str, valid_types_path: str,
-                       valid_rels_path: str, out_path: str, accelerator: Accelerator) -> None:
+def generate_templates(log_path: str, template_path: str, config_path: str, valid_types_path: str,
+                       valid_rels_path: str, out_path: str) -> None:
     with open(config_path, "r", encoding="utf-8") as config_file:
         cfg = yaml.safe_load(config_file)
 
@@ -425,59 +429,50 @@ def generate_templates(log_path: str, config_path: str, valid_types_path: str,
     model_name = cfg["model_id"]
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-    if accelerator.is_local_main_process:
-        print("Loading model...")
+    print("Loading model...")
 
     model_load_start = time.time()
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        device_map="auto",  # Automatically splits the model across available GPUs
+        device_map="auto",
         low_cpu_mem_usage=True,
-        # offload_folder="offload",
-        # offload_state_dict=True,
         torch_dtype=torch.float16
     )
-    # model = accelerator.prepare(model)
-    # weights_location = snapshot_download(repo_id=model_name)
-    # model = load_checkpoint_and_dispatch(model, checkpoint=weights_location, device_map="auto")
 
-    if accelerator.is_local_main_process:
-        print(f"Model loaded in {format_seconds(time.time() - model_load_start)}")
+    print(f"Model loaded in {format_seconds(time.time() - model_load_start)}")
+
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+
+    # NOTE(lucas): Tends to hang without this barrier
+    comm.Barrier()
 
     with open(log_path, "r", encoding="utf-8") as f:
         logs = f.readlines()
 
+    with open(template_path, "r", encoding="utf-8") as f:
+        drain_templates = f.readlines()
+
     template_gen_start = time.time()
     templates = []
 
-    # with accelerator.split_between_processes(logs) as log_slice:
     host = socket.gethostname()
-    hosts = accelerate.utils.gather_object((host,))
+    hosts = comm.allgather(host)
     unique_hosts = sorted(set(hosts))
     node_idx = unique_hosts.index(host)
     num_nodes = len(unique_hosts)
 
     log_slice = split_between_nodes(logs, node_idx, num_nodes)
-    for log_idx, log in enumerate(log_slice):
-        print(f"Rank {accelerator.process_index} processing log {log_idx}/{len(log_slice)}")
-        templates.append(generate_next_template(log, cfg, valid_types, valid_rels, model, tokenizer))
+    for i, log in enumerate(log_slice):
+        drain_template = json.loads(drain_templates[i])["template_mined"]
+        logging.info(f"Rank {rank} processing log {i+1}/{len(log_slice)}")
+        templates.append(generate_next_template(log, drain_template, cfg, valid_types, valid_rels, model, tokenizer))
 
-    all_templates = accelerate.utils.gather_object(templates)
+    gathered = comm.gather(templates, root=0)
+    if rank == 0:
+        all_templates = [template for templates in gathered for template in templates]
 
-    # logs = accelerator.pad_across_processes(logs, dim=0)
-    # logs = accelerator.gather_for_metrics(logs)
-
-    # for idx in range(accelerator.process_index, len(logs), accelerator.num_processes):
-    #     log = logs[idx]
-    #     template = generate_next_template(log, cfg, valid_types, valid_rels, model, tokenizer)
-    #     templates.append(template)
-
-    # all_templates = accelerator.gather_for_metrics(templates)
-
-    # for log in logs:
-    #     templates.append(generate_next_template(log, cfg, valid_types, valid_rels, model, tokenizer))
-
-    if accelerator.is_main_process:
+    if rank == 0:
         print(f"Templates generated in {format_seconds(time.time() - template_gen_start)}")
         write_templates_to_file(all_templates, out_path)
 
@@ -492,3 +487,25 @@ def generate_templates(log_path: str, config_path: str, valid_types_path: str,
     #     result = test == "<:example:>"
     #     result_str = "Pass" if result is True else "Fail"
     #     print(f"{ex} -> {ensure_brackets(ex)} ({result_str})")
+
+if __name__ == "__main__":
+    # TODO(lucas): Add explanation to each argument
+    # logger = logging.getLogger(__name__)
+    log_format = "[%(asctime)s]: %(name)s: %(levelname)s: %(message)s"
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format=log_format
+    )
+
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--log-path", required=True)
+    parser.add_argument("--template-path", required=True)
+    parser.add_argument("--config-path", required=True)
+    parser.add_argument("--valid-types-path", required=True)
+    parser.add_argument("--valid-rels-path", required=True)
+    parser.add_argument("--out-path", required=True)
+
+    args = parser.parse_args()
+    generate_templates(args.log_path, args.template_path, args.config_path, args.valid_types_path,
+                       args.valid_rels_path, args.out_path)

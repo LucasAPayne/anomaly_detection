@@ -1,7 +1,7 @@
-accelerate
 drain3
 torch
 torchtext
+mpi4py
 psutil
 pyyaml
 requests
