@@ -15,7 +15,7 @@ import torch
 
 logger = logging.getLogger(__name__)
 
-def format_seconds(seconds: int) -> str:
+def format_seconds(seconds: float) -> str:
     seconds = int(seconds)
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
@@ -36,7 +36,6 @@ def find_unique_log_formats(filenames: list[str], out_dir: str) -> None:
 
     # TODO(lucas): Is there an easy and generic way to filter out archives?
     filenames = list(filter(lambda x: x.endswith("zip") == False, filenames))
-    total_templates = 0
     buffer = []
     template_buffer = []
     for filename in filenames:
@@ -56,8 +55,8 @@ def find_unique_log_formats(filenames: list[str], out_dir: str) -> None:
         out.writelines(buffer)
 
     with open(template_out_file, "w", encoding="utf-8") as out:
-            for template in template_buffer:
-                out.write(json.dumps(template) + "\n")
+        for template in template_buffer:
+            out.write(json.dumps(template) + "\n")
 
     logger.info(f"Total unique log message formats found: {len(template_buffer)}")
     logger.info(f"Unique templates were written to {template_out_file}")
@@ -123,19 +122,26 @@ def get_entity_list(s: str) -> set[str]:
         # It also might have an explanation with a numbered list.
         if "1. (" in item or "1) (" in item:
             numbered = True
+            logging.info("Entity list is numbered")
             break
 
     sep = ""
-    for item in entity_list:
-        if "*" in item:
-            sep = "*"
-            break
-        elif "- " in entity_list:
-            sep = "- "
-            break
-        elif "," in item:
-            sep = ","
-            break
+    if not numbered:
+        for item in entity_list:
+            if "*" in item:
+                sep = "*"
+                logging.info("Entity list uses * for list")
+                break
+            elif "- " in entity_list:
+                sep = "- "
+                logging.info("Entity list uses - for list")
+                break
+            elif "," in item:
+                sep = ","
+                logging.info("Entity list uses , for list")
+                break
+            else:
+                logging.warning("No list separator found")
 
     if numbered is True:
         entity_list = split_numbered_list(s)
@@ -214,7 +220,7 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     #         user_prompts[2] + "\n" + log,
     #         user_prompts[3] + "\n" + log]
 
-    ner_prompt = user_prompts[0] + "\n" + log
+    ner_prompt = user_prompts[0] + "\n" + log + "\n Below is an example to get you started. Include all the entities listed below and any others you find:\n" + drain_template
 
     logging.info(f"NER Prompt: {ner_prompt}")
     response = llm(model, tokenizer, ner_prompt)
@@ -224,11 +230,12 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
 
     entity_classification_prompt = "These are the valid types to consider for the following prompt:\n" + valid_types + \
                                 "\nFor context, this is the log message in which the entities appear:\n" + log + "\n" + user_prompts[1] + "This is the list of entities to classify:\n" + str(entity_list)
+    logging.info(f"Entity Classification Prompt: {entity_classification_prompt}")
     response = llm(model, tokenizer, entity_classification_prompt, max_new_tokens=256)
     logging.info(f"Entity Classification Response:\n{response}\n")
 
     # TODO(lucas): Protect lists from being None/empty.
-    #  If they are, just redo the prompt with more tokens?
+    # If they are, just redo the prompt with more tokens?
     classified_entity_list = get_entity_list(response)
     entity_pairs = get_entity_pairs(classified_entity_list)
 
@@ -335,18 +342,13 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
 
     # entity_dict = dict(entity_pairs)
 
-    # NOTE(lucas): Since these are output to JSON, any quotes need to be escaped
-    # quote_chars = ["'", '"', "“", "”", "＂"]
-    # escape_quotes_pattern = re.compile(r"[" + "".join(re.escape(c) for c in quote_chars) + r"]")
-    # masked_log = escape_quotes_pattern.sub(lambda m: "\\" + m.group(0), log)
     masked_log = log.replace('"', '\\"')
     for entity_pair in entity_pairs:
         masked_log = masked_log.replace(entity_pair[0], entity_pair[1])
     
     drain_template = drain_template.replace('"', '\\"')
 
-    # TODO(lucas): Change this back to info when info messages start appearing again
-    logging.warning(f"Masked log message:\n{masked_log}\n")
+    logging.info(f"Masked log message:\n{masked_log}\n")
 
     triples_discarded = len(triples) - len(triples_out)
     if len(triples_out) < len(triples):
@@ -401,7 +403,7 @@ def write_templates_to_file(templates: list[dict], out_path: str) -> None:
                     f.write(",\n")
 
             f.write(f"\n{indent*3}]\n");
-            if template_idx < len(templates) - 1:
+            if template_idx < len(templates):
                 f.write(f"{indent*2}}},\n")
             else:
                 f.write(f"{indent*2}}}\n")
@@ -414,6 +416,28 @@ def split_between_nodes(logs: list[str], node_idx: int, num_nodes: int) -> list[
     start = node_idx*per_node + min(node_idx, rem)
     end = start + per_node + (1 if node_idx < rem else 0)
     return logs[start:end]
+
+def template_should_regenerate(template: dict) -> bool:
+    result = False
+
+    mask_pattern = re.compile(r"(<:[^>]+:>)")
+    drain_matches = re.findall(mask_pattern, template["drain_template"])
+    llm_matches = re.findall(mask_pattern, template["masked_log"])
+    logging.info(f"Drain masked log matches: {drain_matches}")
+    logging.info(f"LLM masked log matches: {llm_matches}")
+
+    if len(llm_matches) == 0:
+        logging.warning(f"No entities found in LLM masked log")
+        result = True
+
+    elif len(llm_matches) < len(drain_matches):
+        logging.warning(f"LLM generated fewer entities than Drain")
+        result = True
+    
+    elif (len(template["triples"]) == 0):
+        logging.warning("No triples generated")
+
+    return result
 
 def generate_templates(log_path: str, template_path: str, config_path: str, valid_types_path: str,
                        valid_rels_path: str, out_path: str) -> None:
@@ -466,7 +490,17 @@ def generate_templates(log_path: str, template_path: str, config_path: str, vali
     for i, log in enumerate(log_slice):
         drain_template = json.loads(drain_templates[i])["template_mined"]
         logging.info(f"Rank {rank} processing log {i+1}/{len(log_slice)}")
-        templates.append(generate_next_template(log, drain_template, cfg, valid_types, valid_rels, model, tokenizer))
+        template = generate_next_template(log, drain_template, cfg, valid_types, valid_rels, model, tokenizer)
+
+        # TODO(lucas): Is it possible to justify some of the entities between Drain and LLM templates?
+        # e.g., Drain identified a month and several numbers, but the LLM did not convert to a timestamp?
+        attempts = 0
+        while template_should_regenerate(template) and attempts < 3:
+            logging.info("Regenerating template.")
+            template = generate_next_template(log, drain_template, cfg, valid_types, valid_rels, model, tokenizer)
+            attempts += 1
+
+        templates.append(template)
 
     gathered = comm.gather(templates, root=0)
     if rank == 0:

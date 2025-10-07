@@ -24,8 +24,9 @@ def run_ait_test(root_dir: str, current_dir: str, iteration: int) -> None:
     raw_data_dir = os.path.join(root_dir, "data", "AIT")
     preprocessed_data_dir = os.path.join(raw_data_dir, "preprocessed")
     unique_logs_path = os.path.join(preprocessed_data_dir, "unique_logs.txt")
+    unique_templates_path = os.path.join(preprocessed_data_dir, "unique_templates.jsonl")
 
-    if not os.path.exists(unique_logs_path):
+    if not os.path.exists(unique_logs_path) or not os.path.exists(unique_templates_path):
         log_dir = os.path.join(raw_data_dir, "data")
         log_list = ait_dataset.gather_files(log_dir)
         for i, log in enumerate(log_list):
@@ -36,8 +37,6 @@ def run_ait_test(root_dir: str, current_dir: str, iteration: int) -> None:
     valid_types_path = os.path.join(root_dir, "config", "valid_types.txt")
     valid_rels_path = os.path.join(root_dir, "config", "valid_rels.txt")
     gen_templates_path = os.path.join(current_dir, "results", "AIT", f"templates_{iteration}.json")
-
-    unique_templates_path = os.path.join(preprocessed_data_dir, "unique_templates.jsonl")
 
     subprocess.run([
         "mpirun",
@@ -64,8 +63,9 @@ def run_hdfs_test(iteration: int) -> None:
     raw_data_dir = os.path.join(root_dir, "data", "HDFS")
     preprocessed_data_dir = os.path.join(raw_data_dir, "preprocessed")
     unique_logs_path = os.path.join(preprocessed_data_dir, "unique_logs.txt")
+    unique_templates_path = os.path.join(preprocessed_data_dir, "unique_templates.jsonl")
 
-    if not os.path.exists(unique_logs_path):
+    if not os.path.exists(unique_logs_path) or not os.path.exists(unique_templates_path):
         log_files = [os.path.join(raw_data_dir, "raw", "hdfs.log")]
         find_unique_log_formats(log_files, preprocessed_data_dir)
 
@@ -73,8 +73,6 @@ def run_hdfs_test(iteration: int) -> None:
     valid_types_path = os.path.join(root_dir, "config", "valid_types.txt")
     valid_rels_path = os.path.join(root_dir, "config", "valid_rels.txt")
     gen_templates_path = os.path.join(current_dir, "results", "HDFS", f"templates_{iteration}.json")
-
-    unique_templates_path = os.path.join(preprocessed_data_dir, "unique_templates.jsonl")
 
     # TODO(lucas): Get absolute path
     subprocess.run([

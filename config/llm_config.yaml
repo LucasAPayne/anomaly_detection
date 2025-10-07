@@ -2,12 +2,16 @@ model_id: "meta-llama/Llama-3.3-70B-Instruct"
 
 prompts:
     - >
-      Extract all named entities from the following log message and list them in the exact order that they appear.
-      Return your answer as a nicely-formatted list.
-      Combine dates and times into one timestamp entity.
-      Do not include the type fields or prefixes of the log message, such as "user="; only include their values.
-      Do not return any code for this step.
-      Only consider the following log message:
+      You are an information extraction system. 
+      Your task is to extract all named entities from the following log message.
+
+      Requirements:
+      - Return ONLY the extracted entities in the exact order they appear.
+      - Output format must be a single valid JSON array of strings. 
+      - Do not include any explanations, commentary, or additional text. 
+      - Do not include field prefixes (e.g., "user="), just the value. 
+      - Combine dates and times into a single timestamp string if they appear together.
+      - A file path should be considered a single entity. Do NOT split each folder into a separate entity.
       
     - >
       Classify each entity in the given list.

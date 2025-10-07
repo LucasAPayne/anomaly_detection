@@ -19,4 +19,5 @@
 <:HOST:>
 <:SESSION:>
 <:DATANODES:>
-<:BLOCK:>
+<:BLOCK_LIST:>
+<:NUM:>
