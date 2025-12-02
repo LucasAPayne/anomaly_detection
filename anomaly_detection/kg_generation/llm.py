@@ -4,6 +4,7 @@ import os
 import re
 import socket
 import time
+import unicodedata
 import yaml
 
 from drain3 import TemplateMiner
@@ -105,19 +106,83 @@ def get_entity_idx(s: str, entity_list: list[str]) -> int:
 
     return idx
 
-def get_entity_list(s: str) -> set[str]:
+# def get_entity_list(s: str) -> list[str]:
+#     # NOTE(lucas): The first item in the entity list could contain some preamble.
+#     # For instance, some models like to start with a sentence that ends in a boxed environment.
+#     # In these cases, the entity list should still be identifiable by an opening bracket,
+#     # an opening parenthesis, or both, and the end needs to be trimmed as well.
+#     quotes = ["\'", "\""]
+#     entity_list = filter_chars(s, quotes).split("\n")
+
+#     entity_list[0] = entity_list[0].replace("{", "", 1).replace("[", "", 1).replace("(", "", 1)
+#     entity_list[-1] = entity_list[-1].replace("}", "", 1).replace("]", "", 1).replace(")", "", 1)
+
+#     numbered = False
+#     for item in entity_list:
+#         # TODO(lucas): This might be better with regex because sometimes the model will have, for example, an IP with 1. in it.
+#         # It also might have an explanation with a numbered list.
+#         if "1. (" in item or "1) (" in item:
+#             numbered = True
+#             logging.info("Entity list is numbered")
+#             break
+
+#     sep = ""
+#     if not numbered:
+#         for item in entity_list:
+#             if "*" in item:
+#                 sep = "*"
+#                 logging.info("Entity list uses * for list")
+#                 break
+#             elif "- " in entity_list:
+#                 sep = "- "
+#                 logging.info("Entity list uses - for list")
+#                 break
+#             elif "," in item:
+#                 sep = ","
+#                 logging.info("Entity list uses , for list")
+#                 break
+#             else:
+#                 logging.warning("No list separator found")
+
+#     if numbered is True:
+#         entity_list = split_numbered_list(s)
+#     else:
+#         entity_list = list(filter(lambda s: filter_str(s, sep), entity_list))
+
+#     new_entities: list[str] = []
+#     for ent in entity_list:
+#         new_ent = ent.replace(sep, "", 1).strip()
+#         # TODO(lucas): Filtering out "=" at the end gets rid of false entities like "user=",
+#         # but it might interfere with a Base64 string
+#         if new_ent and not new_ent.endswith("="):
+#             new_entities.append(new_ent)
+#         else:
+#             logging.warning(f"Invalid entity: {s}")
+#     entity_list = new_entities
+
+#     return list(dict.fromkeys(entity_list))
+
+# TODO(lucas): Have separate variables for the different stages of entity_list instead of mutating it everywhere
+def get_entity_list(s: str) -> list[str]:
     # NOTE(lucas): The first item in the entity list could contain some preamble.
     # For instance, some models like to start with a sentence that ends in a boxed environment.
     # In these cases, the entity list should still be identifiable by an opening bracket,
     # an opening parenthesis, or both, and the end needs to be trimmed as well.
     quotes = ["\'", "\""]
-    entity_list = filter_chars(s, quotes).split("\n")
+    entity_list = filter_chars(s, quotes)
 
-    entity_list[0] = entity_list[0].replace("{", "", 1).replace("[", "", 1).replace("(", "", 1)
-    entity_list[-1] = entity_list[-1].replace("}", "", 1).replace("]", "", 1).replace(")", "", 1)
+    if not entity_list:
+        logging.error("Something went wrong")
+        return []
+
+    entity_list = entity_list.splitlines()
+
+    # entity_list[0] = entity_list[0].replace("{", "", 1).replace("[", "", 1).replace("(", "", 1)
+    # entity_list[-1] = entity_list[-1].replace("}", "", 1).replace("]", "", 1).replace(")", "", 1)
 
     numbered = False
     for item in entity_list:
+        print(item)
         # TODO(lucas): This might be better with regex because sometimes the model will have, for example, an IP with 1. in it.
         # It also might have an explanation with a numbered list.
         if "1. (" in item or "1) (" in item:
@@ -128,35 +193,57 @@ def get_entity_list(s: str) -> set[str]:
     sep = ""
     if not numbered:
         for item in entity_list:
-            if "*" in item:
-                sep = "*"
-                logging.info("Entity list uses * for list")
+            if "* " in item:
+                sep = "* "
+                logging.warning("Entity list uses * for list")
                 break
-            elif "- " in entity_list:
+            elif "- " in item:
                 sep = "- "
-                logging.info("Entity list uses - for list")
+                logging.warning("Entity list uses - for list")
                 break
-            elif "," in item:
-                sep = ","
-                logging.info("Entity list uses , for list")
+            elif ", " in item:
+                sep = ", "
+                logging.warning("Entity list uses , for list")
                 break
-            else:
-                logging.warning("No list separator found")
+
+        if sep == "":
+            logging.warning("No list separator found")
 
     if numbered is True:
         entity_list = split_numbered_list(s)
+    elif sep == ", ":
+        entity_str = ""
+        # Find the first line with a comma-separated list
+        for line in entity_list:
+            if re.search(r'\w+\s*,\s*\w+', line):
+                entity_str = str(line)
+                break
+
+        # If the list is contained inside brackets, get only that text
+        m = re.search(r'[\[\{\(].*[\]\}\)]', entity_str)
+        if m:
+            entity_str = m.group()
+
+        # Remove any brackets around list
+        chars_to_remove = ['[', ']', '(', ')', '{', '}']
+        entity_str = filter_chars(entity_str, chars_to_remove)
+
+        # Split the entities on the comma, keeping only the last word
+        entity_list = [part.strip().split()[-1] for part in re.split(r'\s*,\s*', entity_str) if part.strip()]
     else:
         entity_list = list(filter(lambda s: filter_str(s, sep), entity_list))
-    for i, s in enumerate(entity_list):
-        entity_list[i] = s.replace(sep, "", 1).strip()
+
+    for i, entity in enumerate(entity_list):
+        entity_list[i] = entity.replace(sep, "", 1).strip()
 
         # TODO(lucas): Filtering out "=" at the end gets rid of false entities like "user=",
         # but it might interfere with a Base64 string
-        if s.endswith("=") or s == "" or s is None:
-            logging.warning(f"Invalid entity: {s}")
-            entity_list.remove(s)
+        if entity.endswith("=") or entity == "" or entity is None:
+            logging.warning(f"Invalid entity: {entity}")
+            entity_list.remove(entity)
 
-    return set(entity_list)
+    return list(dict.fromkeys(entity_list))
+
 
 def ensure_brackets(s: str) -> str:
     if not s.startswith("<:"):
@@ -177,7 +264,7 @@ def ensure_brackets(s: str) -> str:
 
     return s
 
-def get_entity_pairs(classified_entity_list: set[str]) -> list[list[str]]:
+def get_entity_pairs(classified_entity_list: list[str]) -> list[list[str]]:
     entity_pairs = []
     for item in classified_entity_list:
         pair = filter_chars(item, ["(", ")"]).replace(":]", ":>").split(",")[:2]
@@ -239,12 +326,12 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     classified_entity_list = get_entity_list(response)
     entity_pairs = get_entity_pairs(classified_entity_list)
 
-    missing_entities = set()
+    missing_entities = []
     # If any entity types do not exist in the list of valid types,
     # add the corresponding entities to a list to be reclassified
     for pair in entity_pairs:
-        if pair[1] not in valid_types:
-            missing_entities.add(pair[0])
+        if pair[1].replace("<:", "").replace(":>", "") not in valid_types:
+            missing_entities.append(pair[0])
 
     logging.info(f"Unprocessed classified entities:\n{classified_entity_list}")
     logging.info(f"Classified entities:\n{entity_pairs}\n")
@@ -265,7 +352,10 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     triples = re.findall(r"\(([^)]+)\)", response)
     logging.info("Triples:" + "\n".join(f"({t})" for t in triples))
 
-    for triple in triples:
+    for triple in triples[:]:
+        if len(triple) < 3:
+            logging.error(f"Problematic triple (not enough values to split): {triple}")
+            continue
         try:
             sub, _, obj = filter_chars(triple, ["\'", "\"", "‘", "’"]).split(",")
         except ValueError:
@@ -274,30 +364,30 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
         sub = sub.strip()
         obj = obj.strip()
         if sub not in entity_list and sub != "":
-            missing_entities.add(sub)
+            missing_entities.append(sub)
         if obj not in entity_list and obj != "":
-            missing_entities.add(obj)
+            missing_entities.append(obj)
 
     triples = [triple for triple in triples if triple[1].strip() in valid_rels]
 
-    if len(missing_entities) > 0:
-        logging.info(f"\n\nThere were missing entities\n{missing_entities}")
-        entity_list = entity_list.union(missing_entities)
+    # if len(missing_entities) > 0:
+    #     logging.info(f"\n\nThere were missing entities\n{missing_entities}")
+    #     entity_list = entity_list.union(missing_entities)
 
-        entity_classification_prompt = "These are the valid types to consider for the following prompt:\n" + valid_types + \
-                                    "\nFor context, this is the log message in which they appear:\n" + log + "\n" + user_prompts[1] + "This is the list of entities to classify:\n" + str(missing_entities)
-        response = llm(model, tokenizer, entity_classification_prompt, max_new_tokens=256)
-        logging.info(f"Entity Classification Prompt:\n{entity_classification_prompt}")
-        logging.info(f"Entity Classification Response:\n{response}")
+    #     entity_classification_prompt = "These are the valid types to consider for the following prompt:\n" + valid_types + \
+    #                                 "\nFor context, this is the log message in which they appear:\n" + log + "\n" + user_prompts[1] + "This is the list of entities to classify:\n" + str(missing_entities)
+    #     response = llm(model, tokenizer, entity_classification_prompt, max_new_tokens=256)
+    #     logging.info(f"Entity Classification Prompt:\n{entity_classification_prompt}")
+    #     logging.info(f"Entity Classification Response:\n{response}")
 
-        missing_entity_classification_list = get_entity_list(response)
-        missing_entity_pairs = get_entity_pairs(missing_entity_classification_list)
-        logging.info(f"Missing entities and types:\n{missing_entity_pairs}")
-        for pair in missing_entity_pairs:
-            entity_pairs.append(pair)
-        entity_pairs = [pair for pair in entity_pairs if pair[1] in valid_types]
-        entity_pairs.sort(key=lambda x: len(x[0]), reverse=True)
-        logging.info(f"Final entity pairs:\n{entity_pairs}")
+    #     missing_entity_classification_list = get_entity_list(response)
+    #     missing_entity_pairs = get_entity_pairs(missing_entity_classification_list)
+    #     logging.info(f"Missing entities and types:\n{missing_entity_pairs}")
+    #     for pair in missing_entity_pairs:
+    #         entity_pairs.append(pair)
+    #     entity_pairs = [pair for pair in entity_pairs if pair[1].replace("<:", "").replace(":>", "") in valid_types]
+    #     entity_pairs.sort(key=lambda x: len(x[0]), reverse=True)
+    #     logging.info(f"Final entity pairs:\n{entity_pairs}")
 
     # TODO(lucas): If there were any invalid relations, try triple extraction one more time and discard any remaining invalid triples
     # triple_extraction_prompt = "Use this list of entities to perform the following task:\n" + str(entity_list) + \
@@ -342,7 +432,9 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
 
     # entity_dict = dict(entity_pairs)
 
+    # Escape any quotes, and remove control characters
     masked_log = log.replace('"', '\\"')
+    masked_log = "".join(ch for ch in masked_log if unicodedata.category(ch)[0] != "C")
     for entity_pair in entity_pairs:
         masked_log = masked_log.replace(entity_pair[0], entity_pair[1])
     
@@ -403,7 +495,7 @@ def write_templates_to_file(templates: list[dict], out_path: str) -> None:
                     f.write(",\n")
 
             f.write(f"\n{indent*3}]\n");
-            if template_idx < len(templates):
+            if template_idx < len(templates) - 1:
                 f.write(f"{indent*2}}},\n")
             else:
                 f.write(f"{indent*2}}}\n")
@@ -486,9 +578,14 @@ def generate_templates(log_path: str, template_path: str, config_path: str, vali
     node_idx = unique_hosts.index(host)
     num_nodes = len(unique_hosts)
 
+    # TODO(lucas): This is repeating the work of split_between_nodes
+    per_node = len(logs) // num_nodes
+    rem = len(logs) % num_nodes
+    start = node_idx*per_node + min(node_idx, rem)
+
     log_slice = split_between_nodes(logs, node_idx, num_nodes)
     for i, log in enumerate(log_slice):
-        drain_template = json.loads(drain_templates[i])["template_mined"]
+        drain_template = json.loads(drain_templates[start + i])["template_mined"]
         logging.info(f"Rank {rank} processing log {i+1}/{len(log_slice)}")
         template = generate_next_template(log, drain_template, cfg, valid_types, valid_rels, model, tokenizer)
 

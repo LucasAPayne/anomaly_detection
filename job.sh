@@ -2,12 +2,12 @@
 
 #SBATCH --job-name=kgg
 #SBATCH -D .
-#SBATCH --nodes=2
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=2
 #SBATCH --partition=gpu
-#SBATCH --time=0-08:00:00
+#SBATCH --time=0-24:00:00
 #SBATCH --output=tests/logs/output_%j.txt
 #SBATCH --error=tests/logs/error_%j.txt
 
@@ -22,4 +22,6 @@ module load mpich
 
 source venv/bin/activate
 
+# python tests/llm_stability.py -i 2
+# python demo_ait.py
 python tests/llm_stability.py -i 1

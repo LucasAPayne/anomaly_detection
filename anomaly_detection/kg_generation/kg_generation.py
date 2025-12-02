@@ -116,7 +116,8 @@ def parse_log(lines: list[str],
     - `logger`: optional logger to print progress messages
     """
     config = TemplateMinerConfig()
-    config.load(join_path("config", dataset_name, "drain3.ini"))
+    # config.load(join_path("config", dataset_name, "drain3.ini"))
+    config.load(join_path("config", "default", "drain3.ini"))
     config.profiling_enabled = True
     template_miner = TemplateMiner(config=config)
 
@@ -147,6 +148,7 @@ def parse_log(lines: list[str],
                 exact_matching=True)
         result["label"] = label
         result["log_id"] = i
+        result["log"] = line
 
         line_count += 1
         if line_count % batch_size == 0:

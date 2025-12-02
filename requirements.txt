@@ -1,9 +1,11 @@
+accelerate
 drain3
-torch
+torch==2.6
 torchtext
 mpi4py
 psutil
 pyyaml
+pykeen
 requests
 Pillow
 python-dateutil

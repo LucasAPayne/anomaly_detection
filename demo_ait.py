@@ -47,8 +47,12 @@ def main():
     """
     The demo code
     """
+    log_dir = os.path.join("results", "AIT")
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
     logging.basicConfig(
-        filename=os.path.join("results", "AIT", "log.txt"),
+        filename=os.path.join(log_dir, "log.txt"),
         level=logging.DEBUG,
         format="[%(asctime)s]: %(name)s: %(levelname)s: %(message)s"
     )
@@ -80,21 +84,21 @@ def main():
     that format. The Drain output can be used to dial in the default
     configuration to ensure that there are few or no duplicate formats.
     """
-    # log_dir = os.path.join(raw_data_dir, "data")
-    # log_list = ait_dataset.gather_files(log_dir)
-    # for i, log in enumerate(log_list):
-        # log_list[i] = os.path.join(log_dir, log)
-    # find_unique_log_formats(log_list, preprocessed_data_dir)
+    log_dir = os.path.join(raw_data_dir, "data")
+    log_list = ait_dataset.gather_files(log_dir)
+    for i, log in enumerate(log_list):
+        log_list[i] = os.path.join(log_dir, log)
+    find_unique_log_formats(log_list, preprocessed_data_dir)
 
-    generate_templates(unique_logs_path, llm_config_path, valid_types_path,
-                       valid_rels_path, gen_templates_path)
+    # generate_templates(unique_logs_path, llm_config_path, valid_types_path,
+    #                    valid_rels_path, gen_templates_path)
 
-    # exclude_errors = True
-    # ait_dataset.extract_dataset(raw_data_dir, exclude_errors)
+    exclude_errors = True
+    ait_dataset.extract_dataset(raw_data_dir, exclude_errors)
 
     # pr = cProfile.Profile()
     # pr.enable()
-    # generate_kg(raw_data_dir, "AIT")
+    generate_kg(raw_data_dir, "AIT")
     # pr.disable()
 
     # s = io.StringIO()
