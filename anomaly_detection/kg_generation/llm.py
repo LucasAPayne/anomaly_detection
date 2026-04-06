@@ -408,15 +408,6 @@ def rreplace(s: str, old: str, new: str, max_split: int=1) -> str:
     li = s.rsplit(old, max_split)
     return new.join(li)
 
-# def get_entity_idx(s: str, entity_list: list[str]) -> int:
-#     idx = -1
-#     for i, entity in enumerate(entity_list):
-#         if s == entity:
-#             idx = i
-#             break
-
-#     return idx
-
 def get_entity_idx(s: str, entity_list: list[ExtractedEntity]) -> int:
     idx = -1
     for i, entity in enumerate(entity_list):
@@ -440,9 +431,6 @@ def get_entity_list(s: str) -> list[str]:
         return []
 
     entity_list = entity_list.splitlines()
-
-    # entity_list[0] = entity_list[0].replace("{", "", 1).replace("[", "", 1).replace("(", "", 1)
-    # entity_list[-1] = entity_list[-1].replace("}", "", 1).replace("]", "", 1).replace(")", "", 1)
 
     numbered = False
     for item in entity_list:
@@ -527,87 +515,11 @@ def ensure_brackets(s: str) -> str:
 
     return s
 
-# def get_entity_pairs(classified_entity_list: list[str]) -> list[list[str]]:
-#     entity_pairs = []
-#     for item in classified_entity_list:
-#         pair = filter_chars(item, ["(", ")"]).replace(":]", ":>").split(",")[:2]
-#         pair[0] = pair[0].strip()
-#         if len(pair) == 1:
-#             logging.error(f"Invalid pair: {pair}")
-#             continue
-
-#         pair[1] = ensure_brackets(pair[1].strip())
-
-#         # TODO(lucas): This is to prevent cases where sentences are picked up.
-#         # Just checking for a space in the first element will invalidate things like timestamps.
-#         if (" " in pair[0] and "." in pair[0]) or " " in pair[1]:
-#             logging.error(f"Inavlid pair: {pair}")
-#             continue
-#         entity_pairs.append(pair)
-#     entity_pairs.sort(key=lambda x: len(x[0]), reverse=True)
-
-#     return entity_pairs
-
 # NOTE(lucas): Bullet tuple format: * ('ENTITY', TYPE)
 PAIR_PATTERN = re.compile(r"\*\s*\(\s*['\"](.+?)['\"]\s*,\s*(.+?)\)", re.VERBOSE)
 
 # Markdown/narrative format: entity appears in quotes, type must be searched for
 QUOTED_ENTITY_PATTERN = re.compile(f"['\"](.+?)['\"]")
-
-# def extract_valid_pairs(
-#     text: str,
-#     valid_entities: list[ExtractedEntity],
-#     valid_types: list[str],
-# ) -> list[ExtractedEntity]:
-#     """
-#     Extract (entity, type) pairs from LLM output, validating both
-#     entity and type against provided allow-lists.
-#     """
-#     valid_entities_text = [e.text for e in valid_entities]
-
-#     results: list[ExtractedEntity] = []
-
-#     # NOTE(lucas): strict tuple format
-#     for line in text.splitlines():
-#         match = PAIR_PATTERN.search(line)
-#         if not match:
-#             continue
-
-#         entity, entity_type = match.groups()
-#         if entity in valid_entities_text and entity_type in valid_types:
-#             results.append(ExtractedEntity(entity, entity_type, match.span()))
-#             # results.add((entity, entity_type))
-#         else:
-#             logging.error(f"Entity '{entity}' or type '{entity_type}' invalid")
-
-#     # NOTE(lucas): narrative / markdown blocks
-#     blocks = re.split(r"\n\s*\n", text)
-
-#     for block in blocks:
-#         # Find quoted entity
-#         entity_match = QUOTED_ENTITY_PATTERN.search(block)
-#         if not entity_match:
-#             continue
-
-#         entity = entity_match.group(1)
-
-#         if entity not in valid_entities_text:
-#             continue
-
-#         # Find a valid type mentioned anywhere in the block
-#         found_type = None
-#         for t in valid_types:
-#             if t in block:
-#                 found_type = t
-#                 break
-
-#         if found_type:
-#             results.append(ExtractedEntity(entity, found_type, entity_match.span()))
-#             # results.add((entity, found_type))
-#         else:
-#             logging.error(f"Could not find valid type for entity '{entity}' in block:\n{block}")
-
-#     return list(results)
 
 def extract_valid_pairs(
     text: str,
@@ -735,18 +647,12 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     log = log.strip()
 
     user_prompts = cfg["prompts"]
-    # prompts = [user_prompts[0] + "\n" + log,
-    #         "\nThese are the valid types to consider for the following prompt:\n" + valid_types +
-    #         "\n" + user_prompts[1],
-    #         user_prompts[2] + "\n" + log,
-    #         user_prompts[3] + "\n" + log]
 
     # TODO(lucas): This needs to go up a level so that the regex do not get compiled each time.
     current_dir = os.path.dirname(os.path.abspath(__file__))
     drain_ini_path = os.path.join(current_dir, "config", "default", "drain3.ini")
     mask_rules = load_masking_rules(drain_ini_path)
     regex_entities = extract_regex_entities(log, mask_rules)
-    # regex_entity_pairs = build_regex_entity_pairs(regex_entities)
 
     ner_prompt = (
         user_prompts[0]
@@ -765,9 +671,6 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     entity_list = merge_entities_with_span_guard(regex_entities, llm_entities)
 
     resolved, unresolved = resolve_entities(regex_entities, log)
-    # final_entity_list = [e[0] for e in resolved] + [e[0] for e in unresolved]
-    # logging.info(f"Final entity list:\n{final_entity_list}")
-    # logging.info(f"Resolved entities:\n{resolved}\nUnresolved entities:\n{unresolved}")
 
     llm_entity_strings = [e.text for e in llm_entities]
     classification_list = unresolved + llm_entity_strings
@@ -917,15 +820,6 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
 
     logging.info("Parsed Triples:" + "\n".join(f"({t})" for t in triples_out))
 
-    # entity_dict = dict(entity_pairs)
-
-    # # Escape any quotes, and remove control characters
-    # masked_log = log
-    # masked_log = "".join(ch for ch in masked_log if unicodedata.category(ch)[0] != "C")
-    # # for entity_pair in entity_pairs:
-    # #     masked_log = masked_log.replace(entity_pair[0], ensure_brackets(entity_pair[1]))
-    # for entity in classified_entities:
-    #     masked_log = masked_log.replace(entity.text, ensure_brackets(entity.ent_type))
     masked_log = mask_entities(log, classified_entities)
 
     drain_template = drain_template.replace('"', '\\"')
@@ -973,11 +867,6 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     return result
 
 def write_templates_to_file(templates: list[dict], out_path: str) -> None:
-    # def format_row(sub_str, rel_str, obj_str):
-    #     sub_field = (sub_str + ", ").ljust(len(sub_str) + 2)
-    #     rel_field = (rel_str + ", ").ljust(len(rel_str) + 2)
-    #     return indent*4 + "{" + sub_field + rel_field + obj_str + "}"
-
     def format_row(fields: list[str]) -> str:
         parts = []
         for i, field in enumerate(fields):
