@@ -30,6 +30,7 @@ prompts:
       Generate as many triples as possible from the following log message.
       Return as many triples as possible, and each entity should appear in a triple at least once.
       Triples should be of the form (subject, relation, object).
+      Do NOT use 'None' for any item in a triple.
       It is imperative that you return ONLY the list of triples; do NOT return any additional information.
       Return ONLY ONE list of triples; do not offer further examples or try to correct yourself.
       Do not return any code for this step.

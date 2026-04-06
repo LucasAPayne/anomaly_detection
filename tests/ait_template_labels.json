@@ -1,0 +1,1236 @@
+{
+    "templates":
+    [
+        {
+            "log": "Feb 29 00:09:01 mail-2 CRON[27153]: (root) CMD (  [ -x /usr/lib/php/sessionclean ] && if [ ! -d /run/systemd/system ]; then /usr/lib/php/sessionclean; fi)",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> CRON[<:NUM:>]: (root) CMD <:CMD:>",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: (<:slogert:User:>) CMD <:slogert:Parameter:>",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 5, "relation": "slogert:cmd", "object": 5}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 00:09:01", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "CRON", "type": "slogert:Process", "start": 23, "end": 27},
+                {"text": "27153", "type": "xsd:integer", "start": 28, "end": 33},
+                {"text": "root", "type": "slogert:User", "start": 37, "end": 41},
+                {"text": "(  [ -x /usr/lib/php/sessionclean ] && if [ ! -d /run/systemd/system ]; then /usr/lib/php/sessionclean; fi)", "type": "slogert:Parameter", "start": 47, "end": 154}
+            ]
+        },
+        {
+            "log": "Feb 29 00:09:03 mail-2 systemd[1]: Starting Clean php session files...",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> systemd[<:NUM:>]: Starting Clean php session files...",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: Starting Clean php session files...",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 00:09:03", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "systemd", "type": "slogert:Process", "start": 23, "end": 30},
+                {"text": "1", "type": "xsd:integer", "start": 31, "end": 32}
+            ]
+        },
+        {
+            "log": "Feb 29 00:09:04 mail-2 systemd[1]: Started Clean php session files.",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> systemd[<:NUM:>]: Started Clean php session files.",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: Started Clean php session files.",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 00:09:04", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "systemd", "type": "slogert:Process", "start": 23, "end": 30},
+                {"text": "1", "type": "xsd:integer", "start": 31, "end": 32}
+            ]
+        },
+        {
+            "log": "Feb 29 00:15:25 mail-2 freshclam[22090]: Sat Feb 29 00:15:25 2020 -> Received signal: wake up",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> freshclam[<:NUM:>]: <:TIMESTAMP:> -> Received signal: wake up",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: <:xsd:dateTime:> -> Received signal: wake up",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 00:15:25", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "freshclam", "type": "slogert:Process", "start": 23, "end": 32},
+                {"text": "22090", "type": "xsd:integer", "start": 33, "end": 38},
+                {"text": "Sat Feb 29 00:15:25 2020", "type": "xsd:dateTime", "start": 41, "end": 65}
+            ]
+        },
+        {
+            "log": "Feb 29 00:15:25 mail-2 freshclam[22090]: Sat Feb 29 00:15:25 2020 -> ClamAV update process started at Sat Feb 29 00:15:25 2020",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> freshclam[<:NUM:>]: <:TIMESTAMP:> -> ClamAV update process started at <:TIMESTAMP:>",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: <:xsd:dateTime:> -> <:slogert:Application:> update process started at <:xsd:dateTime:>",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 00:15:25", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "freshclam", "type": "slogert:Process", "start": 23, "end": 32},
+                {"text": "22090", "type": "xsd:integer", "start": 33, "end": 38},
+                {"text": "Sat Feb 29 00:15:25 2020", "type": "xsd:dateTime", "start": 41, "end": 65},
+                {"text": "ClamAV", "type": "slogert:Application", "start": 69, "end": 75},
+                {"text": "Sat Feb 29 00:15:25 2020", "type": "xsd:dateTime", "start": 102, "end": 126}
+            ]
+        },
+        {
+            "log": "Feb 29 00:15:25 mail-2 freshclam[22090]: Sat Feb 29 00:15:25 2020 -> ^Your ClamAV installation is OUTDATED!",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> freshclam[<:NUM:>]: <:TIMESTAMP:> -> ^Your ClamAV installation is OUTDATED!",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: <:xsd:dateTime:> -> ^Your <:slogert:Application:> installation is OUTDATED!",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3},
+                {"subject": 4, "relation": "slogert:app.name", "object": 4}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 00:15:25", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "freshclam", "type": "slogert:Process", "start": 23, "end": 32},
+                {"text": "22090", "type": "xsd:integer", "start": 33, "end": 38},
+                {"text": "Sat Feb 29 00:15:25 2020", "type": "xsd:dateTime", "start": 41, "end": 65},
+                {"text": "ClamAV", "type": "slogert:Application", "start": 75, "end": 81}
+            ]
+        },
+        {
+            "log": "Feb 29 00:15:25 mail-2 freshclam[22090]: Sat Feb 29 00:15:25 2020 -> ^Local version: 0.100.2 Recommended version: 0.102.2",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> freshclam[<:NUM:>]: <:TIMESTAMP:> -> ^Local version: <:VERSION:> Recommended version: <:VERSION:>",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: <:xsd:dateTime:> -> ^Local version: <:slogert:Parameter:> Recommended version: <:slogert:Parameter:>",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 00:15:25", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "freshclam", "type": "slogert:Process", "start": 23, "end": 32},
+                {"text": "22090", "type": "xsd:integer", "start": 33, "end": 38},
+                {"text": "Sat Feb 29 00:15:25 2020", "type": "xsd:dateTime", "start": 41, "end": 65},
+                {"text": "0.100.2", "type": "slogert:Parameter", "start": 85, "end": 92},
+                {"text": "0.102.2", "type": "slogert:Parameter", "start": 114, "end": 121}
+            ]
+        },
+        {
+            "log": "Feb 29 00:15:25 mail-2 freshclam[22090]: Sat Feb 29 00:15:25 2020 -> DON'T PANIC! Read https://www.clamav.net/documents/upgrading-clamav",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> freshclam[<:NUM:>]: <:TIMESTAMP:> -> DON'T PANIC! Read <:URL:>",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: <:xsd:dateTime:> -> DON'T PANIC! Read <:slogert:URL:>",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 00:15:25", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "freshclam", "type": "slogert:Process", "start": 23, "end": 32},
+                {"text": "22090", "type": "xsd:integer", "start": 33, "end": 38},
+                {"text": "Sat Feb 29 00:15:25 2020", "type": "xsd:dateTime", "start": 41, "end": 65},
+                {"text": "https://www.clamav.net/documents/upgrading-clamav", "type": "slogert:URL", "start": 87, "end": 136}
+            ]
+        },
+        {
+            "log": "Feb 29 00:15:25 mail-2 freshclam[22090]: Sat Feb 29 00:15:25 2020 -> main.cvd is up to date (version: 59, sigs: 4564902, f-level: 60, builder: sigmgr)",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> freshclam[<:NUM:>]: <:TIMESTAMP:> -> <:FILE_NAME:> is up to date (version: <:NUM:>, sigs: <:NUM:>, f-level: <:NUM:>, builder: sigmgr)",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: <:xsd:dateTime:> -> <:slogert:file:> is up to date (version: <:xsd:integer:>, sigs: <:xsd:integer:>, f-level: <:xsd:integer:>, builder: sigmgr)",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3},
+                {"subject": 5, "relation": "slogert:file.name", "object": 5}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 00:15:25", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "freshclam", "type": "slogert:Process", "start": 23, "end": 32},
+                {"text": "22090", "type": "xsd:integer", "start": 33, "end": 38},
+                {"text": "Sat Feb 29 00:15:25 2020", "type": "xsd:dateTime", "start": 41, "end": 65},
+                {"text": "main.cvd", "type": "slogert:file", "start": 69, "end": 77},
+                {"text": "59", "type": "xsd:integer", "start": 102, "end": 104},
+                {"text": "4564902", "type": "xsd:integer", "start": 112, "end": 119},
+                {"text": "60", "type": "xsd:integer", "start": 130, "end": 132}
+            ]
+        },
+        {
+            "log": "Feb 29 00:15:25 mail-2 freshclam[22090]: Sat Feb 29 00:15:25 2020 -> daily.cvd is up to date (version: 25736, sigs: 2200884, f-level: 63, builder: raynman)",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> freshclam[<:NUM:>]: <:TIMESTAMP:> -> <:FILE_NAME:> is up to date (version: <:NUM:>, sigs: <:NUM:>, f-level: <:NUM:>, builder: raynman)",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: <:xsd:dateTime:> -> <:slogert:file:> is up to date (version: <:xsd:integer:>, sigs: <:xsd:integer:>, f-level: <:xsd:integer:>, builder: raynman)",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3},
+                {"subject": 5, "relation": "slogert:file.name", "object": 5}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 00:15:25", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "freshclam", "type": "slogert:Process", "start": 23, "end": 32},
+                {"text": "22090", "type": "xsd:integer", "start": 33, "end": 38},
+                {"text": "Sat Feb 29 00:15:25 2020", "type": "xsd:dateTime", "start": 41, "end": 65},
+                {"text": "daily.cvd", "type": "slogert:file", "start": 69, "end": 78},
+                {"text": "25736", "type": "xsd:integer", "start": 103, "end": 108},
+                {"text": "2200884", "type": "xsd:integer", "start": 116, "end": 123},
+                {"text": "63", "type": "xsd:integer", "start": 134, "end": 136}
+            ]
+        },
+        {
+            "log": "Feb 29 00:15:25 mail-2 freshclam[22090]: Sat Feb 29 00:15:25 2020 -> bytecode.cvd is up to date (version: 331, sigs: 94, f-level: 63, builder: anvilleg)",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> freshclam[<:NUM:>]: <:TIMESTAMP:> -> <:FILE_NAME:> is up to date (version: <:NUM:>, sigs: <:NUM:>, f-level: <:NUM:>, builder: anvilleg)",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: <:xsd:dateTime:> -> <:slogert:File:> is up to date (version: <:xsd:integer:>, sigs: <:xsd:integer:>, f-level: <:xsd:integer:>, builder: anvilleg)",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3},
+                {"subject": 5, "relation": "slogert:file.name", "object": 5}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 00:15:25", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "freshclam", "type": "slogert:Process", "start": 23, "end": 32},
+                {"text": "22090", "type": "xsd:integer", "start": 33, "end": 38},
+                {"text": "Sat Feb 29 00:15:25 2020", "type": "xsd:dateTime", "start": 41, "end": 65},
+                {"text": "bytecode.cvd", "type": "slogert:File", "start": 69, "end": 81},
+                {"text": "331", "type": "xsd:integer", "start": 106, "end": 109},
+                {"text": "94", "type": "xsd:integer", "start": 117, "end": 119},
+                {"text": "63", "type": "xsd:integer", "start": 130, "end": 132}
+            ]
+        },
+        {
+            "log": "Feb 29 01:05:15 mail-2 dovecot: imap-login: Login: user=<sabra>, method=PLAIN, rip=127.0.0.1, lip=127.0.0.1, mpid=27425, secured, session=<14v9i6yflIJ/AAAB>",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> dovecot: imap-login: Login: user=<<:USER:>>, method=PLAIN, rip=<:IP:>, lip=<:IP:>, mpid=<:NUM:>, secured, session=<<:SESSION:>>",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: <:slogert:Process:>: Login: user=<<:slogert:User:>>, method=PLAIN, rip=<:slogert:Address:>, lip=<:slogert:Address:>, mpid=<:xsd:integer:>, secured, session=<<:slogert:Parameter:>>",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 6},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 5, "relation": "slogert:address.ipv4", "object": 5}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:05:15", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "dovecot", "type": "slogert:Application", "start": 23, "end": 30},
+                {"text": "imap-login", "type": "slogert:Process", "start": 32, "end": 42},
+                {"text": "sabra", "type": "slogert:User", "start": 57, "end": 62},
+                {"text": "127.0.0.1", "type": "slogert:Address", "start": 83, "end": 92},
+                {"text": "127.0.0.1", "type": "slogert:Address", "start": 98, "end": 107},
+                {"text": "27425", "type": "xsd:integer", "start": 114, "end": 119},
+                {"text": "14v9i6yflIJ/AAAB", "type": "slogert:Parameter", "start": 139, "end": 155}
+            ]
+        },
+        {
+            "log": "Feb 29 01:05:15 mail-2 HORDE: [horde] Login success for sabra to horde (192.168.10.18) [pid 27376 on line 163 of \"/var/www/mail.insect.com/login.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [horde] Login success for sabra to horde (<:IP:>) [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] Login success for <:slogert:User:> to <:slogert:Application:> (<:slogert:Address:>) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:Parameter:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 7},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 5, "relation": "slogert:app.name", "object": 5},
+                {"subject": 6, "relation": "slogert:address.ipv4", "object": 6}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:05:15", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "horde", "type": "slogert:Process", "start": 31, "end": 36},
+                {"text": "sabra", "type": "slogert:User", "start": 56, "end": 61},
+                {"text": "horde", "type": "slogert:Application", "start": 65, "end": 70},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 72, "end": 85},
+                {"text": "27376", "type": "xsd:integer", "start": 92, "end": 97},
+                {"text": "163", "type": "xsd:integer", "start": 106, "end": 109},
+                {"text": "/var/www/mail.insect.com/login.php", "type": "slogert:Parameter", "start": 114, "end": 148}
+            ]
+        },
+        {
+            "log": "Feb 29 01:05:15 mail-2 dovecot: imap(sabra): Logged out in=26 out=471",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> dovecot: imap(sabra): Logged out in=<:NUM:> out=<:NUM:>",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:> <:slogert:Application:>(<:slogert:User:>): Logged out in=<:xsd:integer:> out=<:xsd:integer:>",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:app.name", "object": 3},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:05:15", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "dovecot:", "type": "slogert:Application", "start": 23, "end": 31},
+                {"text": "imap", "type": "slogert:Application", "start": 32, "end": 36},
+                {"text": "sabra", "type": "slogert:User", "start": 37, "end": 42},
+                {"text": "26", "type": "xsd:integer", "start": 59, "end": 61},
+                {"text": "471", "type": "xsd:integer", "start": 66, "end": 69}
+            ]
+        },
+        {
+            "log": "Feb 29 01:05:16 mail-2 HORDE: [imp] Login success for sabra (192.168.10.18) to {imap://localhost/} [pid 27376 on line 156 of \"/var/www/mail.insect.com/imp/lib/Auth.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [imp] Login success for sabra (<:IP:>) to {<:URL:>} [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] Login success for <:slogert:User:> (<:slogert:Address:>) to {<:slogert:URL:>} [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 6},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 8, "relation": "slogert:file.path", "object": 8},
+                {"subject": 8, "relation": "slogert:file.line", "object": 7}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:05:16", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "imp", "type": "slogert:Process", "start": 31, "end": 34},
+                {"text": "sabra", "type": "slogert:User", "start": 54, "end": 59},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 61, "end": 74},
+                {"text": "imap://localhost/", "type": "slogert:URL", "start": 80, "end": 97},
+                {"text": "27376", "type": "xsd:integer", "start": 104, "end": 109},
+                {"text": "156", "type": "xsd:integer", "start": 118, "end": 121},
+                {"text": "/var/www/mail.insect.com/imp/lib/Auth.php", "type": "slogert:File", "start": 126, "end": 167}
+            ]
+        },
+        {
+            "log": "Feb 29 01:05:16 mail-2 dovecot: imap(sabra): Error: file_dotlock_create(/var/mail/sabra) failed: Permission denied (euid=1011(sabra) egid=1011(sabra) missing +w perm: /var/mail, we're not in group 8(mail), dir owned by 0:8 mode=0775) (set mail_privileged_group=mail)",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> dovecot: imap(sabra): Error: file_dotlock_create(<:DIRECTORY:>) failed: Permission denied (euid=<:NUM:>(sabra) egid=<:NUM:>(sabra) missing +w perm: <:DIRECTORY:>, we're not in group <:NUM:>(mail), dir owned by <:NUM:>:<:NUM:> mode=<:NUM:>) (set mail_privileged_group=mail)",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: <:slogert:Application:>(<:slogert:User:>): Error: file_dotlock_create(<:slogert:File:>) failed: Permission denied (euid=<:xsd:integer:>(<:slogert:User:>) egid=<:xsd:integer:>(<:slogert:User:>) missing +w perm: <:slogert:File:>, we're not in group <:xsd:integer:>(<:slogert:Parameter:>), dir owned by <:xsd:integer:>:<:xsd:integer:> mode=<:xsd:integer:>) (set mail_privileged_group=<:slogert:Parameter:>)",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:app.name", "object": 3},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 4, "relation": "slogert:user.gid", "object": 8},
+                {"subject": 4, "relation": "slogert:user.group", "object": 9},
+                {"subject": 5, "relation": "slogert:file.path", "object": 5},
+                {"subject": 11, "relation": "slogert:file.path", "object": 11},
+                {"subject": 11, "relation": "slogert:file.mode", "object": 16}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:05:16", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "dovecot", "type": "slogert:Application", "start": 23, "end": 30},
+                {"text": "imap", "type": "slogert:Application", "start": 32, "end": 36},
+                {"text": "sabra", "type": "slogert:User", "start": 37, "end": 42},
+                {"text": "/var/mail/sabra", "type": "slogert:File", "start": 72, "end": 87},
+                {"text": "1011", "type": "xsd:integer", "start": 121, "end": 125},
+                {"text": "sabra", "type": "slogert:User", "start": 126, "end": 131},
+                {"text": "1011", "type": "xsd:integer", "start": 138, "end": 142},
+                {"text": "sabra", "type": "slogert:User", "start": 143, "end": 148},
+                {"text": "/var/mail", "type": "slogert:File", "start": 167, "end": 176},
+                {"text": "8", "type": "xsd:integer", "start": 197, "end": 198},
+                {"text": "mail", "type": "slogert:Parameter", "start": 199, "end": 203},
+                {"text": "0", "type": "xsd:integer", "start": 219, "end": 220},
+                {"text": "8", "type": "xsd:integer", "start": 221, "end": 222},
+                {"text": "0775", "type": "xsd:integer", "start": 228, "end": 232},
+                {"text": "mail", "type": "slogert:Parameter", "start": 261, "end": 265}
+            ]
+        },
+        {
+            "log": "Feb 29 01:05:59 mail-2 HORDE: [nag] PHP ERROR: Declaration of Horde_Form_Type_country::init($prompt = NULL) should be compatible with Horde_Form_Type_enum::init($values, $prompt = NULL) [pid 27437 on line 0 of \"/usr/share/php/Horde/Form/Type.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [nag] PHP ERROR: Declaration of Horde_Form_Type_country::init($prompt = NULL) should be compatible with Horde_Form_Type_enum::init($values, $prompt = NULL) [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:> [<:slogert:Process:>] PHP ERROR: Declaration of Horde_Form_Type_country::init($prompt = NULL) should be compatible with Horde_Form_Type_enum::init($values, $prompt = NULL) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 4},
+                {"subject": 7, "relation": "slogert:file.path", "object": 7},
+                {"subject": 7, "relation": "slogert:file.line", "object": 6}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:05:59", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE:", "type": "slogert:Application", "start": 23, "end": 29},
+                {"text": "nag", "type": "slogert:Process", "start": 31, "end": 34},
+                {"text": "27437", "type": "xsd:integer", "start": 191, "end": 196},
+                {"text": "0", "type": "xsd:integer", "start": 205, "end": 206},
+                {"text": "/usr/share/php/Horde/Form/Type.php", "type": "slogert:File", "start": 211, "end": 245}
+            ]
+        },
+        {
+            "log": "Feb 29 01:05:59 mail-2 HORDE: [nag] PHP ERROR: Declaration of Nag_Form_Task::renderActive() should be compatible with Horde_Form::renderActive($renderer = NULL, $vars = NULL, $action = '', $method = 'get', $enctype = NULL, $focus = true) [pid 27437 on line 17 of \"/var/www/mail.insect.com/nag/lib/Form/Task.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [nag] PHP ERROR: Declaration of Nag_Form_Task::renderActive() should be compatible with Horde_Form::renderActive($renderer = NULL, $vars = NULL, $action = '', $method = 'get', $enctype = NULL, $focus = true) [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] PHP ERROR: Declaration of Nag_Form_Task::renderActive() should be compatible with Horde_Form::renderActive($renderer = NULL, $vars = NULL, $action = '', $method = 'get', $enctype = NULL, $focus = true) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 4},
+                {"subject": 6, "relation": "slogert:file.path", "object": 6},
+                {"subject": 6, "relation": "slogert:file.line", "object": 5}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:05:59", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "nag", "type": "slogert:Process", "start": 31, "end": 34},
+                {"text": "27437", "type": "xsd:integer", "start": 243, "end": 248},
+                {"text": "17", "type": "xsd:integer", "start": 257, "end": 259},
+                {"text": "/var/www/mail.insect.com/nag/lib/Form/Task.php", "type": "slogert:File", "start": 264, "end": 310}
+            ]
+        },
+        {
+            "log": "Feb 29 01:10:45 mail-2 HORDE: [imp] Message sent to cedrick@mail.insect.com from sabra (192.168.10.18) [pid 26474 on line 970 of \"/var/www/mail.insect.com/imp/lib/Compose.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [imp] Message sent to <:EMAIL:> from sabra (<:IP:>) [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] Message sent to <:slogert:User:>@<:slogert:URL:> from <:slogert:User:> (<:slogert:Address:>) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 8},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 4, "relation": "slogert:user.domain", "object": 5},
+                {"subject": 6, "relation": "slogert:user.name", "object": 6},
+                {"subject": 7, "relation": "slogert:address.ipv4", "object": 7}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:10:45", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "imp", "type": "slogert:Process", "start": 31, "end": 34},
+                {"text": "cedrick", "type": "slogert:User", "start": 52, "end": 59},
+                {"text": "mail.insect.com", "type": "slogert:URL", "start": 60, "end": 75},
+                {"text": "sabra", "type": "slogert:User", "start": 81, "end": 86},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 88, "end": 101},
+                {"text": "26474", "type": "xsd:integer", "start": 108, "end": 113},
+                {"text": "970", "type": "xsd:integer", "start": 122, "end": 125},
+                {"text": "/var/www/mail.insect.com/imp/lib/Compose.php", "type": "slogert:File", "start": 130, "end": 174}
+            ]
+        },
+        {
+            "log": "Feb 29 01:11:31 mail-2 HORDE: [turba] PHP ERROR: Declaration of Horde_Form_Type_country::init($prompt = NULL) should be compatible with Horde_Form_Type_enum::init($values, $prompt = NULL) [pid 27385 on line 0 of \"/usr/share/php/Horde/Form/Type.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [turba] PHP ERROR: Declaration of Horde_Form_Type_country::init($prompt = NULL) should be compatible with Horde_Form_Type_enum::init($values, $prompt = NULL) [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] PHP ERROR: Declaration of Horde_Form_Type_country::init($prompt = NULL) should be compatible with Horde_Form_Type_enum::init($values, $prompt = NULL) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 4},
+                {"subject": 6, "relation": "slogert:file.path", "object": 6},
+                {"subject": 6, "relation": "slogert:file.path", "object": 5}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:11:31", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "turba", "type": "slogert:Process", "start": 31, "end": 36},
+                {"text": "27385", "type": "xsd:integer", "start": 193, "end": 198},
+                {"text": "0", "type": "xsd:integer", "start": 207, "end": 208},
+                {"text": "/usr/share/php/Horde/Form/Type.php", "type": "slogert:File", "start": 213, "end": 247}
+            ]
+        },
+        {
+            "log": "Feb 29 01:11:31 mail-2 HORDE: [turba] PHP ERROR: Declaration of Turba_Form_AddContact::validate() should be compatible with Horde_Form::validate($vars = NULL, $canAutoFill = false) [pid 27385 on line 5 of \"/var/www/mail.insect.com/turba/lib/Form/AddContact.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [turba] PHP ERROR: Declaration of Turba_Form_AddContact::validate() should be compatible with Horde_Form::validate($vars = NULL, $canAutoFill = false) [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] PHP ERROR: Declaration of Turba_Form_AddContact::validate() should be compatible with Horde_Form::validate($vars = NULL, $canAutoFill = false) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 4},
+                {"subject": 6, "relation": "slogert:file.path", "object": 6},
+                {"subject": 6, "relation": "slogert:file.path", "object": 5}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:11:31", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "turba", "type": "slogert:Process", "start": 31, "end": 36},
+                {"text": "27385", "type": "xsd:integer", "start": 186, "end": 191},
+                {"text": "5", "type": "xsd:integer", "start": 200, "end": 201},
+                {"text": "/var/www/mail.insect.com/turba/lib/Form/AddContact.php", "type": "slogert:File", "start": 206, "end": 260}
+            ]
+        },
+        {
+            "log": "Feb 29 01:11:31 mail-2 HORDE: [turba] PHP ERROR: Declaration of Horde_Form_Action_updatefield::getActionScript(&$form, &$renderer, $varname) should be compatible with Horde_Form_Action::getActionScript($form, $renderer, $varname) [pid 27385 on line 0 of \"/usr/share/php/Horde/Form/Action/updatefield.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [turba] PHP ERROR: Declaration of Horde_Form_Action_updatefield::getActionScript(&$form, &$renderer, $varname) should be compatible with Horde_Form_Action::getActionScript($form, $renderer, $varname) [pid <:NUM:> on line <:NUM:> of \"<:FILE_PATH:>\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] PHP ERROR: Declaration of Horde_Form_Action_updatefield::getActionScript(&$form, &$renderer, $varname) should be compatible with Horde_Form_Action::getActionScript($form, $renderer, $varname) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 4},
+                {"subject": 6, "relation": "slogert:file.path", "object": 6},
+                {"subject": 6, "relation": "slogert:file.path", "object": 5}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:11:31", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "turba", "type": "slogert:Process", "start": 31, "end": 36},
+                {"text": "27385", "type": "xsd:integer", "start": 235, "end": 240},
+                {"text": "0", "type": "xsd:integer", "start": 249, "end": 250},
+                {"text": "/usr/share/php/Horde/Form/Action/updatefield.php", "type": "slogert:File", "start": 255, "end": 303}
+            ]
+        },
+        {
+            "log": "Feb 29 01:11:31 mail-2 HORDE: [turba] PHP ERROR: Declaration of Horde_Form_Action_updatefield::setValues(&$vars, $sourceVal, $arrayVal = false) should be compatible with Horde_Form_Action::setValues(&$vars, $sourceVal, $index = NULL, $arrayVal = false) [pid 27385 on line 0 of \"/usr/share/php/Horde/Form/Action/updatefield.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [turba] PHP ERROR: Declaration of Horde_Form_Action_updatefield::setValues(&$vars, $sourceVal, $arrayVal = false) should be compatible with Horde_Form_Action::setValues(&$vars, $sourceVal, $index = NULL, $arrayVal = false) [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] PHP ERROR: Declaration of Horde_Form_Action_updatefield::setValues(&$vars, $sourceVal, $arrayVal = false) should be compatible with Horde_Form_Action::setValues(&$vars, $sourceVal, $index = NULL, $arrayVal = false) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 4},
+                {"subject": 6, "relation": "slogert:file.path", "object": 6},
+                {"subject": 6, "relation": "slogert:file.path", "object": 5}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:11:31", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "turba", "type": "slogert:Process", "start": 31, "end": 36},
+                {"text": "27385", "type": "xsd:integer", "start": 258, "end": 263},
+                {"text": "0", "type": "xsd:integer", "start": 272, "end": 273},
+                {"text": "/usr/share/php/Horde/Form/Action/updatefield.php", "type": "slogert:File", "start": 278, "end": 326}
+            ]
+        },
+        {
+            "log": "Feb 29 01:11:43 mail-2 HORDE: [turba] PHP ERROR: Declaration of Turba_Form_EditContact::renderActive($renderer, $vars, $action, $method) should be compatible with Horde_Form::renderActive($renderer = NULL, $vars = NULL, $action = '', $method = 'get', $enctype = NULL, $focus = true) [pid 27345 on line 0 of \"/var/www/mail.insect.com/turba/lib/Form/EditContact.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [turba] PHP ERROR: Declaration of Turba_Form_EditContact::renderActive($renderer, $vars, $action, $method) should be compatible with Horde_Form::renderActive($renderer = NULL, $vars = NULL, $action = '', $method = 'get', $enctype = NULL, $focus = true) [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] PHP ERROR: Declaration of Turba_Form_EditContact::renderActive($renderer, $vars, $action, $method) should be compatible with Horde_Form::renderActive($renderer = NULL, $vars = NULL, $action = '', $method = 'get', $enctype = NULL, $focus = true) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 4},
+                {"subject": 6, "relation": "slogert:file.path", "object": 6},
+                {"subject": 6, "relation": "slogert:file.line", "object": 5}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:11:43", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "turba", "type": "slogert:Process", "start": 31, "end": 36},
+                {"text": "27345", "type": "xsd:integer", "start": 288, "end": 293},
+                {"text": "0", "type": "xsd:integer", "start": 302, "end": 303},
+                {"text": "/var/www/mail.insect.com/turba/lib/Form/EditContact.php", "type": "slogert:File", "start": 308, "end": 363}
+            ]
+        },
+        {
+            "log": "Feb 29 01:21:15 mail-2 HORDE: [horde] User sabra logged out of Horde (192.168.10.18) [pid 27621 on line 106 of \"/var/www/mail.insect.com/login.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [horde] User sabra logged out of Horde (<:IP:>) [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] User <:slogert:User:> logged out of <:slogert:Application:> (<:slogert:Address:>) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 7},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 5, "relation": "slogert:app.name", "object": 5},
+                {"subject": 6, "relation": "slogert:address.ipv4", "object": 6},
+                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.line", "object": 8}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:21:15", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "horde", "type": "slogert:Process", "start": 31, "end": 36},
+                {"text": "sabra", "type": "slogert:User", "start": 43, "end": 48},
+                {"text": "Horde", "type": "slogert:Application", "start": 63, "end": 68},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 70, "end": 83},
+                {"text": "27621", "type": "xsd:integer", "start": 90, "end": 95},
+                {"text": "106", "type": "xsd:integer", "start": 104, "end": 107},
+                {"text": "/var/www/mail.insect.com/login.php", "type": "slogert:File", "start": 112, "end": 146}
+            ]
+        },
+        {
+            "log": "Feb 29 01:53:55 mail-2 HORDE: [horde] Login success for merlene to horde (192.168.10.18) [pid 27621 on line 163 of \"/var/www/mail.insect.com/login.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [horde] Login success for merlene to horde (<:IP:>) [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] Login success for <:slogert:User:> to <:slogert:Application:> (<:slogert:Address:>) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 7},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 5, "relation": "slogert:app.name", "object": 5},
+                {"subject": 6, "relation": "slogert:address.ipv4", "object": 6},
+                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.line", "object": 8}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:53:55", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "horde", "type": "slogert:Process", "start": 31, "end": 36},
+                {"text": "merlene", "type": "slogert:User", "start": 56, "end": 63},
+                {"text": "horde", "type": "slogert:Application", "start": 67, "end": 72},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 74, "end": 87},
+                {"text": "27621", "type": "xsd:integer", "start": 94, "end": 99},
+                {"text": "163", "type": "xsd:integer", "start": 108, "end": 111},
+                {"text": "/var/www/mail.insect.com/login.php", "type": "slogert:File", "start": 116, "end": 150}
+            ]
+        },
+        {
+            "log": "Feb 29 01:53:55 mail-2 dovecot: imap(merlene): Logged out in=26 out=471",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> dovecot: imap(merlene): Logged out in=<:NUM:> out=<:NUM:>",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: <:slogert:Application:>(<:slogert:User:>): Logged out in=<:xsd:integer:> out=<:xsd:integer:>",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:app.name", "object": 3},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:53:55", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "dovecot", "type": "slogert:Application", "start": 23, "end": 30},
+                {"text": "imap", "type": "slogert:Application", "start": 32, "end": 36},
+                {"text": "merlene", "type": "slogert:User", "start": 37, "end": 44},
+                {"text": "26", "type": "xsd:integer", "start": 61, "end": 63},
+                {"text": "471", "type": "xsd:integer", "start": 68, "end": 71}
+            ]
+        },
+        {
+            "log": "Feb 29 01:53:55 mail-2 HORDE: [imp] Login success for merlene (192.168.10.18) to {imap://localhost/} [pid 27621 on line 156 of \"/var/www/mail.insect.com/imp/lib/Auth.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [imp] Login success for merlene (<:IP:>) to {<:URL:>} [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] Login success for <:slogert:User:> (<:slogert:Address:>) to {<:slogert:URL:>} [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 7},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 5, "relation": "slogert:app.name", "object": 5},
+                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.line", "object": 8}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:53:55", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "imp", "type": "slogert:Process", "start": 31, "end": 34},
+                {"text": "merlene", "type": "slogert:User", "start": 54, "end": 61},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 63, "end": 76},
+                {"text": "imap://localhost/", "type": "slogert:URL", "start": 82, "end": 99},
+                {"text": "27621", "type": "xsd:integer", "start": 106, "end": 111},
+                {"text": "156", "type": "xsd:integer", "start": 120, "end": 123},
+                {"text": "/var/www/mail.insect.com/imp/lib/Auth.php", "type": "slogert:File", "start": 128, "end": 169}
+            ]
+        },
+        {
+            "log": "Feb 29 01:53:56 mail-2 dovecot: imap(merlene): Error: file_dotlock_create(/var/mail/merlene) failed: Permission denied (euid=1005(merlene) egid=1005(merlene) missing +w perm: /var/mail, we're not in group 8(mail), dir owned by 0:8 mode=0775) (set mail_privileged_group=mail)",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> dovecot: imap(merlene): Error: file_dotlock_create(<:DIRECTORY:>) failed: Permission denied (euid=<:NUM:>(merlene) egid=<:NUM:>(merlene) missing +w perm: <:DIRECTORY:>, we're not in group <:NUM:>(mail), dir owned by <:NUM:>:<:NUM:> mode=<:NUM:>) (set mail_privileged_group=mail)",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: <:slogert:Application:>(<:slogert:User:>): Error: file_dotlock_create(<:slogert:File:>) failed: Permission denied (euid=<:xsd:integer:>(<:slogert:User:>) egid=<:xsd:integer:>(<:slogert:User:>) missing +w perm: <:slogert:File:>, we're not in group <:xsd:integer:>(<:slogert:Parameter:>), dir owned by <:xsd:integer:>:<:xsd:integer:> mode=<:xsd:integer:>) (set mail_privileged_group=<:slogert:Parameter:>)",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:app.name", "object": 3},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 4, "relation": "slogert:user.gid", "object": 8},
+                {"subject": 4, "relation": "slogert:user.group", "object": 9},
+                {"subject": 5, "relation": "slogert:file.path", "object": 5},
+                {"subject": 10, "relation": "slogert:file.path", "object": 10},
+                {"subject": 10, "relation": "slogert:file.mode", "object": 15}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 01:53:56", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "dovecot", "type": "slogert:Application", "start": 23, "end": 30},
+                {"text": "imap", "type": "slogert:Application", "start": 32, "end": 36},
+                {"text": "merlene", "type": "slogert:User", "start": 37, "end": 44},
+                {"text": "/var/mail/merlene", "type": "slogert:File", "start": 74, "end": 91},
+                {"text": "1005", "type": "xsd:integer", "start": 125, "end": 129},
+                {"text": "merlene", "type": "slogert:User", "start": 130, "end": 137},
+                {"text": "1005", "type": "xsd:integer", "start": 144, "end": 148},
+                {"text": "merlene", "type": "slogert:User", "start": 149, "end": 156},
+                {"text": "/var/mail", "type": "slogert:File", "start": 175, "end": 184},
+                {"text": "8", "type": "xsd:integer", "start": 205, "end": 206},
+                {"text": "mail", "type": "slogert:Parameter", "start": 207, "end": 211},
+                {"text": "0", "type": "xsd:integer", "start": 227, "end": 228},
+                {"text": "8", "type": "xsd:integer", "start": 229, "end": 230},
+                {"text": "0775", "type": "xsd:integer", "start": 236, "end": 240},
+                {"text": "mail", "type": "slogert:Parameter", "start": 269, "end": 273}
+            ]
+        },
+        {
+            "log": "Feb 29 02:06:47 mail-2 HORDE: [horde] User merlene logged out of Horde (192.168.10.18) [pid 27686 on line 106 of \"/var/www/mail.insect.com/login.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [horde] User merlene logged out of Horde (<:IP:>) [pid <:NUM:> on line <:NUM:> of \"<:FILE_PATH:>\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] User <:slogert:User:> logged out of <:slogert:Application:> (<:slogert:Address:>) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 7},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 5, "relation": "slogert:app.name", "object": 5},
+                {"subject": 6, "relation": "slogert:address.ipv4", "object": 6},
+                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.line", "object": 8}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 02:06:47", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "horde", "type": "slogert:Process", "start": 31, "end": 36},
+                {"text": "merlene", "type": "slogert:User", "start": 43, "end": 50},
+                {"text": "Horde", "type": "slogert:Application", "start": 65, "end": 70},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 72, "end": 85},
+                {"text": "27686", "type": "xsd:integer", "start": 92, "end": 97},
+                {"text": "106", "type": "xsd:integer", "start": 106, "end": 109},
+                {"text": "/var/www/mail.insect.com/login.php", "type": "slogert:File", "start": 114, "end": 148}
+            ]
+        },
+        {
+            "log": "Feb 29 03:16:26 mail-2 dhclient[418]: DHCPREQUEST of 192.168.10.21 on eth0 to 192.168.10.2 port 67",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> dhclient[<:NUM:>]: DHCPREQUEST of <:IP:> on eth0 to <:IP:> port <:NUM:>",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: DHCPREQUEST of <:slogert:Address:> on <:slogert:Parameter:> to <:slogert:Address:> port <:xsd:integer:>",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3},
+                {"subject": 4, "relation": "slogert:address.ipv4", "object": 4},
+                {"subject": 5, "relation": "slogert:address.ipv4", "object": 5}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 03:16:26", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "dhclient", "type": "slogert:Process", "start": 23, "end": 31},
+                {"text": "418", "type": "xsd:integer", "start": 32, "end": 35},
+                {"text": "192.168.10.21", "type": "slogert:Address", "start": 53, "end": 66},
+                {"text": "eth0", "type": "slogert:Parameter", "start": 70, "end": 74},
+                {"text": "192.168.10.2", "type": "slogert:Address", "start": 78, "end": 90},
+                {"text": "67", "type": "xsd:integer", "start": 96, "end": 98}
+            ]
+        },
+        {
+            "log": "Feb 29 03:16:26 mail-2 dhclient[418]: DHCPACK of 192.168.10.21 from 192.168.10.2",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> dhclient[<:NUM:>]: DHCPACK of <:IP:> from <:IP:>",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: DHCPACK of <:slogert:Address:> from <:slogert:Address:>",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3},
+                {"subject": 4, "relation": "slogert:address.ipv4", "object": 4},
+                {"subject": 5, "relation": "slogert:address.ipv4", "object": 5}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 03:16:26", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "dhclient", "type": "slogert:Process", "start": 23, "end": 31},
+                {"text": "418", "type": "xsd:integer", "start": 32, "end": 35},
+                {"text": "192.168.10.21", "type": "slogert:Address", "start": 49, "end": 62},
+                {"text": "192.168.10.2", "type": "slogert:Address", "start": 68, "end": 80}
+            ]
+        },
+        {
+            "log": "Feb 29 03:16:26 mail-2 dhclient[418]: bound to 192.168.10.21 -- renewal in 33808 seconds.",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> dhclient[<:NUM:>]: bound to <:IP:> -- renewal in <:NUM:> seconds.",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: bound to <:slogert:Address:> -- renewal in <:xsd:integer:> seconds.",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3},
+                {"subject": 4, "relation": "slogert:address.ipv4", "object": 4}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 03:16:26", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "dhclient", "type": "slogert:Process", "start": 23, "end": 31},
+                {"text": "418", "type": "xsd:integer", "start": 32, "end": 35},
+                {"text": "192.168.10.21", "type": "slogert:Address", "start": 47, "end": 60},
+                {"text": "33808", "type": "xsd:integer", "start": 75, "end": 80}
+            ]
+        },
+        {
+            "log": "Feb 29 06:30:04 mail-2 systemd[1]: Starting Daily apt upgrade and clean activities...",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> systemd[<:NUM:>]: Starting Daily apt upgrade and clean activities...",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: Starting Daily apt upgrade and clean activities...",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:30:04", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "systemd", "type": "slogert:Process", "start": 23, "end": 30},
+                {"text": "1", "type": "xsd:integer", "start": 31, "end": 32}
+            ]
+        },
+        {
+            "log": "Feb 29 06:30:05 mail-2 systemd[1]: Started Daily apt upgrade and clean activities.",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> systemd[<:NUM:>]: Started Daily apt upgrade and clean activities.",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: Started Daily apt upgrade and clean activities.",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:30:05", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "systemd", "type": "slogert:Process", "start": 23, "end": 30},
+                {"text": "1", "type": "xsd:integer", "start": 31, "end": 32}
+            ]
+        },
+        {
+            "log": "Feb 29 06:30:05 mail-2 systemd[1]: apt-daily-upgrade.timer: Adding 51min 50.570279s random time.",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> systemd[<:NUM:>]: apt-daily-upgrade.timer: Adding <:DURATION:> random time.",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: apt-daily-upgrade.timer: Adding <:xsd:duration:> random time",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:proc.name", "object": 2},
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:30:05", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "systemd", "type": "slogert:Process", "start": 23, "end": 30},
+                {"text": "1", "type": "xsd:integer", "start": 31, "end": 32},
+                {"text": "51min 50.570279s", "type": "xsd:duration", "start": 67, "end": 83}
+            ]
+        },
+        {
+            "log": "Feb 29 06:40:49 mail-2 HORDE: [imp] [login] Authentication failed. [pid 27609 on line 730 of \"/var/www/mail.insect.com/imp/lib/Imap.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [imp] [login] Authentication failed. [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] [login] Authentication failed. [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 4},
+                {"subject": 6, "relation": "slogert:file.path", "object": 6},
+                {"subject": 6, "relation": "slogert:file.line", "object": 5}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:40:49", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "imp", "type": "slogert:Process", "start": 31, "end": 34},
+                {"text": "27609", "type": "xsd:integer", "start": 72, "end": 77},
+                {"text": "730", "type": "xsd:integer", "start": 86, "end": 89},
+                {"text": "/var/www/mail.insect.com/imp/lib/Imap.php", "type": "slogert:File", "start": 94, "end": 135}
+            ]
+        },
+        {
+            "log": "Feb 29 06:40:49 mail-2 HORDE: [imp] FAILED LOGIN for violet (192.168.10.18) to {imap://localhost/} [pid 27609 on line 156 of \"/var/www/mail.insect.com/imp/lib/Auth.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [imp] FAILED LOGIN for violet (<:IP:>) to {<:URL:>} [pid <:NUM:> on line <:NUM:> of \"<:FILE_PATH:>\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] FAILED LOGIN for <:slogert:User:> (<:slogert:Address:>) to {<:slogert:URL:>} [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 7},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 5, "relation": "slogert:address.ipv4", "object": 5},
+                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.line", "object": 8}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:40:49", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "imp", "type": "slogert:Process", "start": 31, "end": 34},
+                {"text": "violet", "type": "slogert:User", "start": 53, "end": 59},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 61, "end": 74},
+                {"text": "imap://localhost/", "type": "slogert:URL", "start": 80, "end": 97},
+                {"text": "27609", "type": "xsd:integer", "start": 104, "end": 109},
+                {"text": "156", "type": "xsd:integer", "start": 118, "end": 121},
+                {"text": "/var/www/mail.insect.com/imp/lib/Auth.php", "type": "slogert:File", "start": 126, "end": 167}
+            ]
+        },
+        {
+            "log": "Feb 29 06:40:49 mail-2 HORDE: [horde] FAILED LOGIN for violet to horde (192.168.10.18) [pid 27609 on line 198 of \"/var/www/mail.insect.com/login.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [horde] FAILED LOGIN for violet to horde (<:IP:>) [pid <:NUM:> on line <:NUM:> of \"<:FILE_PATH:>\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] FAILED LOGIN for <:slogert:User:> to <:slogert:Application:> (<:slogert:Address:>) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 7},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 5, "relation": "slogert:app.name", "object": 5},
+                {"subject": 6, "relation": "slogert:address.ipv4", "object": 6},
+                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.line", "object": 8}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:40:49", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "horde", "type": "slogert:Process", "start": 31, "end": 36},
+                {"text": "violet", "type": "slogert:User", "start": 55, "end": 61},
+                {"text": "horde", "type": "slogert:Application", "start": 65, "end": 70},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 72, "end": 85},
+                {"text": "27609", "type": "xsd:integer", "start": 92, "end": 97},
+                {"text": "198", "type": "xsd:integer", "start": 106, "end": 109},
+                {"text": "/var/www/mail.insect.com/login.php", "type": "slogert:File", "start": 114, "end": 148}
+            ]
+        },
+        {
+            "log": "Feb 29 06:40:49 mail-2 dovecot: imap-login: Disconnected (auth failed, 2 attempts in 12 secs): user=<violet>, method=PLAIN, rip=127.0.0.1, lip=127.0.0.1, secured, session=<3XdWO7GfOoN/AAAB>",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> dovecot: imap-login: Disconnected (auth failed, <:NUM:> attempts in <:NUM:> secs): user=<<:USER:>>, method=PLAIN, rip=<:IP:>, lip=<:IP:>, secured, session=<<:SESSION:>>",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: <:slogert:Application:>: Disconnected (auth failed, <:xsd:integer:> attempts in <:xsd:integer:> secs): user=<<:slogert:User:>>, method=PLAIN, rip=<:slogert:Address:>, lip=<:slogert:Address:>, secured, session=<<:slogert:Parameter:>>",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 6, "relation": "slogert:user.name", "object": 6},
+                {"subject": 7, "relation": "slogert:address.ipv4", "object": 7},
+                {"subject": 8, "relation": "slogert:address.ipv4", "object": 8}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:40:49", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "dovecot", "type": "slogert:Application", "start": 23, "end": 30},
+                {"text": "imap-login", "type": "slogert:Application", "start": 32, "end": 42},
+                {"text": "2", "type": "xsd:integer", "start": 71, "end": 72},
+                {"text": "12", "type": "xsd:integer", "start": 85, "end": 87},
+                {"text": "violet", "type": "slogert:User", "start": 101, "end": 107},
+                {"text": "127.0.0.1", "type": "slogert:Address", "start": 128, "end": 137},
+                {"text": "127.0.0.1", "type": "slogert:Address", "start": 143, "end": 152},
+                {"text": "3XdWO7GfOoN/AAAB", "type": "slogert:Parameter", "start": 172, "end": 188}
+            ]
+        },
+        {
+            "log": "Feb 29 06:41:25 mail-2 HORDE: [horde] Login success for violet to horde (192.168.10.18) [pid 28845 on line 163 of \"/var/www/mail.insect.com/login.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [horde] Login success for violet to horde (<:IP:>) [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] Login success for <:slogert:User:> to <:slogert:Application:> (<:slogert:Address:>) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 7},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 5, "relation": "slogert:app.name", "object": 5},
+                {"subject": 6, "relation": "slogert:address.ipv4", "object": 6},
+                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.line", "object": 8}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:41:25", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "horde", "type": "slogert:Process", "start": 31, "end": 36},
+                {"text": "violet", "type": "slogert:User", "start": 56, "end": 62},
+                {"text": "horde", "type": "slogert:Application", "start": 66, "end": 71},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 73, "end": 86},
+                {"text": "28845", "type": "xsd:integer", "start": 93, "end": 98},
+                {"text": "163", "type": "xsd:integer", "start": 107, "end": 110},
+                {"text": "/var/www/mail.insect.com/login.php", "type": "slogert:File", "start": 115, "end": 149}
+            ]
+        },
+        {
+            "log": "Feb 29 06:41:25 mail-2 dovecot: imap(violet): Logged out in=26 out=471",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> dovecot: imap(violet): Logged out in=<:NUM:> out=<:NUM:>",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: <:slogert:Application:>(<:slogert:User:>): Logged out in=<:xsd:integer:> out=<:xsd:integer:>",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:app.name", "object": 3},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:41:25", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "dovecot", "type": "slogert:Application", "start": 23, "end": 30},
+                {"text": "imap", "type": "slogert:Application", "start": 32, "end": 36},
+                {"text": "violet", "type": "slogert:User", "start": 37, "end": 43},
+                {"text": "26", "type": "xsd:integer", "start": 60, "end": 62},
+                {"text": "471", "type": "xsd:integer", "start": 67, "end": 70}
+            ]
+        },
+        {
+            "log": "Feb 29 06:41:26 mail-2 HORDE: [imp] Login success for violet (192.168.10.18) to {imap://localhost/} [pid 28845 on line 156 of \"/var/www/mail.insect.com/imp/lib/Auth.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [imp] Login success for violet (<:IP:>) to {<:URL:>} [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: [<:slogert:Process:>] Login success for <:slogert:User:> (<:slogert:Address:>) to {<:slogert:URL:>} [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 7},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 5, "relation": "slogert:address.ipv4", "object": 5},
+                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.line", "object": 8}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:41:26", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "imp", "type": "slogert:Process", "start": 31, "end": 34},
+                {"text": "violet", "type": "slogert:User", "start": 54, "end": 60},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 62, "end": 75},
+                {"text": "imap://localhost/", "type": "slogert:URL", "start": 81, "end": 98},
+                {"text": "28845", "type": "xsd:integer", "start": 105, "end": 110},
+                {"text": "156", "type": "xsd:integer", "start": 119, "end": 122},
+                {"text": "/var/www/mail.insect.com/imp/lib/Auth.php", "type": "slogert:File", "start": 127, "end": 168}
+            ]
+        },
+        {
+            "log": "Feb 29 06:41:26 mail-2 dovecot: imap(violet): Error: file_dotlock_create(/var/mail/violet) failed: Permission denied (euid=1001(violet) egid=1001(violet) missing +w perm: /var/mail, we're not in group 8(mail), dir owned by 0:8 mode=0775) (set mail_privileged_group=mail)",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> dovecot: imap(violet): Error: file_dotlock_create(<:DIRECTORY:>) failed: Permission denied (euid=<:NUM:>(violet) egid=<:NUM:>(violet) missing +w perm: <:DIRECTORY:>, we're not in group <:NUM:>(mail), dir owned by <:NUM:>:<:NUM:> mode=<:NUM:>) (set mail_privileged_group=mail)",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Application:>: <:slogert:Application:>(<:slogert:User:>): Error: file_dotlock_create(<:slogert:File:>) failed: Permission denied (euid=<:xsd:integer:>(<:slogert:User:>) egid=<:xsd:integer:>(<:slogert:User:>) missing +w perm: <:slogert:File:>, we're not in group <:xsd:integer:>(<:slogert:Parameter:>), dir owned by <:xsd:integer:>:<:xsd:integer:> mode=<:xsd:integer:>) (set mail_privileged_group=<:slogert:Parameter:>)",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:app.name", "object": 3},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 4, "relation": "slogert:user.gid", "object": 8},
+                {"subject": 4, "relation": "slogert:user.group", "object": 9},
+                {"subject": 5, "relation": "slogert:file.path", "object": 5},
+                {"subject": 10, "relation": "slogert:file.path", "object": 10},
+                {"subject": 10, "relation": "slogert:file.mode", "object": 15}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:41:26", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
+                {"text": "dovecot", "type": "slogert:Application", "start": 23, "end": 30},
+                {"text": "imap", "type": "slogert:Application", "start": 32, "end": 36},
+                {"text": "violet", "type": "slogert:User", "start": 37, "end": 43},
+                {"text": "/var/mail/violet", "type": "slogert:File", "start": 73, "end": 89},
+                {"text": "1001", "type": "xsd:integer", "start": 123, "end": 127},
+                {"text": "violet", "type": "slogert:User", "start": 128, "end": 134},
+                {"text": "1001", "type": "xsd:integer", "start": 141, "end": 145},
+                {"text": "violet", "type": "slogert:User", "start": 146, "end": 152},
+                {"text": "/var/mail", "type": "slogert:File", "start": 171, "end": 180},
+                {"text": "8", "type": "xsd:integer", "start": 201, "end": 202},
+                {"text": "mail", "type": "slogert:Parameter", "start": 203, "end": 207},
+                {"text": "0", "type": "xsd:integer", "start": 223, "end": 224},
+                {"text": "8", "type": "xsd:integer", "start": 225, "end": 226},
+                {"text": "0775", "type": "xsd:integer", "start": 232, "end": 236},
+                {"text": "mail", "type": "slogert:Parameter", "start": 265, "end": 269}
+            ]
+        },
+        {
+            "log": "Feb 29 06:49:00 mail-2 HORDE: [imp] Message sent to Sabra <sabra@mail.insect.com> from violet (192.168.10.18) [pid 27609 on line 970 of \"/var/www/mail.insect.com/imp/lib/Compose.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [imp] Message sent to Sabra <<:EMAIL:>> from violet (<:IP:>) [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:sourceHost:> <:slogert:Application:>: [<:slogert:Process:>] Message sent to <:slogert:User:> <<:slogert:User:>@<:slogert:URL:>> from <:slogert:User:> (<:slogert:Address:>) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 9},
+                {"subject": 5, "relation": "slogert:user.name", "object": 5},
+                {"subject": 5, "relation": "slogert:user.domain", "object": 6},
+                {"subject": 7, "relation": "slogert:user.name", "object": 7},
+                {"subject": 8, "relation": "slogert:address.ipv4", "object": 8},
+                {"subject": 11, "relation": "slogert:file.path", "object": 11},
+                {"subject": 11, "relation": "slogert:file.line", "object": 10}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:49:00", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:sourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "imp", "type": "slogert:Process", "start": 31, "end": 34},
+                {"text": "Sabra", "type": "slogert:User", "start": 52, "end": 57},
+                {"text": "sabra", "type": "slogert:User", "start": 59, "end": 64},
+                {"text": "mail.insect.com", "type": "slogert:URL", "start": 65, "end": 80},
+                {"text": "violet", "type": "slogert:User", "start": 87, "end": 93},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 95, "end": 108},
+                {"text": "27609", "type": "xsd:integer", "start": 115, "end": 120},
+                {"text": "970", "type": "xsd:integer", "start": 129, "end": 132},
+                {"text": "/var/www/mail.insect.com/imp/lib/Compose.php", "type": "slogert:File", "start": 137, "end": 181}
+            ]
+        },
+        {
+            "log": "Feb 29 06:53:03 mail-2 HORDE: [horde] Login success for denis to horde (192.168.10.18) [pid 27784 on line 163 of \"/var/www/mail.insect.com/login.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [horde] Login success for denis to horde (<:IP:>) [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:sourceHost:> <:slogert:Application:>: [<:slogert:Process:>] Login success for <:slogert:User:> to <:slogert:Application:> (<:slogert:Address:>) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 7},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 5, "relation": "slogert:app.name", "object": 5},
+                {"subject": 6, "relation": "slogert:address.ipv4", "object": 6},
+                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.line", "object": 8}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:53:03", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:sourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "horde", "type": "slogert:Process", "start": 31, "end": 36},
+                {"text": "denis", "type": "slogert:User", "start": 56, "end": 61},
+                {"text": "horde", "type": "slogert:Application", "start": 65, "end": 70},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 72, "end": 85},
+                {"text": "27784", "type": "xsd:integer", "start": 92, "end": 97},
+                {"text": "163", "type": "xsd:integer", "start": 106, "end": 109},
+                {"text": "/var/www/mail.insect.com/login.php", "type": "slogert:File", "start": 114, "end": 148}
+            ]
+        },
+        {
+            "log": "Feb 29 06:53:03 mail-2 dovecot: imap(denis): Logged out in=26 out=471",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> dovecot: imap(denis): Logged out in=<:NUM:> out=<:NUM:>",
+            "llm_template": "<:xsd:dateTime:> <:slogert:sourceHost:> <:slogert:Application:> <:slogert:Application:>(<:slogert:User:>): Logged out in=<:xsd:integer:> out=<:xsd:integer:>",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:app.name", "object": 3},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:53:03", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:sourceHost", "start": 16, "end": 22},
+                {"text": "dovecot:", "type": "slogert:Application", "start": 23, "end": 31},
+                {"text": "imap", "type": "slogert:Application", "start": 32, "end": 36},
+                {"text": "denis", "type": "slogert:User", "start": 37, "end": 42},
+                {"text": "26", "type": "xsd:integer", "start": 59, "end": 61},
+                {"text": "471", "type": "xsd:integer", "start": 66, "end": 69}
+            ]
+        },
+        {
+            "log": "Feb 29 06:53:03 mail-2 HORDE: [imp] Login success for denis (192.168.10.18) to {imap://localhost/} [pid 27784 on line 156 of \"/var/www/mail.insect.com/imp/lib/Auth.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [imp] Login success for denis (<:IP:>) to {<:URL:>} [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:sourceHost:> <:slogert:Application:>: [<:slogert:Process:>] Login success for <:slogert:User:> (<:slogert:Address:>) to {<:slogert:URL:>} [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:File:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 7},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 5, "relation": "slogert:address.ipv4", "object": 5},
+                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.line", "object": 8}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:53:03", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:sourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "imp", "type": "slogert:Process", "start": 31, "end": 34},
+                {"text": "denis", "type": "slogert:User", "start": 54, "end": 59},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 61, "end": 74},
+                {"text": "imap://localhost/", "type": "slogert:URL", "start": 80, "end": 97},
+                {"text": "27784", "type": "xsd:integer", "start": 104, "end": 109},
+                {"text": "156", "type": "xsd:integer", "start": 118, "end": 121},
+                {"text": "/var/www/mail.insect.com/imp/lib/Auth.php", "type": "slogert:File", "start": 126, "end": 167}
+            ]
+        },
+        {
+            "log": "Feb 29 06:53:03 mail-2 dovecot: imap(denis): Error: file_dotlock_create(/var/mail/denis) failed: Permission denied (euid=1003(denis) egid=1003(denis) missing +w perm: /var/mail, we're not in group 8(mail), dir owned by 0:8 mode=0775) (set mail_privileged_group=mail)",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> dovecot: imap(denis): Error: file_dotlock_create(<:DIRECTORY:>) failed: Permission denied (euid=<:NUM:>(denis) egid=<:NUM:>(denis) missing +w perm: <:DIRECTORY:>, we're not in group <:NUM:>(mail), dir owned by <:NUM:>:<:NUM:> mode=<:NUM:>) (set mail_privileged_group=mail)",
+            "llm_template": "<:xsd:dateTime:> <:slogert:sourceHost:> <:slogert:Application:>: <:slogert:Application:>(<:slogert:User:>): Error: file_dotlock_create(<:slogert:File:>) failed: Permission denied (euid=<:xsd:integer:>(<:slogert:User:>) egid=<:xsd:integer:>(<:slogert:User:>) missing +w perm: <:slogert:File:> we're not in group <:xsd:integer:>(<:slogert:Parameter:>), dir owned by <:xsd:integer:>:<:xsd:integer:> mode=<:xsd:integer:>) (set mail_privileged_group=<:slogert:Parameter:>)",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:app.name", "object": 3},
+                {"subject": 4, "relation": "slogert:user.name", "object": 4},
+                {"subject": 4, "relation": "slogert:user.gid", "object": 8},
+                {"subject": 4, "relation": "slogert:user.group", "object": 9},
+                {"subject": 5, "relation": "slogert:file.path", "object": 5},
+                {"subject": 10, "relation": "slogert:file.path", "object": 10},
+                {"subject": 10, "relation": "slogert:file.mode", "object": 15}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 06:53:03", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:sourceHost", "start": 16, "end": 22},
+                {"text": "dovecot", "type": "slogert:Application", "start": 23, "end": 30},
+                {"text": "imap", "type": "slogert:Application", "start": 32, "end": 36},
+                {"text": "denis", "type": "slogert:User", "start": 37, "end": 42},
+                {"text": "/var/mail/denis", "type": "slogert:File", "start": 72, "end": 87},
+                {"text": "1003", "type": "xsd:integer", "start": 121, "end": 125},
+                {"text": "denis", "type": "slogert:User", "start": 126, "end": 131},
+                {"text": "1003", "type": "xsd:integer", "start": 138, "end": 142},
+                {"text": "denis", "type": "slogert:User", "start": 143, "end": 148},
+                {"text": "/var/mail,", "type": "slogert:File", "start": 167, "end": 177},
+                {"text": "8", "type": "xsd:integer", "start": 197, "end": 198},
+                {"text": "mail", "type": "slogert:Parameter", "start": 199, "end": 203},
+                {"text": "0", "type": "xsd:integer", "start": 219, "end": 220},
+                {"text": "8", "type": "xsd:integer", "start": 221, "end": 222},
+                {"text": "0775", "type": "xsd:integer", "start": 228, "end": 232},
+                {"text": "mail", "type": "slogert:Parameter", "start": 261, "end": 265}
+            ]
+        },
+        {
+            "log": "Feb 29 07:05:03 mail-2 HORDE: [imp] Message sent to marcelle@mail.insect.com from violet (192.168.10.18) [pid 29234 on line 970 of \"/var/www/mail.insect.com/imp/lib/Compose.php\"]",
+            "drain_template": "<:TIMESTAMP:> mail-<:NUM:> HORDE: [imp] Message sent to <:EMAIL:> from violet (<:IP:>) [pid <:NUM:> on line <:NUM:> of \\\"<:FILE_PATH:>\\\"]",
+            "llm_template": "<:xsd:dateTime:> <:slogert:sourceHost:> <:slogert:Application:>: [<:slogert:Process:>] Message sent to <:slogert:User:>@<:slogert:URL:> from <:slogert:User:> (<:slogert:Address:>) [pid <:xsd:integer:> on line <:xsd:integer:> of \"<:slogert:file:>\"]",
+            "triples":
+            [
+                {"subject": 2, "relation": "slogert:app.name", "object": 2},
+                {"subject": 3, "relation": "slogert:proc.name", "object": 3},
+                {"subject": 3, "relation": "slogert:proc.id", "object": 8},
+                {"subject": 5, "relation": "slogert:user.name", "object": 5},
+                {"subject": 5, "relation": "slogert:user.domain", "object": 6},
+                {"subject": 7, "relation": "slogert:user.name", "object": 7},
+                {"subject": 8, "relation": "slogert:address.ipv4", "object": 8},
+                {"subject": 10, "relation": "slogert:file.path", "object": 10},
+                {"subject": 10, "relation": "slogert:file.line", "object": 9}
+            ],
+            "entities":
+            [
+                {"text": "Feb 29 07:05:03", "type": "xsd:dateTime", "start": 0, "end": 15},
+                {"text": "mail-2", "type": "slogert:sourceHost", "start": 16, "end": 22},
+                {"text": "HORDE", "type": "slogert:Application", "start": 23, "end": 28},
+                {"text": "imp", "type": "slogert:Process", "start": 31, "end": 34},
+                {"text": "marcelle", "type": "slogert:User", "start": 52, "end": 60},
+                {"text": "mail.insect.com", "type": "slogert:URL", "start": 61, "end": 76},
+                {"text": "violet", "type": "slogert:User", "start": 82, "end": 88},
+                {"text": "192.168.10.18", "type": "slogert:Address", "start": 90, "end": 103},
+                {"text": "29234", "type": "xsd:integer", "start": 110, "end": 115},
+                {"text": "970", "type": "xsd:integer", "start": 124, "end": 127},
+                {"text": "/var/www/mail.insect.com/imp/lib/Compose.php", "type": "slogert:file", "start": 132, "end": 176}
+            ]
+        }
+    ]
+}

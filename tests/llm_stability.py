@@ -10,46 +10,17 @@ import logging
 import os
 import re
 import subprocess
+import sys
 import time
 import traceback
 
-import cProfile
-import io
-import pstats
-
 from typing import List, Dict, Optional, Tuple
-
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from anomaly_detection.kg_generation import ait_dataset
-from anomaly_detection.kg_generation.llm import find_unique_log_formats, format_seconds
 
 import orjson
 
-def join_path(*paths: str) -> str:
-    """
-    Wrapper around os.path.join to prepend the path of the file from which this function is called
-
-    Parameters
-    ----------
-    - `*paths`: List of paths to join
-    """
-    return os.path.join(os.path.dirname(__file__), *paths)
-
-def make_dir(path: str) -> str:
-    """
-    Wrapper around os.mkdir that creates a directory if it does not exist
-
-    Parameters
-    ----------
-    - `path`: directory to create
-    """
-    # NOTE(lucas): Use join_path to make the path relative to the file
-    # making the directory
-    if not os.path.exists(join_path(path)):
-        os.makedirs(join_path(path), exist_ok=True)
-
-    return path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from anomaly_detection.kg_generation import ait_dataset
+from anomaly_detection.kg_generation.llm import find_unique_log_formats, format_seconds
 
 def extract_entities(log: str, masked_log: str) -> List[Optional[str]]:
     timestamp_pattern = r"""(
@@ -252,25 +223,25 @@ def run_ait_test(root_dir: str, current_dir: str, iteration: int) -> None:
             log_list[i] = os.path.join(log_dir, log)
         find_unique_log_formats(log_list, preprocessed_data_dir)
 
-    # llm_config_path = os.path.join(root_dir, "config", "llm_config.yaml")
-    # valid_types_path = os.path.join(root_dir, "config", "valid_types.txt")
-    # valid_rels_path = os.path.join(root_dir, "config", "valid_rels.txt")
-    # gen_templates_path = os.path.join(current_dir, "results", "AIT", f"templates_{iteration}.json")
+    llm_config_path = os.path.join(root_dir, "config", "llm_config.yaml")
+    valid_types_path = os.path.join(root_dir, "config", "valid_types.txt")
+    valid_rels_path = os.path.join(root_dir, "config", "valid_rels.txt")
+    gen_templates_path = os.path.join(current_dir, "results", "AIT", f"templates_{iteration}.json")
 
-    # subprocess.run([
-    #     "mpirun",
-    #     sys.executable,
-    #     "-m",
-    #     "anomaly_detection.kg_generation.llm",
-    #     "--log-path", unique_logs_path,
-    #     "--template-path", unique_templates_path,
-    #     "--config-path", llm_config_path,
-    #     "--valid-types-path", valid_types_path,
-    #     "--valid-rels-path", valid_rels_path,
-    #     "--out-path", gen_templates_path
-    # ],
-    # check=True,
-    # text=True)
+    subprocess.run([
+        "mpirun",
+        sys.executable,
+        "-m",
+        "anomaly_detection.kg_generation.llm",
+        "--log-path", unique_logs_path,
+        "--template-path", unique_templates_path,
+        "--config-path", llm_config_path,
+        "--valid-types-path", valid_types_path,
+        "--valid-rels-path", valid_rels_path,
+        "--out-path", gen_templates_path
+    ],
+    check=True,
+    text=True)
 
     logging.info(f"AIT run completed in {format_seconds(time.time() - start)}")
 
@@ -293,7 +264,6 @@ def run_hdfs_test(iteration: int) -> None:
     valid_rels_path = os.path.join(root_dir, "config", "valid_rels.txt")
     gen_templates_path = os.path.join(current_dir, "results", "HDFS", f"templates_{iteration}.json")
 
-    # TODO(lucas): Get absolute path
     subprocess.run([
         "mpirun",
         sys.executable,
@@ -318,6 +288,8 @@ if __name__ == "__main__":
         level=logging.DEBUG,
         format=log_format
     )   
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+    os.makedirs(log_dir, exist_ok=True)
 
     parser = argparse.ArgumentParser(
         description="Run a stability test for LLM template generation for KG generation"
@@ -325,9 +297,6 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--iterations", type=int, required=True,
                         help="The number of times to run the test for each dataset")
     args = parser.parse_args()
-
-    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
-    os.makedirs(log_dir, exist_ok=True)
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = os.path.join(current_dir, "..")
@@ -358,18 +327,4 @@ if __name__ == "__main__":
     # templates_path = os.path.join(current_dir, "results", "AIT", "templates_1.json")
     # out_path = os.path.join(current_dir, "results", "AIT", "train.txt")
 
-    # pr = cProfile.Profile()
-    # pr.enable()
     # extract_triples(parsed_lines_path, templates_path, out_path)
-    # pr.disable()
-
-    # s = io.StringIO()
-    # sortby = pstats.SortKey.TIME
-    # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-    # ps.print_stats()
-
-    # profile_path = os.path.join("results", "profile.txt")
-    # if not os.path.exists("results"):
-    #     os.mkdir("results")
-    # with open (profile_path, "w+", encoding="utf-8") as f:
-    #     f.write(s.getvalue())

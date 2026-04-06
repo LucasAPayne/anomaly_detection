@@ -1,0 +1,10 @@
+slogert:Application
+slogert:File
+slogert:Address
+slogert:Parameter
+slogert:Process
+slogert:SourceHost
+slogert:URL
+slogert:User
+xsd:dateTime
+xsd:integer
