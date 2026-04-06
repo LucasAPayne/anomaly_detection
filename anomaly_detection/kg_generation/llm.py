@@ -9,7 +9,7 @@ import unicodedata
 import yaml
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import TypeAlias, Callable, Iterable
 
 from drain3 import TemplateMiner
@@ -24,18 +24,13 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ExtractedEntity:
     text: str
-    ent_type: str
-    span: tuple[int, int] # (start, end)
+    type: str
+    start: int
+    end: int
 
-    def to_dict(self) -> dict:
-        return {
-            "text": self.text,
-            "type": self.ent_type,
-            "start": self.span[0],
-            "end": self.span[1]
-        }
+    def span(self) -> tuple[int, int]:
+        return (self.start, self.end)
 
-# EntityPair: TypeAlias = tuple[ExtractedEntity, str]
 MaskRule: TypeAlias = tuple[re.Pattern, str]
 
 # TODO(lucas): This should be temporary until I replace Drain3 with my own regex masking
@@ -81,11 +76,12 @@ def extract_regex_entities(log: str, rules: list[MaskRule]) -> list[ExtractedEnt
     entities: list[ExtractedEntity] = []
     for pattern, mask in rules:
         for match in pattern.finditer(log):
-            ee = ExtractedEntity(text=match.group(0), ent_type=mask, span=match.span())
-            if not any(spans_overlap(ee.span, regex_ent.span) for regex_ent in entities):
+            start, end = match.span()
+            ee = ExtractedEntity(match.group(0), mask, start, end)
+            if not any(spans_overlap(ee.span(), regex_ent.span()) for regex_ent in entities):
                 entities.append(ee)
 
-    return sorted(entities, key=lambda x: x.span[0])
+    return sorted(entities, key=lambda x: x.start)
 
 def locate_llm_entities(log: str, llm_entities: list[str]) -> list[ExtractedEntity]:
     """
@@ -94,7 +90,8 @@ def locate_llm_entities(log: str, llm_entities: list[str]) -> list[ExtractedEnti
     found: list[ExtractedEntity] = []
     for ent in llm_entities:
         for match in re.finditer(rf"\b{re.escape(ent)}\b", log):
-            ee = ExtractedEntity(text=ent, ent_type="", span=match.span())
+            start, end = match.span()
+            ee = ExtractedEntity(ent, "", start, end)
             found.append(ee)
     return found
 
@@ -112,10 +109,10 @@ def merge_entities_with_span_guard(
         merged.append(e)
 
     # Sort LLM entities from longest to shortest to prevent erroneous substring matches
-    llm_ents_sorted = sorted(llm_ents, key=lambda e: e.span[1] - e.span[0], reverse=True)
+    llm_ents_sorted = sorted(llm_ents, key=lambda e: e.end - e.start, reverse=True)
 
     for llm_ent in llm_ents_sorted:
-        if not any(spans_overlap(llm_ent.span, regex_ent.span) for regex_ent in regex_ents):
+        if not any(spans_overlap(llm_ent.span(), regex_ent.span()) for regex_ent in regex_ents):
             merged.append(llm_ent)
 
     return merged
@@ -130,32 +127,32 @@ RegexToOntologyRule = Callable[[ExtractedEntity], Iterable[ExtractedEntity]]
 ContextualRule = Callable[[ExtractedEntity, str], Iterable[ExtractedEntity]]
 
 def map_ip(entity: ExtractedEntity) -> Iterable[ExtractedEntity]:
-    yield ExtractedEntity(entity.text, "slogert:Address", entity.span)
+    yield ExtractedEntity(entity.text, "slogert:Address", entity.start, entity.end)
 
 def map_timestamp(entity: ExtractedEntity) -> Iterable[ExtractedEntity]:
-    yield ExtractedEntity(entity.text, "xsd:dateTime", entity.span)
+    yield ExtractedEntity(entity.text, "xsd:dateTime", entity.start, entity.end)
 
 def map_duration(entity: ExtractedEntity) -> Iterable[ExtractedEntity]:
-    yield ExtractedEntity(entity.text, "xsd:duration", entity.span)
+    yield ExtractedEntity(entity.text, "xsd:duration", entity.start, entity.end)
 
 def map_session(entity: ExtractedEntity) -> Iterable[ExtractedEntity]:
-    yield ExtractedEntity(entity.text, "slogert:Parameter", entity.span)
+    yield ExtractedEntity(entity.text, "slogert:Parameter", entity.start, entity.end)
 
 def map_user(entity: ExtractedEntity) -> Iterable[ExtractedEntity]:
-    yield ExtractedEntity(entity.text, "slogert:User", entity.span)
+    yield ExtractedEntity(entity.text, "slogert:User", entity.start, entity.end)
 
 def map_url(entity: ExtractedEntity) -> Iterable[ExtractedEntity]:
-    yield ExtractedEntity(entity.text, "slogert:URL", entity.span)
+    yield ExtractedEntity(entity.text, "slogert:URL", entity.start, entity.end)
 
 def map_file_path(entity: ExtractedEntity) -> Iterable[ExtractedEntity]:
-    yield ExtractedEntity(entity.text, "slogert:File", entity.span)
+    yield ExtractedEntity(entity.text, "slogert:File", entity.start, entity.end)
 
 def map_directory(entity: ExtractedEntity) -> Iterable[ExtractedEntity]:
-    yield ExtractedEntity(entity.text, "slogert:File", entity.span)
+    yield ExtractedEntity(entity.text, "slogert:File", entity.start, entity.end)
 
 def map_email(entity: ExtractedEntity) -> Iterable[ExtractedEntity]:
     text = entity.text
-    start = entity.span[0]
+    start = entity.start
     at_idx = entity.text.find("@")
 
     if at_idx == -1:
@@ -168,27 +165,25 @@ def map_email(entity: ExtractedEntity) -> Iterable[ExtractedEntity]:
     url = text[at_idx+1:]
 
     # Get span for each part
-    user_span = (start, start + at_idx)
-    url_span = (start + at_idx + 1, start + len(text))
+    user_start = start
+    user_end = start + at_idx
+    url_start = start + at_idx + 1
+    url_end = start 
 
-    yield ExtractedEntity(user, "slogert:User", user_span)
-    yield ExtractedEntity(url, "slogert:URL", url_span)
+    yield ExtractedEntity(user, "slogert:User", user_start, user_end)
+    yield ExtractedEntity(url, "slogert:URL", url_start, url_end)
 
 def map_file_name(entity: ExtractedEntity) -> Iterable[ExtractedEntity]:
-    # yield (entity, "slogert:File")
-    yield ExtractedEntity(entity.text, "slogert:File", entity.span)
+    yield ExtractedEntity(entity.text, "slogert:File", entity.start, entity.end)
 
 def map_version(entity: ExtractedEntity) -> Iterable[ExtractedEntity]:
-    # yield (entity, "slogert:Parameter")
-    yield ExtractedEntity(entity.text, "slogert:Parameter", entity.span)
+    yield ExtractedEntity(entity.text, "slogert:Parameter", entity.start, entity.end)
 
 def map_cmd(entity: ExtractedEntity) -> Iterable[ExtractedEntity]:
-    # yield (entity, "slogert:Parameter")
-    yield ExtractedEntity(entity.text, "slogert:Parameter", entity.span)
+    yield ExtractedEntity(entity.text, "slogert:Parameter", entity.start, entity.end)
 
 def map_num(entity: ExtractedEntity) -> Iterable[ExtractedEntity]:
-    # yield (entity, "xsd:integer")
-    yield ExtractedEntity(entity.text, "xsd:integer", entity.span)
+    yield ExtractedEntity(entity.text, "xsd:integer", entity.start, entity.end)
 
 def expand_span(log: str, span: tuple[int, int], pattern: re.Pattern
 ) -> Iterable[tuple[str, tuple[int, int], re.Match]]:
@@ -209,36 +204,36 @@ def map_host(entity: ExtractedEntity, log: str) -> Iterable[ExtractedEntity]:
     would identify it as mail-<:NUM:>. Expand the span and map it to
     slogert:SourceHost.
     """
-    if entity.ent_type != "NUM":
+    if entity.type != "NUM":
         return
 
-    for surface, span, _ in expand_span(log, entity.span, HOST_PATTERN):
-        yield ExtractedEntity(surface, "slogert:SourceHost", span)
+    for text, span, _ in expand_span(log, (entity.start, entity.end), HOST_PATTERN):
+        yield ExtractedEntity(text, "slogert:SourceHost", span[0], span[1])
 
 def map_proc(entity: ExtractedEntity, log: str) -> Iterable[ExtractedEntity]:
     """
     A process with a PID is often listed as something like systemd[<:NUM:>].
     Expand the span to get the process name and map it to slogert:Process.
     """
-    if entity.ent_type != "NUM":
+    if entity.type != "NUM":
         return
 
-    for _, _, m in expand_span(log, entity.span, PROC_PATTERN):
-        proc_span = m.span(1)
-        pid_span = m.span(2)
+    for _, _, m in expand_span(log, entity.span(), PROC_PATTERN):
+        proc_start, proc_end = m.span(1)
+        pid_start, pid_end = m.span(2)
 
         proc_name = m.group(1)
         pid = m.group(2)
 
-        yield ExtractedEntity(proc_name, "slogert:Process", proc_span)
-        yield ExtractedEntity(pid, "xsd:integer", pid_span)
+        yield ExtractedEntity(proc_name, "slogert:Process", proc_start, proc_end)
+        yield ExtractedEntity(pid, "xsd:integer", pid_start, pid_end)
 
 def map_plain_integer(entity: ExtractedEntity, log: str) -> Iterable[ExtractedEntity]:
     """
     Fallback rule for plain integers that have no surrounding context.
     """
-    if entity.ent_type == "NUM":
-        yield ExtractedEntity(entity.text, "xsd:integer", entity.span)
+    if entity.type == "NUM":
+        yield ExtractedEntity(entity.text, "xsd:integer", entity.start, entity.end)
 
 CONTEXTUAL_RULES: list[ContextualRule] = [
     map_proc,
@@ -296,7 +291,7 @@ def resolve_entities(
     consumed_spans: set[tuple[int, int]] = set()
 
     for entity in entities:
-        if any(spans_overlap(entity.span, s) for s in consumed_spans):
+        if any(spans_overlap(entity.span(), s) for s in consumed_spans):
             continue
 
         # Try contextual rules first
@@ -304,14 +299,14 @@ def resolve_entities(
             produced_entities = list(contextual_rule(entity, log))
             if produced_entities:
                 resolved.extend(produced_entities)
-                consumed_spans.add(entity.span)
+                consumed_spans.add(entity.span())
                 for e in produced_entities:
-                    consumed_spans.add(e.span)
+                    consumed_spans.add(e.span())
                 break
 
         # If no contextual rule fits, fall back to regex rules
         else:
-            regex_rule = REGEX_RULES.get(entity.ent_type)
+            regex_rule = REGEX_RULES.get(entity.type)
 
             if regex_rule:
                 produced_entities = list(regex_rule(entity))
@@ -562,7 +557,7 @@ def extract_valid_pairs(
             if id(ent) in assigned:
                 continue
 
-            ent.ent_type = entity_type
+            ent.type = entity_type
             results.append(ent)
             assigned.add(id(ent))
 
@@ -589,7 +584,7 @@ def extract_valid_pairs(
             if id(ent) in assigned:
                 continue
 
-            ent.ent_type = found_type
+            ent.type = found_type
             results.append(ent)
             assigned.add(id(ent))
 
@@ -615,20 +610,20 @@ def mask_entities(log: str, entities: list[ExtractedEntity]):
     log = "".join(ch for ch in log if unicodedata.category(ch)[0] != "C")
 
     # Sort by start position
-    entities = sorted(entities, key=lambda e: e.span[0])
+    entities = sorted(entities, key=lambda e: e.start)
 
     result = []
     cursor = 0
 
     for e in entities:
         # Add text before entity
-        result.append(log[cursor:e.span[0]])
+        result.append(log[cursor:e.start])
 
         # Add masked entity
-        result.append(ensure_brackets(e.ent_type))
+        result.append(ensure_brackets(e.type))
 
         # Move cursor forward
-        cursor = e.span[1]
+        cursor = e.end
 
     # Add remaining text
     result.append(log[cursor:])
@@ -697,7 +692,7 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     llm_entities = extract_valid_pairs(entity_classification_response, entity_list, valid_type_set)
     llm_entities_final = []
     for e_llm in llm_entities:
-        if not any(spans_overlap(e_llm.span, e_reg.span) for e_reg in resolved):
+        if not any(spans_overlap(e_llm.span(), e_reg.span()) for e_reg in resolved):
             llm_entities_final.append(e_llm)
 
     classified_entities = resolved + llm_entities_final
@@ -710,8 +705,8 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     #         logging.error(f"Invalid type for pair: {pair}")
     #         missing_entities.append(pair[0])
     for entity in classified_entities:
-        if entity.ent_type.replace("<:", "").replace(":>", "") not in valid_types:
-            logging.error(f"Invalid type for entity: ({entity.text, entity.ent_type})")
+        if entity.type.replace("<:", "").replace(":>", "") not in valid_types:
+            logging.error(f"Invalid type for entity: ({entity.text, entity.type})")
             missing_entities.append(entity.text)
 
     # logging.info(f"Classified entities:\n{entity_pairs}\n")
@@ -832,8 +827,8 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     if len(triples_out) < len(triples):
         logging.info(f"{triples_discarded} triples were discarded due to entities not being found.")
 
-    regex_entities_dict = [e.to_dict() for e in resolved]
-    llm_entities_dict = [e.to_dict() for e in llm_entities_final]
+    regex_entities_dict = [asdict(e) for e in resolved]
+    llm_entities_dict = [asdict(e) for e in llm_entities_final]
 
     result = {
         "log": log,
@@ -847,12 +842,11 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     if run_logs is not None:
         run_log["ner"]["prompt"] = ner_prompt
         run_log["ner"]["response"] = ner_response
-        # run_log["ner"]["parsed"] = entity_list
+        run_log["ner"]["parsed"] = [asdict(e) for e in entity_list]
 
         run_log["entity_classification"]["prompt"] = entity_classification_prompt
         run_log["entity_classification"]["response"] = entity_classification_response
-        # run_log["entity_classification"]["parsed"] = entity_pairs
-        # run_log["entity_classification"]["parsed"] = classified_entities
+        run_log["entity_classification"]["parsed"] = [asdict(e) for e in classified_entities]
 
         run_log["triple_extraction"]["prompt"] = triple_extraction_prompt
         run_log["triple_extraction"]["response"] = triple_extraction_response
