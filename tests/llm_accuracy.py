@@ -4,9 +4,9 @@ LLM-assisted knowledge graph generation process.
 Results are reported with precision, recall, and F1-score.
 """
 
+import argparse
 import logging
 import os
-import re
 import subprocess
 import sys
 import time
@@ -142,23 +142,20 @@ def run_ait_test(root_dir: str, current_dir: str, gen_templates_path: str) -> No
 
     logging.info(f"AIT run completed in {format_seconds(time.time() - start)}")
 
-def main():
-    logger = logging.getLogger(__name__)
-    log_format = "[%(asctime)s]: %(name)s: %(levelname)s: %(message)s"
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format=log_format
-    )
-    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
-    os.makedirs(log_dir, exist_ok=True)
-
+def main(iteration: int):
     # Generate templates from the AIT dataset
     current_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = os.path.join(current_dir, "..")
-    ait_gen_templates_path = os.path.join(current_dir, "results", "AIT", "ait_accuracy_test_templates.json")
+    ait_gen_templates_path = os.path.join(current_dir, "results", "AIT", f"ait_accuracy_test_templates_{iteration}.json")
     ait_answer_path = os.path.join(current_dir, "ait_template_labels.json")
+
     logging.info("### AIT ###")
     run_ait_test(root_dir, current_dir, ait_gen_templates_path)
+
+    # TODO(lucas): A hack for now since llm.py does not allow an easy way to rename run_log
+    run_log_path_old = os.path.join(current_dir, "results", "run_log.json")
+    run_log_path_new = os.path.join(current_dir, "results", f"run_log_{iteration}.json")
+    os.rename(run_log_path_old, run_log_path_new)
 
     # Get the templates predicted from the AIT test and the gold templates from the answer file
     with open(ait_gen_templates_path, "rb") as templates_file:
@@ -176,10 +173,6 @@ def main():
     ner_mat = ConfusionMatrix()
     triple_mat = ConfusionMatrix()
     for gold_template, pred_template in zip(gold_templates, pred_templates):
-        log = gold_template["log"]
-        ner_gold: str = gold_template["llm_template"]
-        ner_pred: str = pred_template["template_mined"]
-
         pred_entities = []
         for e in pred_template["regex_entities"]:
             pred_entities.append(FrozenEntity(e["text"], e["type"], e["start"], e["end"]))
@@ -203,9 +196,27 @@ def main():
 
     print("### NER Metrics ###")
     print_metrics(ner_mat, ner_metrics)
-    print("\n\n")
+    print("\n")
     print("### Triple Metrics ###")
     print_metrics(triple_mat, triple_metrics)
+    print("\n\n")
 
 if __name__ == "__main__":
-    main()
+    logger = logging.getLogger(__name__)
+    log_format = "[%(asctime)s]: %(name)s: %(levelname)s: %(message)s"
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format=log_format
+    )
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+    os.makedirs(log_dir, exist_ok=True)
+
+    parser = argparse.ArgumentParser(
+        description="Run an accuracy test for LLM template generation for KG generation"
+    )
+    parser.add_argument("-i", "--iterations", type=int, required=True,
+                        help="The number of times to run the test")
+    args = parser.parse_args()
+
+    for i in range(args.iterations):
+        main(i)

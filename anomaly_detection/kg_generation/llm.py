@@ -711,7 +711,8 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
 
     # logging.info(f"Classified entities:\n{entity_pairs}\n")
 
-    triple_extraction_prompt = "Use this list of entities to perform the following task:\n" + str(entity_list) + \
+    entity_list_text = str([e.text for e in entity_list])
+    triple_extraction_prompt = "Use this list of entities to perform the following task:\n" + entity_list_text + \
                                 "\nThese are the valid relations to consider for the following prompt:\n" + valid_rels + \
                                 "\n" + user_prompts[3] + "\n" + log
     triple_extraction_response = llm(model, tokenizer, triple_extraction_prompt, max_new_tokens=256)
