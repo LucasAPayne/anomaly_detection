@@ -1,4 +1,3 @@
-TIMESTAMP
 slogert:Application
 slogert:Event
 slogert:File
@@ -11,3 +10,6 @@ slogert:SourceType
 slogert:Syslog
 slogert:URL
 slogert:User
+xsd:dateTime
+xsd:duration
+xsd:integer

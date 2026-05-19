@@ -7,8 +7,6 @@ slogert:file.mode
 slogert:file.name
 slogert:file.path
 slogert:file.size
-slogert:pid
-slogert:pname
 slogert:pri
 slogert:proc.id
 slogert:proc.name

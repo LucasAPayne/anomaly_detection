@@ -260,7 +260,7 @@ REGEX_RULES: dict[str, RegexToOntologyRule] = {
 def resolve_entities(
     entities: list[ExtractedEntity],
     log: str
-) -> tuple[list[ExtractedEntity], list[str]]:
+) -> tuple[list[ExtractedEntity], list[ExtractedEntity]]:
     """
     Resolve extracted entities into ontology-aligned entities using a
     two-stage rule pipeline.
@@ -285,7 +285,7 @@ def resolve_entities(
     unresolved list for the LLM to classify.
     """
     resolved: list[ExtractedEntity] = []
-    unresolved: list[str] = []
+    unresolved: list[ExtractedEntity] = []
 
     # Tracks spans that have already been consumed by a contextual rule
     consumed_spans: set[tuple[int, int]] = set()
@@ -313,12 +313,12 @@ def resolve_entities(
                 if produced_entities:
                     resolved.extend(produced_entities)
                 else:
-                    unresolved.append(entity.text)
+                    unresolved.append(entity)
 
             # If no rule fits, add to unresolved list,
             # which will be fed to the LLM.
             else:
-                unresolved.append(entity.text)
+                unresolved.append(entity)
 
     return resolved, unresolved
 
@@ -510,8 +510,20 @@ def ensure_brackets(s: str) -> str:
 
     return s
 
-# NOTE(lucas): Bullet tuple format: * ('ENTITY', TYPE)
-PAIR_PATTERN = re.compile(r"\*\s*\(\s*['\"](.+?)['\"]\s*,\s*(.+?)\)", re.VERBOSE)
+PAIR_PATTERN = re.compile(
+    r"""
+    ^\s*
+    (?:[-*+]\s*)?   # Optional bullet
+    [\(\[]+\s*      # Opening (, [, or [(
+    (?P<first>.+?)  # First value
+    \s*,\s*
+    (?P<second>.+?) # Second value
+    \s*[\)\]]+      # Closing ), ], or )]
+    \s*,?           # Optional comma
+    \s*$
+    """,
+    re.VERBOSE,
+)
 
 # Markdown/narrative format: entity appears in quotes, type must be searched for
 QUOTED_ENTITY_PATTERN = re.compile(f"['\"](.+?)['\"]")
@@ -531,9 +543,23 @@ def extract_valid_pairs(
     Returns:
         A list of ExtractedEntity objects with updated types.
     """
+    def clean_value(value: str) -> str:
+        value = value.strip()
+
+        # Strip matching quotes
+        if (
+            len(value) >= 2
+            and value[0] == value[-1]
+            and value[0] in {"'", '"'}
+        ):
+            value = value[1:-1]
+
+        return value.strip()
+
     results: list[ExtractedEntity] = []
 
-    # Map text -> list of entities (handles duplicate surface forms)
+    # Map text -> list of entities
+    # This handles entity text that appears in multiple places in the log message
     entity_map: dict[str, list[ExtractedEntity]] = defaultdict(list)
     for e in valid_entities:
         entity_map[e.text].append(e)
@@ -543,18 +569,23 @@ def extract_valid_pairs(
 
     # Pass 1: strict tuple parsing
     for line in text.splitlines():
-        match = PAIR_PATTERN.search(line)
+        match = PAIR_PATTERN.match(line)
         if not match:
             continue
 
-        entity_text, entity_type = match.groups()
+        entity_text = clean_value(match.group("first"))
+        entity_type = clean_value(match.group("second"))
 
-        if entity_text not in entity_map or entity_type not in valid_types:
-            logging.error(f"Invalid pair: ({entity_text}, {entity_type})")
+        if entity_text not in entity_map:
+            logging.error(f": Invalid pair (entity): ({entity_text}, {entity_type})")
+            continue
+        if entity_type not in valid_types:
+            logging.error(f"Invalid pair (type): ({entity_text}, {entity_type})")
             continue
 
         for ent in entity_map[entity_text]:
             if id(ent) in assigned:
+                logging.debug(f"Entity {ent} already exists")
                 continue
 
             ent.type = entity_type
@@ -590,19 +621,125 @@ def extract_valid_pairs(
 
     return results
 
-def llm(model, tokenizer, prompt: str, max_new_tokens: int=512, rep_penaly: float=1.1, temp: float=0.8) -> str:
-    prompt = "PROMPT:\n" + prompt + "\nRESPONSE:\n"
-    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+def build_ner_prompt(log: str, dataset_rules=None) -> str:
+    prompt = f"""
+# Task: Named Entity Recognition
+
+Extract all named entities from the log message.
+
+## Requirements:
+- Return ONLY a valid JSON array of strings
+- Preserve order
+- No explanations or extra text
+- Never return prefixes like in=, user=, src=, dst=
+- Interpret brackets, parentheses, and separators as delimiters, not as part of entity names.
+- Combine date+time when possible
+- Treat full file paths as single entities
+
+{dataset_rules or ""}
+
+## Log Message:
+{log}
+"""
+    return prompt
+
+def build_classification_prompt(log: str, entities, valid_types, dataset_rules=None) -> str:
+    prompt = f"""
+# Task: Entity Classification
+
+Classify each entity with exactly ONE type.
+
+## Valid Types:
+{valid_types}
+
+## Requirements:
+- Output a list of (entity, type) pairs
+- One type per entity
+- No explanations or extra text
+
+{dataset_rules or ""}
+
+## Log:
+{log}
+
+## Entities:
+{entities}
+"""
+    return prompt
+
+def build_triple_prompt(log: str, entities, relations, dataset_rules=None) -> str:
+    prompt = f"""
+# Task: Knowledge Graph Triple Generation
+
+Generate triples using the provided entities.
+
+## Valid Relations:
+{relations}
+
+## Requirements:
+- NEVER output None, null, or empty values
+- Only output triples where BOTH subject and object are valid entities
+- Use only provided ontology relations
+- Maximize coverage (every entity appears at least once)
+- Format: (subject, relation, object)
+- No explanations
+
+{dataset_rules or ""}
+
+## Log:
+{log}
+
+## Entities:
+{entities}
+"""
+    return prompt
+
+def build_messages(task_prompt: str) -> list[dict]:
+    system_prompt = """
+You are a cybersecurity expert specialized in transforming log data into a knowledge graph.
+You will be given a log event and contextual information.
+
+You must:
+- Extract as much information as posible
+- Remain completely accurate
+- Strictly follow output format requirements
+- Remain compliant with the given ontology
+- Never include explanations or extra information
+- Follow all requirements exactly. Failure to do so will result in termination.
+"""
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": task_prompt}
+    ]
+
+    return messages
+
+def llm(model, tokenizer, messages, max_new_tokens=512, repetition_penalty: float=1.1, temperature: float=0.4) -> str:
+    input_ids = tokenizer.apply_chat_template(
+        messages,
+        add_generation_prompt=True,
+        return_tensors="pt"
+    ).to(model.device)
+
+    attention_mask = torch.ones_like(input_ids, device=model.device)
+
     outputs = model.generate(
-        input_ids=inputs["input_ids"],
-        attention_mask=inputs["attention_mask"],
+        input_ids=input_ids,
+        attention_mask=attention_mask,
         max_new_tokens=max_new_tokens,
         pad_token_id=tokenizer.eos_token_id,
         eos_token_id=tokenizer.eos_token_id,
-        repetition_penalty=rep_penaly,
-        temperature=temp,
-        do_sample=True)
-    response = tokenizer.decode(outputs[0][inputs["input_ids"].shape[-1]:], skip_special_tokens=True).strip()
+        repetition_penalty=repetition_penalty,
+        temperature=temperature,
+        do_sample=True
+    )
+
+    response = tokenizer.decode(
+        outputs[0][input_ids.shape[-1]:],
+        skip_special_tokens=True
+    ).strip()
+
     return response
 
 def mask_entities(log: str, entities: list[ExtractedEntity]):
@@ -641,22 +778,17 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
 
     log = log.strip()
 
-    user_prompts = cfg["prompts"]
-
     # TODO(lucas): This needs to go up a level so that the regex do not get compiled each time.
     current_dir = os.path.dirname(os.path.abspath(__file__))
     drain_ini_path = os.path.join(current_dir, "config", "default", "drain3.ini")
     mask_rules = load_masking_rules(drain_ini_path)
     regex_entities = extract_regex_entities(log, mask_rules)
 
-    ner_prompt = (
-        user_prompts[0]
-        + "\nLOG MESSAGE:\n"
-        + log
-    )
+    ner_prompt = build_ner_prompt(log)
+    ner_messages = build_messages(ner_prompt)
 
     logging.info(f"NER Prompt: {ner_prompt}")
-    ner_response = llm(model, tokenizer, ner_prompt)
+    ner_response = llm(model, tokenizer, ner_messages)
     logging.info(f"NER Response:\n{ner_response}")
     llm_entity_list = get_entity_list(ner_response)
     logging.info(f"Regex entities:\n{regex_entities}")
@@ -668,28 +800,21 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     resolved, unresolved = resolve_entities(regex_entities, log)
 
     llm_entity_strings = [e.text for e in llm_entities]
-    classification_list = unresolved + llm_entity_strings
+    unresolved_strings = [e.text for e in unresolved]
+    classification_list = unresolved_strings + llm_entity_strings
 
-    entity_classification_prompt = (
-        "These are the valid types to consider for the following prompt:\n"
-        + valid_types
-        + "\nFor context, this is the log message in which the entities appear:\n"
-        + log + "\n"
-        + user_prompts[1]
-        + "This is the list of entities to classify:\n"
-        + str(classification_list)
-    )
-        # + str(entity_list)
+    entity_classification_prompt = build_classification_prompt(log, str(classification_list), valid_types)
+    classification_messages = build_messages(entity_classification_prompt)
+
     logging.info(f"Entity Classification Prompt: {entity_classification_prompt}")
-    entity_classification_response = llm(model, tokenizer, entity_classification_prompt, max_new_tokens=256)
+    entity_classification_response = llm(model, tokenizer, classification_messages)
     logging.info(f"Entity Classification Response:\n{entity_classification_response}\n")
 
     # TODO(lucas): Protect lists from being None/empty.
     # If they are, just redo the prompt with more tokens?
-    # classified_entity_list = get_entity_list(response)
-    # entity_pairs = get_entity_pairs(classified_entity_list)
     valid_type_set = [t for t in valid_types.split("\n") if t]
-    llm_entities = extract_valid_pairs(entity_classification_response, entity_list, valid_type_set)
+    llm_entities = extract_valid_pairs(entity_classification_response, unresolved + llm_entities, valid_type_set)
+    logging.info(f"LLM entities:\n{llm_entities}\n")
     llm_entities_final = []
     for e_llm in llm_entities:
         if not any(spans_overlap(e_llm.span(), e_reg.span()) for e_reg in resolved):
@@ -700,22 +825,17 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     missing_entities = []
     # If any entity types do not exist in the list of valid types,
     # add the corresponding entities to a list to be reclassified
-    # for pair in entity_pairs:
-    #     if pair[1].replace("<:", "").replace(":>", "") not in valid_types:
-    #         logging.error(f"Invalid type for pair: {pair}")
-    #         missing_entities.append(pair[0])
     for entity in classified_entities:
         if entity.type.replace("<:", "").replace(":>", "") not in valid_types:
             logging.error(f"Invalid type for entity: ({entity.text, entity.type})")
             missing_entities.append(entity.text)
 
-    # logging.info(f"Classified entities:\n{entity_pairs}\n")
+    entity_list_text = str([e.text for e in classified_entities])
 
-    entity_list_text = str([e.text for e in entity_list])
-    triple_extraction_prompt = "Use this list of entities to perform the following task:\n" + entity_list_text + \
-                                "\nThese are the valid relations to consider for the following prompt:\n" + valid_rels + \
-                                "\n" + user_prompts[3] + "\n" + log
-    triple_extraction_response = llm(model, tokenizer, triple_extraction_prompt, max_new_tokens=256)
+    triple_extraction_prompt = build_triple_prompt(log, entity_list_text, valid_rels)
+    triple_messages = build_messages(triple_extraction_prompt)
+    triple_extraction_response = llm(model, tokenizer, triple_messages)
+
     logging.info(f"Triple Extraction Prompt:\n{triple_extraction_prompt}")
     logging.info(f"Triple Extraction Response:\n{triple_extraction_response}\n")
 
@@ -726,7 +846,7 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     # which results in an error. When this situation occurs, the model usually has multiple
     # newlines and some normal text before the second list.
     triples = re.findall(r"\(([^)]+)\)", triple_extraction_response)
-    logging.info("Triples:" + "\n".join(f"({t})" for t in triples))
+    logging.info("Triples:\n" + "\n".join(f"({t})" for t in triples))
 
     for triple in triples[:]:
         if len(triple) < 3:
@@ -739,13 +859,13 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
             continue
         sub = sub.strip()
         obj = obj.strip()
-        if sub not in entity_list and sub != "":
+        if sub not in entity_list_text and sub != "":
             missing_entities.append(sub)
-        if obj not in entity_list and obj != "":
+        if obj not in entity_list_text and obj != "":
             missing_entities.append(obj)
 
     # TODO(lucas): Can sometimes get a string index out of range error here
-    triples = [triple for triple in triples if triple[1].strip() in valid_rels]
+    # triples = [triple for triple in triples if triples[1].strip() in valid_rels]
 
     # if len(missing_entities) > 0:
     #     logging.info(f"\n\nThere were missing entities\n{missing_entities}")
@@ -776,9 +896,9 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     # TODO(lucas): entity_pairs should probably also be a set rather than a list
 
     # entity_dupe_pattern = re.compile(r"\b(" + "|".join(re.escape(entity) for entity in entity_list) + r")\b")
-    entity_dupe_pattern = re.compile(r"\b(" + "|".join(re.escape(entity.text) for entity in entity_list) + r")\b")
-    entity_list_with_dupes = re.findall(entity_dupe_pattern, log)
-    logging.info(f"Full entity list:\n{entity_list_with_dupes}")
+    # entity_dupe_pattern = re.compile(r"\b(" + "|".join(re.escape(entity.text) for entity in entity_list) + r")\b")
+    # entity_list_with_dupes = re.findall(entity_dupe_pattern, log)
+    # logging.info(f"Full entity list:\n{entity_list_with_dupes}")
 
     # NOTE(lucas): Occasionally, the model generates Unicode quotes, so replace those just to be safe
     quotes = ["\'", "'", "'", "\"", "“", "”", "\＂", "\""]
@@ -796,11 +916,11 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
             logging.error(f"Problematic triple (too many elements) of len {len(elements)}:" + "\n".join(f"{el}" for el in elements))
             continue
 
-        if "equals" in rel:
-            continue
+        # if "equals" in rel:
+        #     continue
 
-        sub_idx = get_entity_idx(sub, entity_list)
-        obj_idx = get_entity_idx(obj, entity_list)
+        sub_idx = get_entity_idx(sub, classified_entities)
+        obj_idx = get_entity_idx(obj, classified_entities)
 
         not_found = sub_idx == -1 or obj_idx == -1
 
@@ -810,11 +930,15 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
             logging.error(f"Entity {obj} not found for triple {triple}")
 
         if not_found:
+            logging.error(f"Entity list had unfound entities: {classified_entities}")
             continue
 
-        triples_out.append([sub_idx, rel, obj_idx])
+        if rel not in valid_rels:
+            logging.error(f"Relation {rel} is invalid")
 
-    logging.info("Parsed Triples:" + "\n".join(f"({t})" for t in triples_out))
+        triples_out.append((sub_idx, rel, obj_idx))
+
+    logging.info("Parsed Triples:\n" + "\n".join(str(t) for t in triples_out))
 
     masked_log = mask_entities(log, classified_entities)
 
@@ -981,10 +1105,10 @@ def generate_templates(log_path: str, template_path: str, config_path: str, vali
         cfg = yaml.safe_load(config_file)
 
     with open(valid_types_path, "r", encoding="utf-8") as types_file:
-        valid_types = types_file.read()
+        valid_types = types_file.read().strip()
 
     with open(valid_rels_path, "r", encoding="utf-8") as rels_file:
-        valid_rels = rels_file.read()
+        valid_rels = rels_file.read().strip()
 
     model_name = cfg["model_id"]
     tokenizer = AutoTokenizer.from_pretrained(model_name)
