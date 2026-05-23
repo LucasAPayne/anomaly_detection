@@ -635,6 +635,7 @@ Extract all named entities from the log message.
 - Interpret brackets, parentheses, and separators as delimiters, not as part of entity names.
 - Combine date+time when possible
 - Treat full file paths as single entities
+- Do not consider the word "file" or "files" to be a file itself. Only a file path should be considered a file.
 
 {dataset_rules or ""}
 
@@ -678,9 +679,12 @@ Generate triples using the provided entities.
 
 ## Requirements:
 - NEVER output None, null, or empty values
-- Only output triples where BOTH subject and object are valid entities
+- Only output triples where BOTH subject and object are entities that appear in the list below
 - Use only provided ontology relations
 - Maximize coverage (every entity appears at least once)
+- Self-referential triples are VALID and sometimes required
+- Example valid self-reference: (app123, slogert:app.name, app123)
+- Do NOT reject a triple only because subject == object
 - Format: (subject, relation, object)
 - No explanations
 
@@ -716,17 +720,19 @@ You must:
     return messages
 
 def llm(model, tokenizer, messages, max_new_tokens=512, repetition_penalty: float=1.1, temperature: float=0.4) -> str:
-    input_ids = tokenizer.apply_chat_template(
+    inputs = tokenizer.apply_chat_template(
         messages,
         add_generation_prompt=True,
-        return_tensors="pt"
-    ).to(model.device)
+        tokenize=True,
+        return_tensors="pt",
+        return_dict=True
+    )
 
-    attention_mask = torch.ones_like(input_ids, device=model.device)
+    inputs = {k: v.to(model.model.embed_tokens.weight.device)
+          for k, v in inputs.items()}
 
     outputs = model.generate(
-        input_ids=input_ids,
-        attention_mask=attention_mask,
+        **inputs,
         max_new_tokens=max_new_tokens,
         pad_token_id=tokenizer.eos_token_id,
         eos_token_id=tokenizer.eos_token_id,
@@ -735,8 +741,9 @@ def llm(model, tokenizer, messages, max_new_tokens=512, repetition_penalty: floa
         do_sample=True
     )
 
+    input_length = inputs["input_ids"].shape[-1]
     response = tokenizer.decode(
-        outputs[0][input_ids.shape[-1]:],
+        outputs[0][input_length:],
         skip_special_tokens=True
     ).strip()
 
@@ -820,7 +827,11 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
         if not any(spans_overlap(e_llm.span(), e_reg.span()) for e_reg in resolved):
             llm_entities_final.append(e_llm)
 
+    # Collect final entity list and ensure that they are sorted by order of appearance.
+    # Order of appearance is important because triples will refer to entities
+    # by an index into this list
     classified_entities = resolved + llm_entities_final
+    classified_entities = sorted(classified_entities, key=lambda e: e.start)
 
     missing_entities = []
     # If any entity types do not exist in the list of valid types,
@@ -925,9 +936,9 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
         not_found = sub_idx == -1 or obj_idx == -1
 
         if sub_idx == -1:
-            logging.error(f"Entity {sub} not found for triple {triple}")
+            logging.error(f"Entity {sub} not found for triple ({triple})")
         if obj_idx == -1:
-            logging.error(f"Entity {obj} not found for triple {triple}")
+            logging.error(f"Entity {obj} not found for triple ({triple})")
 
         if not_found:
             logging.error(f"Entity list had unfound entities: {classified_entities}")
@@ -1116,11 +1127,23 @@ def generate_templates(log_path: str, template_path: str, config_path: str, vali
     print("Loading model...")
 
     model_load_start = time.time()
+
+    # If the model cannot fit on one device, spread it across GPUs
+    # and offload the rest to the CPU
+    # TODO(lucas): Query the system and use available GPUs
+    # and percentages of available memory
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         device_map="auto",
-        low_cpu_mem_usage=True,
-        torch_dtype=torch.float16
+        offload_folder="offload",
+        offload_state_dict=True,
+        max_memory={
+            0: "70GiB",
+            1: "70GiB",
+            "cpu": "128GiB"
+        },
+        torch_dtype=torch.bfloat16,
+        low_cpu_mem_usage=True
     )
 
     print(f"Model loaded in {format_seconds(time.time() - model_load_start)}")

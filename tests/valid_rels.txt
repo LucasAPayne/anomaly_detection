@@ -1,13 +1,10 @@
 slogert:address.ipv4
 slogert:app.name
-slogert:app.ver
 slogert:cmd
 slogert:file.line
 slogert:file.mode
 slogert:file.name
 slogert:file.path
-slogert:file.size
-slogert:pri
 slogert:proc.id
 slogert:proc.name
 slogert:user.gid

@@ -1,13 +1,9 @@
 slogert:Application
-slogert:Event
 slogert:File
 slogert:Address
 slogert:Parameter
 slogert:Process
-slogert:Source
 slogert:SourceHost
-slogert:SourceType
-slogert:Syslog
 slogert:URL
 slogert:User
 xsd:dateTime
