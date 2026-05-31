@@ -621,6 +621,53 @@ def extract_valid_pairs(
 
     return results
 
+def parse_triples(text: str) -> list[tuple[str, str, str]]:
+    """
+    Parse free-text triples into a list of tuples,
+    allowing for nested parentheses.
+    """
+    triples: list[tuple[str, str, str]] = []
+    seen: set[tuple[str, str, str]] = set()
+    current: list[str] = []
+    depth = 0
+    token = ""
+    
+    for c in text:
+        if c == "(":
+            if depth > 0:
+                token += c  # include nested (
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                # End of triple
+                current.append(token.strip())
+
+                if len(current) != 3:
+                    raise ValueError(
+                        f"Expected 3 elements in triple, got {len(current)}: {current}"
+                    )
+
+                s, r, o = map(str.strip, current)
+                triple = (s, r, o)
+
+                if triple not in seen:
+                    seen.add(triple)
+                    triples.append(triple)
+
+                current = []
+                token = ""
+            else:
+                token += c
+        elif c == "," and depth == 1:
+            # Top-level comma separates triple elements
+            current.append(token.strip())
+            token = ""
+        else:
+            token += c
+
+    return triples
+
 def build_ner_prompt(log: str, dataset_rules=None) -> str:
     prompt = f"""
 # Task: Named Entity Recognition
@@ -856,20 +903,11 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     # and only manage to generate a partial second list. This pattern can pick up both lists,
     # which results in an error. When this situation occurs, the model usually has multiple
     # newlines and some normal text before the second list.
-    triples = re.findall(r"\(([^)]+)\)", triple_extraction_response)
+    triples = parse_triples(triple_extraction_response)
     logging.info("Triples:\n" + "\n".join(f"({t})" for t in triples))
 
-    for triple in triples[:]:
-        if len(triple) < 3:
-            logging.error(f"Problematic triple (not enough values to split): {triple}")
-            continue
-        try:
-            sub, _, obj = filter_chars(triple, ["\'", "\"", "‘", "’"]).split(",")
-        except ValueError:
-            logging.error(f"Problematic triple (not enough values to split): {triple}")
-            continue
-        sub = sub.strip()
-        obj = obj.strip()
+    for triple in triples:
+        sub, _, obj = triple
         if sub not in entity_list_text and sub != "":
             missing_entities.append(sub)
         if obj not in entity_list_text and obj != "":
@@ -912,33 +950,20 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     # logging.info(f"Full entity list:\n{entity_list_with_dupes}")
 
     # NOTE(lucas): Occasionally, the model generates Unicode quotes, so replace those just to be safe
-    quotes = ["\'", "'", "'", "\"", "“", "”", "\＂", "\""]
+    # quotes = ["\'", "'", "'", "\"", "“", "”", "\＂", "\""]
 
+    # TODO(lucas): Consider fusing this loop over the triples with the one directly after parsing
     for triple in triples:
-        elements = triple.split(",")
-        if len(elements) < 3:
-            logging.error(f"Problematic triple (not enough elements): {elements}\n")
-            continue
-        elements = [el.strip() for el in elements]
-        sub = filter_chars(elements[0], quotes)
-        rel = filter_chars(elements[1], quotes)
-        obj = filter_chars(elements[2], quotes)
-        if len(elements) > 3:
-            logging.error(f"Problematic triple (too many elements) of len {len(elements)}:" + "\n".join(f"{el}" for el in elements))
-            continue
-
-        # if "equals" in rel:
-        #     continue
-
+        sub, rel, obj = triple
         sub_idx = get_entity_idx(sub, classified_entities)
         obj_idx = get_entity_idx(obj, classified_entities)
 
         not_found = sub_idx == -1 or obj_idx == -1
 
         if sub_idx == -1:
-            logging.error(f"Entity {sub} not found for triple ({triple})")
+            logging.error(f"Entity {sub} not found for triple {triple}")
         if obj_idx == -1:
-            logging.error(f"Entity {obj} not found for triple ({triple})")
+            logging.error(f"Entity {obj} not found for triple {triple}")
 
         if not_found:
             logging.error(f"Entity list had unfound entities: {classified_entities}")
