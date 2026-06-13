@@ -728,7 +728,9 @@ Generate triples using the provided entities.
 - NEVER output None, null, or empty values
 - Only output triples where BOTH subject and object are entities that appear in the list below
 - Use only provided ontology relations
-- Maximize coverage (every entity appears at least once)
+- Maximize coverage when supported by the ontology and log evidence.
+- Do NOT invent relations solely to make an entity appear.
+- It is acceptable for some entities to have no generated triples.
 - Self-referential triples are VALID and sometimes required
 - Example valid self-reference: (app123, slogert:app.name, app123)
 - Do NOT reject a triple only because subject == object
@@ -890,7 +892,20 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
 
     entity_list_text = str([e.text for e in classified_entities])
 
-    triple_extraction_prompt = build_triple_prompt(log, entity_list_text, valid_rels)
+    # TODO(lucas): This should be imported from a config file to allow for different datasets
+    triple_dataset_rules = """
+## Entity role constraints
+- Some entities are attached to triples later in the process and should not be connected here.
+- slogert:SourceHost entities should not participate in generated triples.
+
+## Relation Constraints
+- slogert:cmd is self-referential and applied only to slogert:Parameter when it refers to a bash command.
+- slogert:app.name is self-referential and applies only to slogert:Application entities.
+- slogert:proc.name is self-referential and applies only to slogert:Process entities.
+- slogert:proc.id must connect a slogert:Process entity to its xsd:integer identifier and is NOT self-referential.
+    """
+
+    triple_extraction_prompt = build_triple_prompt(log, entity_list_text, valid_rels, triple_dataset_rules)
     triple_messages = build_messages(triple_extraction_prompt)
     triple_extraction_response = llm(model, tokenizer, triple_messages)
 
