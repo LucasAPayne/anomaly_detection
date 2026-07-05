@@ -15,3 +15,5 @@ __pycache__/
 venv/
 
 profile.txt
+accelerate.sh
+job.sh

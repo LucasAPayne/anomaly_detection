@@ -1,1 +1,6 @@
-model_id: "meta-llama/Llama-3.3-70B-Instruct"
+# Provider must be "huggingface" or "openrouter"
+# huggingface is for running local models, and openrouter is for running remote models.
+# openrouter also requires the OPENROUTER_API_KEY environment variable to be populated.
+provider: "openrouter"
+# model_id: "meta-llama/Llama-3.3-70B-Instruct"
+model_id: "openai/gpt-oss-120b"

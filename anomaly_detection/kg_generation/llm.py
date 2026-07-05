@@ -10,11 +10,12 @@ import yaml
 
 from collections import defaultdict
 from dataclasses import dataclass, asdict
-from typing import TypeAlias, Callable, Iterable
+from typing import Any, Callable, Iterable, TypeAlias
 
 from drain3 import TemplateMiner
 from drain3.template_miner_config import TemplateMinerConfig
 from mpi4py import MPI
+from openai import OpenAI
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 import torch
@@ -668,7 +669,8 @@ def parse_triples(text: str) -> list[tuple[str, str, str]]:
 
     return triples
 
-def build_ner_prompt(log: str, dataset_rules=None) -> str:
+# TODO(lucas): dataset_rules should probably default to empty str instead of None
+def build_ner_prompt(log: str, dataset_rules: str | None = None) -> str:
     prompt = f"""
 # Task: Named Entity Recognition
 
@@ -691,7 +693,7 @@ Extract all named entities from the log message.
 """
     return prompt
 
-def build_classification_prompt(log: str, entities, valid_types, dataset_rules=None) -> str:
+def build_classification_prompt(log: str, entities, valid_types: str, dataset_rules: str | None = None) -> str:
     prompt = f"""
 # Task: Entity Classification
 
@@ -715,7 +717,7 @@ Classify each entity with exactly ONE type.
 """
     return prompt
 
-def build_triple_prompt(log: str, entities, relations, dataset_rules=None) -> str:
+def build_triple_prompt(log: str, entities: str, relations: str, dataset_rules: str | None = None) -> str:
     prompt = f"""
 # Task: Knowledge Graph Triple Generation
 
@@ -768,35 +770,85 @@ You must:
 
     return messages
 
-def llm(model, tokenizer, messages, max_new_tokens=512, repetition_penalty: float=1.1, temperature: float=0.4) -> str:
-    inputs = tokenizer.apply_chat_template(
-        messages,
-        add_generation_prompt=True,
-        tokenize=True,
-        return_tensors="pt",
-        return_dict=True
-    )
+@dataclass
+class LLMCtx:
+    # LLM provider ("huggingface" or "openrouter")
+    provider: str = ""
 
-    inputs = {k: v.to(model.model.embed_tokens.weight.device)
-          for k, v in inputs.items()}
+    # LLM model name
+    model_name: str = ""
 
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=max_new_tokens,
-        pad_token_id=tokenizer.eos_token_id,
-        eos_token_id=tokenizer.eos_token_id,
-        repetition_penalty=repetition_penalty,
-        temperature=temperature,
-        do_sample=True
-    )
+    # huggingface model from AutoModelForCausalLM
+    model: Any = None
 
-    input_length = inputs["input_ids"].shape[-1]
-    response = tokenizer.decode(
-        outputs[0][input_length:],
-        skip_special_tokens=True
-    ).strip()
+    # huggingface tokenizer from AutoTokenizer
+    tokenizer: Any = None
 
-    return response
+    # Client for calling models through OpenRouter
+    client: Any = None
+
+def llm(ctx: LLMCtx,
+        messages: list[dict],
+        max_new_tokens: int = 512,
+        repetition_penalty: float = 1.1,
+        temperature: float = 0.4
+) -> str:
+
+    if ctx.provider == "huggingface":
+        tokenizer = ctx.tokenizer
+        model = ctx.model
+        inputs = tokenizer.apply_chat_template(
+            messages,
+            add_generation_prompt=True,
+            tokenize=True,
+            return_tensors="pt",
+            return_dict=True
+        )
+
+        inputs = {k: v.to(model.model.embed_tokens.weight.device)
+            for k, v in inputs.items()}
+
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=max_new_tokens,
+            pad_token_id=tokenizer.eos_token_id,
+            eos_token_id=tokenizer.eos_token_id,
+            repetition_penalty=repetition_penalty,
+            temperature=temperature,
+            do_sample=True
+        )
+
+        input_length = inputs["input_ids"].shape[-1]
+        response = tokenizer.decode(
+            outputs[0][input_length:],
+            skip_special_tokens=True
+        ).strip()
+
+        return response
+
+    elif ctx.provider == "openrouter":
+        response = ctx.client.chat.completions.create(
+            model=ctx.model_name,
+            messages=messages,
+            max_tokens=8196,
+            temperature=temperature,
+        )
+        
+        message = response.choices[0].message
+
+        logging.info("Reasoning:\n%s", message.reasoning)
+
+        # In some situations (e.g., running out of tokens during reasoning),
+        # the final content may be None.
+        if message.content:
+            return message.content.strip()
+
+        # If the model has reasoning and has not returned, something went wrong.
+        if hasattr(message, "reasoning"):
+            logging.warning(f"Model exhausted output budget while reasoning or decided to return nothing."            )
+            return ""
+
+    raise RuntimeError(f"Unsupported LLM provider: {ctx.provider}")
 
 def mask_entities(log: str, entities: list[ExtractedEntity]):
     # Remove control characters
@@ -823,8 +875,14 @@ def mask_entities(log: str, entities: list[ExtractedEntity]):
 
     return "".join(result)
 
-def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types: str, valid_rels: str,
-                           model, tokenizer, run_logs: list[dict]|None=None) -> dict:
+def generate_next_template(
+    log: str,
+    drain_template: str,
+    valid_types: str,
+    valid_rels: str,
+    ctx: LLMCtx,
+    run_logs: list[dict] | None = None
+) -> dict:
     run_log = {
         "ner": {},
         "entity_classification": {},
@@ -840,11 +898,17 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     mask_rules = load_masking_rules(drain_ini_path)
     regex_entities = extract_regex_entities(log, mask_rules)
 
-    ner_prompt = build_ner_prompt(log)
+    ner_dataset_rules = """
+## Ambiguous Entities
+- Entities that do not have a direct fit for any valid type should be labeled as slogert:Parameter.
+- Examples of entities without direct fits are terminal commands and groups.
+    """
+
+    ner_prompt = build_ner_prompt(log, ner_dataset_rules)
     ner_messages = build_messages(ner_prompt)
 
     logging.info(f"NER Prompt: {ner_prompt}")
-    ner_response = llm(model, tokenizer, ner_messages)
+    ner_response = llm(ctx, ner_messages)
     logging.info(f"NER Response:\n{ner_response}")
     llm_entity_list = get_entity_list(ner_response)
     logging.info(f"Regex entities:\n{regex_entities}")
@@ -863,7 +927,7 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
     classification_messages = build_messages(entity_classification_prompt)
 
     logging.info(f"Entity Classification Prompt: {entity_classification_prompt}")
-    entity_classification_response = llm(model, tokenizer, classification_messages)
+    entity_classification_response = llm(ctx, classification_messages)
     logging.info(f"Entity Classification Response:\n{entity_classification_response}\n")
 
     # TODO(lucas): Protect lists from being None/empty.
@@ -907,7 +971,7 @@ def generate_next_template(log: str, drain_template: str, cfg: dict, valid_types
 
     triple_extraction_prompt = build_triple_prompt(log, entity_list_text, valid_rels, triple_dataset_rules)
     triple_messages = build_messages(triple_extraction_prompt)
-    triple_extraction_response = llm(model, tokenizer, triple_messages)
+    triple_extraction_response = llm(ctx, triple_messages)
 
     logging.info(f"Triple Extraction Prompt:\n{triple_extraction_prompt}")
     logging.info(f"Triple Extraction Response:\n{triple_extraction_response}\n")
@@ -1162,31 +1226,51 @@ def generate_templates(log_path: str, template_path: str, config_path: str, vali
         valid_rels = rels_file.read().strip()
 
     model_name = cfg["model_id"]
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    provider = str.lower(cfg["provider"])
+    if provider != "huggingface" and provider != "openrouter":
+        raise ValueError(f"Invalid LLM provider: {provider}")
 
-    print("Loading model...")
+    tokenizer = None
+    client = None
+    model = None
 
-    model_load_start = time.time()
+    ctx = LLMCtx()
+    ctx.provider = provider
+    ctx.model_name = model_name
 
-    # If the model cannot fit on one device, spread it across GPUs
-    # and offload the rest to the CPU
-    # TODO(lucas): Query the system and use available GPUs
-    # and percentages of available memory
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        device_map="auto",
-        offload_folder="offload",
-        offload_state_dict=True,
-        max_memory={
-            0: "70GiB",
-            1: "70GiB",
-            "cpu": "128GiB"
-        },
-        torch_dtype=torch.bfloat16,
-        low_cpu_mem_usage=True
-    )
+    if provider == "huggingface":
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        print("Loading model...")
+        model_load_start = time.time()
 
-    print(f"Model loaded in {format_seconds(time.time() - model_load_start)}")
+        # If the model cannot fit on one device, spread it across GPUs
+        # and offload the rest to the CPU
+        # TODO(lucas): Query the system and use available GPUs
+        # and percentages of available memory
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            device_map="auto",
+            offload_folder="offload",
+            offload_state_dict=True,
+            max_memory={
+                0: "70GiB",
+                1: "70GiB",
+                "cpu": "128GiB"
+            },
+            torch_dtype=torch.bfloat16,
+            low_cpu_mem_usage=True
+        )
+        print(f"Model loaded in {format_seconds(time.time() - model_load_start)}")
+
+        ctx.tokenizer = tokenizer
+        ctx.model = model
+
+    elif provider == "openrouter":
+        client = OpenAI(
+            api_key=os.environ["OPENROUTER_API_KEY"],
+            base_url="https://openrouter.ai/api/v1"
+        )
+        ctx.client = client
 
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -1222,7 +1306,7 @@ def generate_templates(log_path: str, template_path: str, config_path: str, vali
     for i, log in enumerate(log_slice):
         drain_template = json.loads(drain_templates[start + i])["template_mined"]
         logging.info(f"Rank {rank} processing log {i+1}/{len(log_slice)}")
-        template = generate_next_template(log, drain_template, cfg, valid_types, valid_rels, model, tokenizer, node_runs)
+        template = generate_next_template(log, drain_template, valid_types, valid_rels, ctx, node_runs)
 
         # TODO(lucas): Is it possible to justify some of the entities between Drain and LLM templates?
         # e.g., Drain identified a month and several numbers, but the LLM did not convert to a timestamp?
@@ -1230,7 +1314,7 @@ def generate_templates(log_path: str, template_path: str, config_path: str, vali
         while template_should_regenerate(template) and attempts < 5:
         # while template_should_regenerate(template):
             logging.info("Regenerating template.")
-            template = generate_next_template(log, drain_template, cfg, valid_types, valid_rels, model, tokenizer)
+            template = generate_next_template(log, drain_template, valid_types, valid_rels, ctx)
             attempts += 1
 
         templates.append(template)

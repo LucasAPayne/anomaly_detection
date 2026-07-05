@@ -1,12 +1,12 @@
-slogert:address.ipv4
-slogert:app.name
-slogert:cmd
-slogert:file.line
-slogert:file.mode
-slogert:file.name
-slogert:file.path
-slogert:proc.id
-slogert:proc.name
-slogert:user.gid
-slogert:user.group
-slogert:user.name
+slogert:address.ipv4    IPv4 address    domain: slogert:Address range: slogert:Address
+slogert:app.name    Application name    domain: slogert:Application range: slogert:Application
+slogert:cmd Terminal command    domain: slogert:Parameter   range: slogert:Parameter
+slogert:file.line   File line number    domain: slogert:File    range: xsd:integer
+slogert:file.mode   File mode (permissions) flags domain: slogert:File    range: xsd:integer
+slogert:file.name   File name   domain: slogert:File range: slogert:File
+slogert:file.path   File path (directory) domain:slogret:File   range: slogert:File
+slogert:proc.id    Process ID (pid) domain: slogert:Process range: xsd:integer
+slogert:proc.name   Process name    domain: slogert:Process range:slogert:Process
+slogert:user.gid    User group ID (gid) domain: slogert:User    range: xsd:integer
+slogert:user.group  User group name slogert:User    slogert:Parameter
+slogert:user.name   User account name   domain: slogert:User    range: slogert:User
