@@ -1,0 +1,74 @@
+{
+    "slogert:address.ipv4":
+    {
+        "description": "IPv4 address",
+        "domain": "slogert:Address",
+        "range": "slogert:Adress"
+    },
+    "slogert:app.name":
+    {
+        "description": "Application name",
+        "domain": "slogert:Application",
+        "range": "slogert:Application"
+    },
+    "slogert:cmd":
+    {
+        "description": "Terminal command",
+        "domain": "slogert:Parameter",
+        "range": "slogert:Parameter"
+    },
+    "slogert:file.line":
+    {
+        "description": "File line number",
+        "domain": "slogert:File",
+        "range": "xsd:integer"
+    },
+    "slogert:file.mode":
+    {
+        "description": "File mode (permissions)",
+        "domain": "slogert:File",
+        "range": "xsd:integer"
+    },
+    "slogert:file.name":
+    {
+        "description": "File name",
+        "domain": "slogert:File",
+        "range": "slogert:File"
+    },
+    "slogert:file.path":
+    {
+        "description": "File path (directory)",
+        "domain": "slogert:File",
+        "range": "slogert:File"
+    },
+    "slogert:proc.id":
+    {
+        "description": "Process ID (pid)",
+        "domain": "slogert:Process",
+        "range": "xsd:integer"
+    },
+    "slogert:proc.name":
+    {
+        "description": "Process name",
+        "domain": "slogert:Process",
+        "range": "slogert:Process"
+    },
+    "slogert:user.gid":
+    {
+        "description": "User group ID (gid)",
+        "domain": "slogert:User",
+        "range": "xsd:integer"
+    },
+    "slogert:user.group":
+    {
+        "description": "User group name",
+        "domain": "slogert:User",
+        "range": "slogert:Parameter"
+    },
+    "slogert:user.name":
+    {
+        "description": "User account name",
+        "domain": "slogert:User",
+        "range": "slogert:User"
+    }
+}

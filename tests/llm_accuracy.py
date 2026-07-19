@@ -122,8 +122,8 @@ def run_ait_test(root_dir: str, current_dir: str, gen_templates_path: str) -> No
         find_unique_log_formats(log_list, preprocessed_data_dir)
 
     llm_config_path = os.path.join(root_dir, "config", "llm_config.yaml")
-    valid_types_path = os.path.join(current_dir, "valid_types.txt")
-    valid_rels_path = os.path.join(current_dir, "valid_rels.txt")
+    valid_types_path = os.path.join(current_dir, "valid_types.json")
+    valid_rels_path = os.path.join(current_dir, "valid_rels.json")
 
     subprocess.run([
         "mpirun",

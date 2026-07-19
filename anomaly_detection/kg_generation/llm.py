@@ -670,7 +670,7 @@ def parse_triples(text: str) -> list[tuple[str, str, str]]:
     return triples
 
 # TODO(lucas): dataset_rules should probably default to empty str instead of None
-def build_ner_prompt(log: str, dataset_rules: str | None = None) -> str:
+def build_ner_prompt(log: str, dataset_rules: str = "") -> str:
     prompt = f"""
 # Task: Named Entity Recognition
 
@@ -686,14 +686,18 @@ Extract all named entities from the log message.
 - Treat full file paths as single entities
 - Do not consider the word "file" or "files" to be a file itself. Only a file path should be considered a file.
 
-{dataset_rules or ""}
+{dataset_rules}
 
 ## Log Message:
 {log}
 """
     return prompt
 
-def build_classification_prompt(log: str, entities, valid_types: str, dataset_rules: str | None = None) -> str:
+def build_classification_prompt(log: str, entities, valid_types: dict, dataset_rules: str = "") -> str:
+    # valid_types = "\n".join(
+    #     f"- {name}\tdescription={info['description']}"
+    #     for name, info in valid_types_dict.items()
+    # )
     prompt = f"""
 # Task: Entity Classification
 
@@ -707,7 +711,7 @@ Classify each entity with exactly ONE type.
 - One type per entity
 - No explanations or extra text
 
-{dataset_rules or ""}
+{dataset_rules}
 
 ## Log:
 {log}
@@ -717,14 +721,18 @@ Classify each entity with exactly ONE type.
 """
     return prompt
 
-def build_triple_prompt(log: str, entities: str, relations: str, dataset_rules: str | None = None) -> str:
+def build_triple_prompt(log: str, entities: str, valid_rels: dict, dataset_rules: str = "") -> str:
+    # valid_rels = "\n".join(
+    #     f"- {name}\tdescription={info['description']}, domain={info['domain']}, range={info['range']}"
+    #     for name, info in valid_rels_dict.items()
+    # )
     prompt = f"""
 # Task: Knowledge Graph Triple Generation
 
 Generate triples using the provided entities.
 
 ## Valid Relations:
-{relations}
+{valid_rels}
 
 ## Requirements:
 - NEVER output None, null, or empty values
@@ -739,7 +747,7 @@ Generate triples using the provided entities.
 - Format: (subject, relation, object)
 - No explanations
 
-{dataset_rules or ""}
+{dataset_rules}
 
 ## Log:
 {log}
@@ -875,11 +883,17 @@ def mask_entities(log: str, entities: list[ExtractedEntity]):
 
     return "".join(result)
 
+def get_entity_type(entity: str, classified_entities: list[ExtractedEntity]) -> str:
+    for classified in classified_entities:
+        if entity == classified.text:
+            return classified.type
+    return ""
+
 def generate_next_template(
     log: str,
     drain_template: str,
-    valid_types: str,
-    valid_rels: str,
+    valid_types_dict: dict,
+    valid_rels_dict: dict,
     ctx: LLMCtx,
     run_logs: list[dict] | None = None
 ) -> dict:
@@ -923,16 +937,18 @@ def generate_next_template(
     unresolved_strings = [e.text for e in unresolved]
     classification_list = unresolved_strings + llm_entity_strings
 
-    entity_classification_prompt = build_classification_prompt(log, str(classification_list), valid_types)
+    entity_classification_prompt = build_classification_prompt(log, str(classification_list), valid_types_dict)
     classification_messages = build_messages(entity_classification_prompt)
 
     logging.info(f"Entity Classification Prompt: {entity_classification_prompt}")
     entity_classification_response = llm(ctx, classification_messages)
     logging.info(f"Entity Classification Response:\n{entity_classification_response}\n")
 
+    valid_types = valid_types_dict.keys()
+
     # TODO(lucas): Protect lists from being None/empty.
     # If they are, just redo the prompt with more tokens?
-    valid_type_set = [t for t in valid_types.split("\n") if t]
+    valid_type_set = [t for t in valid_types if t]
     llm_entities = extract_valid_pairs(entity_classification_response, unresolved + llm_entities, valid_type_set)
     logging.info(f"LLM entities:\n{llm_entities}\n")
     llm_entities_final = []
@@ -969,7 +985,7 @@ def generate_next_template(
 - slogert:proc.id must connect a slogert:Process entity to its xsd:integer identifier and is NOT self-referential.
     """
 
-    triple_extraction_prompt = build_triple_prompt(log, entity_list_text, valid_rels, triple_dataset_rules)
+    triple_extraction_prompt = build_triple_prompt(log, entity_list_text, valid_rels_dict, triple_dataset_rules)
     triple_messages = build_messages(triple_extraction_prompt)
     triple_extraction_response = llm(ctx, triple_messages)
 
@@ -1048,8 +1064,28 @@ def generate_next_template(
             logging.error(f"Entity list had unfound entities: {classified_entities}")
             continue
 
-        if rel not in valid_rels:
+        if rel not in valid_rels_dict:
             logging.error(f"Relation {rel} is invalid")
+            continue
+
+        sub_type = get_entity_type(sub, classified_entities)
+        obj_type = get_entity_type(obj, classified_entities)
+        domain = valid_rels_dict[rel]["domain"]
+        range = valid_rels_dict[rel]["range"]
+
+        if sub_type != domain:
+            logging.error(
+                f"{rel}: subject '{sub}' has type {sub_type}, "
+                f"expected {domain}"
+            )
+            continue
+        
+        if obj_type != range:
+            logging.error(
+                f"{rel}: object '{obj}' has type {obj_type}, "
+                f"expected {range}"
+            )
+            continue
 
         triples_out.append((sub_idx, rel, obj_idx))
 
@@ -1220,10 +1256,10 @@ def generate_templates(log_path: str, template_path: str, config_path: str, vali
         cfg = yaml.safe_load(config_file)
 
     with open(valid_types_path, "r", encoding="utf-8") as types_file:
-        valid_types = types_file.read().strip()
+        valid_types_dict: dict = json.load(types_file)
 
     with open(valid_rels_path, "r", encoding="utf-8") as rels_file:
-        valid_rels = rels_file.read().strip()
+        valid_rels_dict: dict = json.load(rels_file)
 
     model_name = cfg["model_id"]
     provider = str.lower(cfg["provider"])
@@ -1306,7 +1342,7 @@ def generate_templates(log_path: str, template_path: str, config_path: str, vali
     for i, log in enumerate(log_slice):
         drain_template = json.loads(drain_templates[start + i])["template_mined"]
         logging.info(f"Rank {rank} processing log {i+1}/{len(log_slice)}")
-        template = generate_next_template(log, drain_template, valid_types, valid_rels, ctx, node_runs)
+        template = generate_next_template(log, drain_template, valid_types_dict, valid_rels_dict, ctx, node_runs)
 
         # TODO(lucas): Is it possible to justify some of the entities between Drain and LLM templates?
         # e.g., Drain identified a month and several numbers, but the LLM did not convert to a timestamp?
@@ -1314,7 +1350,7 @@ def generate_templates(log_path: str, template_path: str, config_path: str, vali
         while template_should_regenerate(template) and attempts < 5:
         # while template_should_regenerate(template):
             logging.info("Regenerating template.")
-            template = generate_next_template(log, drain_template, valid_types, valid_rels, ctx)
+            template = generate_next_template(log, drain_template, valid_types_dict, valid_rels_dict, ctx)
             attempts += 1
 
         templates.append(template)

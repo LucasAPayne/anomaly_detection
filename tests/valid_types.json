@@ -1,0 +1,42 @@
+{
+    "slogert:Application":
+    {
+        "description": "Application, only used when there is no corresponding PID"
+    },
+    "slogert:File":
+    {
+        "description": "File or directory"
+    },
+    "slogert:Address":
+    {
+        "description": "IPv4 or IPv6 address"
+    },
+    "slogert:Parameter":
+    {
+        "description": "Fallback used when no other type fits the entity"
+    },
+    "slogert:Process":
+    {
+        "description": "Process, only used when there is a corresponding PID"
+    },
+    "slogert:SourceHost":
+    {
+        "description": "Host that generated the log message, e.g., mail-0"
+    },
+    "slogert:URL":
+    {
+        "description": "A URL, starting with a protocol like http:// and ending with a domain like .com"
+    },
+    "slogert:User":
+    {
+        "description": "A user's or person's name"
+    },
+    "xsd:dateTime":
+    {
+        "description": "A date or time, which can include year, month, day, hour, minutes, seconds, etc."
+    },
+    "xsd:integer":
+    {
+        "description": "Any integer number, which can be a PID, a line number, a file mode, etc."
+    }
+}

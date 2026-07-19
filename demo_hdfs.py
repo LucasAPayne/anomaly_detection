@@ -27,8 +27,8 @@ def main():
     preprocessed_data_dir = os.path.join(raw_data_dir, "preprocessed")
 
     llm_config_path = os.path.join(current_dir, "config", "llm_config.yaml")
-    valid_types_path = os.path.join(current_dir, "config", "valid_types.txt")
-    valid_rels_path = os.path.join(current_dir, "config", "valid_rels.txt")
+    valid_types_path = os.path.join(current_dir, "config", "valid_types.json")
+    valid_rels_path = os.path.join(current_dir, "config", "valid_rels.json")
     gen_templates_path = os.path.join(current_dir, "results", "HDFS", "templates.json")
 
     # TODO(lucas): If templates have already been generated, consider using Drain3's persistence and inference mode

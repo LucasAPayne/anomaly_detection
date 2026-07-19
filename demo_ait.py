@@ -64,8 +64,8 @@ def main():
     unique_logs_path = os.path.join(preprocessed_data_dir, "unique_logs.txt")
 
     llm_config_path = os.path.join(current_dir, "config", "llm_config.yaml")
-    valid_types_path = os.path.join(current_dir, "config", "valid_types.txt")
-    valid_rels_path = os.path.join(current_dir, "config", "valid_rels.txt")
+    valid_types_path = os.path.join(current_dir, "config", "valid_types.json")
+    valid_rels_path = os.path.join(current_dir, "config", "valid_rels.json")
     gen_templates_path = os.path.join(current_dir, "results", "AIT", "templates.json")
 
     should_clean = True
