@@ -622,6 +622,12 @@ def extract_valid_pairs(
 
     return results
 
+def strip_quotes(s: str) -> str:
+    s = s.strip()
+    if len(s) >= 2 and s[0] and s[-1] and s[0] in ("'", '"'):
+        return s[1:-1]
+    return s
+
 def parse_triples(text: str) -> list[tuple[str, str, str]]:
     """
     Parse free-text triples into a list of tuples,
@@ -650,6 +656,9 @@ def parse_triples(text: str) -> list[tuple[str, str, str]]:
                     )
 
                 s, r, o = map(str.strip, current)
+                s = strip_quotes(s)
+                r = strip_quotes(r)
+                o = strip_quotes(o)
                 triple = (s, r, o)
 
                 if triple not in seen:
@@ -694,10 +703,6 @@ Extract all named entities from the log message.
     return prompt
 
 def build_classification_prompt(log: str, entities, valid_types: dict, dataset_rules: str = "") -> str:
-    # valid_types = "\n".join(
-    #     f"- {name}\tdescription={info['description']}"
-    #     for name, info in valid_types_dict.items()
-    # )
     prompt = f"""
 # Task: Entity Classification
 
@@ -722,10 +727,6 @@ Classify each entity with exactly ONE type.
     return prompt
 
 def build_triple_prompt(log: str, entities: str, valid_rels: dict, dataset_rules: str = "") -> str:
-    # valid_rels = "\n".join(
-    #     f"- {name}\tdescription={info['description']}, domain={info['domain']}, range={info['range']}"
-    #     for name, info in valid_rels_dict.items()
-    # )
     prompt = f"""
 # Task: Knowledge Graph Triple Generation
 
@@ -755,6 +756,96 @@ Generate triples using the provided entities.
 ## Entities:
 {entities}
 """
+    return prompt
+
+def build_triple_repair_prompt(
+    log: str,
+    entities: str,
+    valid_rels: dict,
+    repair_list: list[dict],
+) -> str:
+
+    repairs = []
+
+    for i, repair in enumerate(repair_list, start=1):
+        triple = repair["original"]
+
+        text = [
+            f"### Invalid Triple {i}",
+            f"Original: ({triple[0]}, {triple[1]}, {triple[2]})",
+            "",
+            "Expected:",
+            f"- Subject type: {repair['expected_domain']}",
+            f"- Object type: {repair['expected_range']}",
+            "",
+            "Actual:",
+            f"- Subject type: {repair['actual_subject_type']}",
+            f"- Object type: {repair['actual_object_type']}",
+            "",
+        ]
+
+        if repair["subject_candidates"]:
+            text.append("Possible replacement subjects:")
+            text.extend(
+                f"- {candidate}"
+                for candidate in repair["subject_candidates"]
+            )
+            text.append("")
+
+        if repair["object_candidates"]:
+            text.append("Possible replacement objects:")
+            text.extend(
+                f"- {candidate}"
+                for candidate in repair["object_candidates"]
+            )
+            text.append("")
+
+        repairs.append("\n".join(text))
+
+    repair_text = "\n\n".join(repairs)
+
+    prompt = f"""
+# Task: Knowledge Graph Triple Repair
+
+Some generated knowledge graph triples violate the ontology.
+
+## Requirements
+
+- Repair ONLY the invalid triples.
+- Use ONLY the provided entities.
+- Do NOT invent new entities.
+- If a triple cannot be repaired using the provided entities, omit it.
+- Prefer to keep the original relation.
+- Replace only the subject and/or object when possible.
+- Only change the relation if no valid repair exists using the original relation.
+- Choose replacement entities ONLY from the candidate lists provided for each triple.
+- Do not output explanations.
+
+## Original Log
+
+{log}
+
+## Available Entities
+
+{entities}
+
+## Valid Relations
+
+{valid_rels}
+
+## Invalid Triples
+
+{repair_text}
+
+## Output Format
+
+(subject, relation, object)
+
+One repaired triple per line.
+
+Output nothing except repaired triples.
+"""
+
     return prompt
 
 def build_messages(task_prompt: str) -> list[dict]:
@@ -889,6 +980,15 @@ def get_entity_type(entity: str, classified_entities: list[ExtractedEntity]) -> 
             return classified.type
     return ""
 
+def get_candidate_names(
+        entity_type: str,
+        entities_by_type: dict[str, list[ExtractedEntity]]
+    ) -> list[str]:
+    return [
+        e.text
+        for e in entities_by_type.get(entity_type, [])
+    ]
+
 def generate_next_template(
     log: str,
     drain_template: str,
@@ -992,7 +1092,6 @@ def generate_next_template(
     logging.info(f"Triple Extraction Prompt:\n{triple_extraction_prompt}")
     logging.info(f"Triple Extraction Response:\n{triple_extraction_response}\n")
 
-    triples_out = []
     triples = triple_extraction_response.split('\n')
     # TODO(lucas): Sometimes, the model will generate a full list, then try to correct itself
     # and only manage to generate a partial second list. This pattern can pick up both lists,
@@ -1001,12 +1100,12 @@ def generate_next_template(
     triples = parse_triples(triple_extraction_response)
     logging.info("Triples:\n" + "\n".join(f"({t})" for t in triples))
 
-    for triple in triples:
-        sub, _, obj = triple
-        if sub not in entity_list_text and sub != "":
-            missing_entities.append(sub)
-        if obj not in entity_list_text and obj != "":
-            missing_entities.append(obj)
+    # for triple in triples:
+    #     sub, _, obj = triple
+    #     if sub not in entity_list_text and sub != "":
+    #         missing_entities.append(sub)
+    #     if obj not in entity_list_text and obj != "":
+    #         missing_entities.append(obj)
 
     # TODO(lucas): Can sometimes get a string index out of range error here
     # triples = [triple for triple in triples if triples[1].strip() in valid_rels]
@@ -1047,7 +1146,9 @@ def generate_next_template(
     # NOTE(lucas): Occasionally, the model generates Unicode quotes, so replace those just to be safe
     # quotes = ["\'", "'", "'", "\"", "“", "”", "\＂", "\""]
 
-    # TODO(lucas): Consider fusing this loop over the triples with the one directly after parsing
+    triples_out = []
+    repair_requests = []
+
     for triple in triples:
         sub, rel, obj = triple
         sub_idx = get_entity_idx(sub, classified_entities)
@@ -1073,21 +1174,124 @@ def generate_next_template(
         domain = valid_rels_dict[rel]["domain"]
         range = valid_rels_dict[rel]["range"]
 
+        # Data structure that allows finding lists of entities that match a type.
+        # entities_by_type["type name"] will return a list of all entities
+        # where entity.type == "type name".
+        # Or, use entities_by_type.get("type name", []) to return an empty
+        # list in case that type name is not present.
+        entities_by_type = defaultdict(list)
+        for entity in classified_entities:
+            entities_by_type[entity.type].append(entity)
+
+        new_sub = sub
+        new_obj = obj
+        needs_llm_for_correction = False
+
+        sub_candidates: list[str] = []
+        obj_candidates: list[str] = []
+
         if sub_type != domain:
             logging.error(
                 f"{rel}: subject '{sub}' has type {sub_type}, "
                 f"expected {domain}"
             )
-            continue
+
+            sub_candidates = get_candidate_names(domain, entities_by_type)
+            if len(sub_candidates) == 1:
+                # new_sub = sub_candidates[0]
+                needs_llm_for_correction = True
+            elif len(sub_candidates) == 0:
+                # TODO(lucas): log
+                continue
+            else:
+                needs_llm_for_correction = True
         
         if obj_type != range:
             logging.error(
                 f"{rel}: object '{obj}' has type {obj_type}, "
                 f"expected {range}"
             )
-            continue
 
-        triples_out.append((sub_idx, rel, obj_idx))
+            obj_candidates = get_candidate_names(range, entities_by_type)
+            if len(obj_candidates) == 1:
+                new_obj = obj_candidates[0]
+            elif len(obj_candidates) == 0:
+                continue
+            else:
+                needs_llm_for_correction = True
+
+        if needs_llm_for_correction:
+            repair_requests.append({
+                "original": (sub, rel, obj),
+
+                "expected_domain": domain,
+                "expected_range": range,
+
+                "actual_subject_type": sub_type,
+                "actual_object_type": obj_type,
+
+                "subject_candidates": sub_candidates,
+                "object_candidates": obj_candidates,
+            })
+        else:
+            if new_sub != sub or new_obj != obj:
+                sub_idx = get_entity_idx(sub, classified_entities)
+                obj_idx = get_entity_idx(obj, classified_entities)
+
+                not_found = sub_idx == -1 or obj_idx == -1
+
+                if sub_idx == -1:
+                    logging.error(f"Entity {sub} not found for triple {triple}")
+                if obj_idx == -1:
+                    logging.error(f"Entity {obj} not found for triple {triple}")
+
+                if not_found:
+                    logging.error(f"Entity list had unfound entities: {classified_entities}")
+                    continue
+
+                if rel not in valid_rels_dict:
+                    logging.error(f"Relation {rel} is invalid")
+                    continue
+
+            triples_out.append((sub_idx, rel, obj_idx))
+
+    if repair_requests:
+        repair_prompt = build_triple_repair_prompt(
+            log,
+            entity_list_text,
+            valid_rels_dict,
+            repair_requests
+        )
+        triple_repair_messages = build_messages(repair_prompt)
+        triple_repair_response = llm(ctx, triple_repair_messages)
+
+        repaired_triples = triple_repair_response.split('\n')
+        repaired_triples = parse_triples(triple_repair_response)
+        logging.info("Repaired Triples:\n" + "\n".join(f"({t})" for t in repaired_triples))
+        
+        for triple in repaired_triples:
+            sub, rel, obj = triple
+            sub_idx = get_entity_idx(sub, classified_entities)
+            obj_idx = get_entity_idx(obj, classified_entities)
+
+            not_found = sub_idx == -1 or obj_idx == -1
+
+            if sub_idx == -1:
+                logging.error(f"Entity {sub} not found for triple {triple}")
+            if obj_idx == -1:
+                logging.error(f"Entity {obj} not found for triple {triple}")
+
+            if not_found:
+                logging.error(f"Entity list had unfound entities: {classified_entities}")
+                continue
+
+            if rel not in valid_rels_dict:
+                logging.error(f"Relation {rel} is invalid")
+                continue
+
+            repaired_triple = (sub_idx, rel, obj_idx)
+            if repaired_triple not in triples_out:
+                triples_out.append((sub_idx, rel, obj_idx))
 
     logging.info("Parsed Triples:\n" + "\n".join(str(t) for t in triples_out))
 
