@@ -76,21 +76,18 @@ def confusion_matrix_ner(
     return result
 
 def confusion_matrix_triples(
-    gold: list[dict],
-    pred: list[dict]
+    gold: set[tuple[str, str, str]],
+    pred: set[tuple[str, str, str]]
 ) -> ConfusionMatrix:
     """
     Compute the confusion matrix for a list of predicted and gold triples.
     True negatives are not considered because that space is too large.
     (Almost anything could be a true negative.)
     """
-    gold_set = { (t["subject"], t["relation"], t["object"]) for t in gold}
-    pred_set = { (t["subject"], t["relation"], t["object"]) for t in pred}
-
     result = ConfusionMatrix()
-    result.tp = len(gold_set & pred_set)
-    result.fp = len(pred_set - gold_set)
-    result.fn = len(gold_set - pred_set)
+    result.tp = len(gold & pred)
+    result.fp = len(pred - gold)
+    result.fn = len(gold - pred)
 
     return result
 
@@ -142,6 +139,18 @@ def run_ait_test(root_dir: str, current_dir: str, gen_templates_path: str) -> No
 
     logging.info(f"AIT run completed in {format_seconds(time.time() - start)}")
 
+def resolve_triples(template: dict) -> set[tuple[str, str, str]]:
+    entities = template["entities"]
+
+    return {
+        (
+            entities[triple["subject"]]["text"],
+            triple["relation"],
+            entities[triple["object"]]["text"],
+        )
+        for triple in template["triples"]
+    }
+
 def main(iteration: int):
     # Generate templates from the AIT dataset
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -174,10 +183,7 @@ def main(iteration: int):
     triple_mat = ConfusionMatrix()
     for gold_template, pred_template in zip(gold_templates, pred_templates):
         pred_entities = []
-        for e in pred_template["regex_entities"]:
-            pred_entities.append(FrozenEntity(e["text"], e["type"], e["start"], e["end"]))
-        
-        for e in pred_template["llm_entities"]:
+        for e in pred_template["entities"]:
             pred_entities.append(FrozenEntity(e["text"], e["type"], e["start"], e["end"]))
 
         gold_entities = []
@@ -187,8 +193,8 @@ def main(iteration: int):
         ner_mat += confusion_matrix_ner(gold_entities, pred_entities)
 
         # Compute metrics for triple generation task
-        gold_triples: list[dict] = gold_template["triples"]
-        pred_triples: list[dict] = pred_template["triples"]
+        gold_triples = resolve_triples(gold_template)
+        pred_triples = resolve_triples(pred_template)
         triple_mat += confusion_matrix_triples(gold_triples, pred_triples)
 
     ner_metrics = compute_metrics(ner_mat.tp, ner_mat.fp, ner_mat.fn)

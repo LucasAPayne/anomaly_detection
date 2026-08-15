@@ -102,7 +102,7 @@
             [
                 {"subject": 2, "relation": "slogert:proc.name", "object": 2},
                 {"subject": 2, "relation": "slogert:proc.id", "object": 3},
-                {"subject": 4, "relation": "slogert:app.name", "object": 4}
+                {"subject": 5, "relation": "slogert:app.name", "object": 5}
             ],
             "entities":
             [
@@ -161,7 +161,7 @@
             [
                 {"subject": 2, "relation": "slogert:proc.name", "object": 2},
                 {"subject": 2, "relation": "slogert:proc.id", "object": 3},
-                {"subject": 5, "relation": "slogert:file.name", "object": 5}
+                {"subject": 5, "relation": "slogert:file.path", "object": 5}
             ],
             "entities":
             [
@@ -170,7 +170,7 @@
                 {"text": "freshclam", "type": "slogert:Process", "start": 23, "end": 32},
                 {"text": "22090", "type": "xsd:integer", "start": 33, "end": 38},
                 {"text": "Sat Feb 29 00:15:25 2020", "type": "xsd:dateTime", "start": 41, "end": 65},
-                {"text": "main.cvd", "type": "slogert:file", "start": 69, "end": 77},
+                {"text": "main.cvd", "type": "slogert:File", "start": 69, "end": 77},
                 {"text": "59", "type": "xsd:integer", "start": 102, "end": 104},
                 {"text": "4564902", "type": "xsd:integer", "start": 112, "end": 119},
                 {"text": "60", "type": "xsd:integer", "start": 130, "end": 132}
@@ -184,7 +184,7 @@
             [
                 {"subject": 2, "relation": "slogert:proc.name", "object": 2},
                 {"subject": 2, "relation": "slogert:proc.id", "object": 3},
-                {"subject": 5, "relation": "slogert:file.name", "object": 5}
+                {"subject": 5, "relation": "slogert:file.path", "object": 5}
             ],
             "entities":
             [
@@ -193,7 +193,7 @@
                 {"text": "freshclam", "type": "slogert:Process", "start": 23, "end": 32},
                 {"text": "22090", "type": "xsd:integer", "start": 33, "end": 38},
                 {"text": "Sat Feb 29 00:15:25 2020", "type": "xsd:dateTime", "start": 41, "end": 65},
-                {"text": "daily.cvd", "type": "slogert:file", "start": 69, "end": 78},
+                {"text": "daily.cvd", "type": "slogert:File", "start": 69, "end": 78},
                 {"text": "25736", "type": "xsd:integer", "start": 103, "end": 108},
                 {"text": "2200884", "type": "xsd:integer", "start": 116, "end": 123},
                 {"text": "63", "type": "xsd:integer", "start": 134, "end": 136}
@@ -207,7 +207,7 @@
             [
                 {"subject": 2, "relation": "slogert:proc.name", "object": 2},
                 {"subject": 2, "relation": "slogert:proc.id", "object": 3},
-                {"subject": 5, "relation": "slogert:file.name", "object": 5}
+                {"subject": 5, "relation": "slogert:file.path", "object": 5}
             ],
             "entities":
             [
@@ -271,7 +271,7 @@
                 {"text": "192.168.10.18", "type": "slogert:Address", "start": 72, "end": 85},
                 {"text": "27376", "type": "xsd:integer", "start": 92, "end": 97},
                 {"text": "163", "type": "xsd:integer", "start": 106, "end": 109},
-                {"text": "/var/www/mail.insect.com/login.php", "type": "slogert:Parameter", "start": 114, "end": 148}
+                {"text": "/var/www/mail.insect.com/login.php", "type": "slogert:File", "start": 114, "end": 148}
             ]
         },
         {
@@ -351,11 +351,11 @@
                 {"text": "sabra", "type": "slogert:User", "start": 143, "end": 148},
                 {"text": "/var/mail", "type": "slogert:File", "start": 167, "end": 176},
                 {"text": "8", "type": "xsd:integer", "start": 197, "end": 198},
-                {"text": "mail", "type": "slogert:Parameter", "start": 199, "end": 203},
+                {"text": "mail", "type": "slogert:User", "start": 199, "end": 203},
                 {"text": "0", "type": "xsd:integer", "start": 219, "end": 220},
                 {"text": "8", "type": "xsd:integer", "start": 221, "end": 222},
                 {"text": "0775", "type": "xsd:integer", "start": 228, "end": 232},
-                {"text": "mail", "type": "slogert:Parameter", "start": 261, "end": 265}
+                {"text": "mail", "type": "slogert:User", "start": 261, "end": 265}
             ]
         },
         {
@@ -367,8 +367,8 @@
                 {"subject": 2, "relation": "slogert:app.name", "object": 2},
                 {"subject": 3, "relation": "slogert:proc.name", "object": 3},
                 {"subject": 3, "relation": "slogert:proc.id", "object": 4},
-                {"subject": 7, "relation": "slogert:file.path", "object": 7},
-                {"subject": 7, "relation": "slogert:file.line", "object": 6}
+                {"subject": 6, "relation": "slogert:file.path", "object": 6},
+                {"subject": 6, "relation": "slogert:file.line", "object": 5}
             ],
             "entities":
             [
@@ -560,7 +560,7 @@
                 {"subject": 4, "relation": "slogert:user.name", "object": 4},
                 {"subject": 5, "relation": "slogert:app.name", "object": 5},
                 {"subject": 6, "relation": "slogert:address.ipv4", "object": 6},
-                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.path", "object": 9},
                 {"subject": 9, "relation": "slogert:file.line", "object": 8}
             ],
             "entities":
@@ -589,7 +589,7 @@
                 {"subject": 4, "relation": "slogert:user.name", "object": 4},
                 {"subject": 5, "relation": "slogert:app.name", "object": 5},
                 {"subject": 6, "relation": "slogert:address.ipv4", "object": 6},
-                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.path", "object": 9},
                 {"subject": 9, "relation": "slogert:file.line", "object": 8}
             ],
             "entities":
@@ -638,7 +638,7 @@
                 {"subject": 3, "relation": "slogert:proc.id", "object": 7},
                 {"subject": 4, "relation": "slogert:user.name", "object": 4},
                 {"subject": 5, "relation": "slogert:app.name", "object": 5},
-                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.path", "object": 9},
                 {"subject": 9, "relation": "slogert:file.line", "object": 8}
             ],
             "entities":
@@ -684,11 +684,11 @@
                 {"text": "merlene", "type": "slogert:User", "start": 149, "end": 156},
                 {"text": "/var/mail", "type": "slogert:File", "start": 175, "end": 184},
                 {"text": "8", "type": "xsd:integer", "start": 205, "end": 206},
-                {"text": "mail", "type": "slogert:Parameter", "start": 207, "end": 211},
+                {"text": "mail", "type": "slogert:User", "start": 207, "end": 211},
                 {"text": "0", "type": "xsd:integer", "start": 227, "end": 228},
                 {"text": "8", "type": "xsd:integer", "start": 229, "end": 230},
                 {"text": "0775", "type": "xsd:integer", "start": 236, "end": 240},
-                {"text": "mail", "type": "slogert:Parameter", "start": 269, "end": 273}
+                {"text": "mail", "type": "slogert:User", "start": 269, "end": 273}
             ]
         },
         {
@@ -703,7 +703,7 @@
                 {"subject": 4, "relation": "slogert:user.name", "object": 4},
                 {"subject": 5, "relation": "slogert:app.name", "object": 5},
                 {"subject": 6, "relation": "slogert:address.ipv4", "object": 6},
-                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.path", "object": 9},
                 {"subject": 9, "relation": "slogert:file.line", "object": 8}
             ],
             "entities":
@@ -821,11 +821,12 @@
         {
             "log": "Feb 29 06:30:05 mail-2 systemd[1]: apt-daily-upgrade.timer: Adding 51min 50.570279s random time.",
             "drain_template": "<:TIMESTAMP:> mail-<:NUM:> systemd[<:NUM:>]: apt-daily-upgrade.timer: Adding <:DURATION:> random time.",
-            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: apt-daily-upgrade.timer: Adding <:xsd:duration:> random time",
+            "llm_template": "<:xsd:dateTime:> <:slogert:SourceHost:> <:slogert:Process:>[<:xsd:integer:>]: <slogert:Application:>: Adding <:xsd:duration:> random time",
             "triples":
             [
                 {"subject": 2, "relation": "slogert:proc.name", "object": 2},
-                {"subject": 2, "relation": "slogert:proc.id", "object": 3}
+                {"subject": 2, "relation": "slogert:proc.id", "object": 3},
+                {"subject": 4, "relation": "slogert:app.name", "object": 4}
             ],
             "entities":
             [
@@ -833,6 +834,7 @@
                 {"text": "mail-2", "type": "slogert:SourceHost", "start": 16, "end": 22},
                 {"text": "systemd", "type": "slogert:Process", "start": 23, "end": 30},
                 {"text": "1", "type": "xsd:integer", "start": 31, "end": 32},
+                {"text": "apt-daily-upgrade.timer", "type": "slogert:Application", "start": 35, "end": 58},
                 {"text": "51min 50.570279s", "type": "xsd:duration", "start": 67, "end": 83}
             ]
         },
@@ -870,7 +872,7 @@
                 {"subject": 3, "relation": "slogert:proc.id", "object": 7},
                 {"subject": 4, "relation": "slogert:user.name", "object": 4},
                 {"subject": 5, "relation": "slogert:address.ipv4", "object": 5},
-                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.path", "object": 9},
                 {"subject": 9, "relation": "slogert:file.line", "object": 8}
             ],
             "entities":
@@ -899,7 +901,7 @@
                 {"subject": 4, "relation": "slogert:user.name", "object": 4},
                 {"subject": 5, "relation": "slogert:app.name", "object": 5},
                 {"subject": 6, "relation": "slogert:address.ipv4", "object": 6},
-                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.path", "object": 9},
                 {"subject": 9, "relation": "slogert:file.line", "object": 8}
             ],
             "entities":
@@ -953,7 +955,7 @@
                 {"subject": 4, "relation": "slogert:user.name", "object": 4},
                 {"subject": 5, "relation": "slogert:app.name", "object": 5},
                 {"subject": 6, "relation": "slogert:address.ipv4", "object": 6},
-                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.path", "object": 9},
                 {"subject": 9, "relation": "slogert:file.line", "object": 8}
             ],
             "entities":
@@ -1002,7 +1004,7 @@
                 {"subject": 3, "relation": "slogert:proc.id", "object": 7},
                 {"subject": 4, "relation": "slogert:user.name", "object": 4},
                 {"subject": 5, "relation": "slogert:address.ipv4", "object": 5},
-                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.path", "object": 9},
                 {"subject": 9, "relation": "slogert:file.line", "object": 8}
             ],
             "entities":
@@ -1048,11 +1050,11 @@
                 {"text": "violet", "type": "slogert:User", "start": 146, "end": 152},
                 {"text": "/var/mail", "type": "slogert:File", "start": 171, "end": 180},
                 {"text": "8", "type": "xsd:integer", "start": 201, "end": 202},
-                {"text": "mail", "type": "slogert:Parameter", "start": 203, "end": 207},
+                {"text": "mail", "type": "slogert:User", "start": 203, "end": 207},
                 {"text": "0", "type": "xsd:integer", "start": 223, "end": 224},
                 {"text": "8", "type": "xsd:integer", "start": 225, "end": 226},
                 {"text": "0775", "type": "xsd:integer", "start": 232, "end": 236},
-                {"text": "mail", "type": "slogert:Parameter", "start": 265, "end": 269}
+                {"text": "mail", "type": "slogert:User", "start": 265, "end": 269}
             ]
         },
         {
@@ -1099,7 +1101,7 @@
                 {"subject": 4, "relation": "slogert:user.name", "object": 4},
                 {"subject": 5, "relation": "slogert:app.name", "object": 5},
                 {"subject": 6, "relation": "slogert:address.ipv4", "object": 6},
-                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.path", "object": 9},
                 {"subject": 9, "relation": "slogert:file.line", "object": 8}
             ],
             "entities":
@@ -1148,7 +1150,7 @@
                 {"subject": 3, "relation": "slogert:proc.id", "object": 7},
                 {"subject": 4, "relation": "slogert:user.name", "object": 4},
                 {"subject": 5, "relation": "slogert:address.ipv4", "object": 5},
-                {"subject": 9, "relation": "slogert:file.name", "object": 9},
+                {"subject": 9, "relation": "slogert:file.path", "object": 9},
                 {"subject": 9, "relation": "slogert:file.line", "object": 8}
             ],
             "entities":
@@ -1194,11 +1196,11 @@
                 {"text": "denis", "type": "slogert:User", "start": 143, "end": 148},
                 {"text": "/var/mail,", "type": "slogert:File", "start": 167, "end": 177},
                 {"text": "8", "type": "xsd:integer", "start": 197, "end": 198},
-                {"text": "mail", "type": "slogert:Parameter", "start": 199, "end": 203},
+                {"text": "mail", "type": "slogert:User", "start": 199, "end": 203},
                 {"text": "0", "type": "xsd:integer", "start": 219, "end": 220},
                 {"text": "8", "type": "xsd:integer", "start": 221, "end": 222},
                 {"text": "0775", "type": "xsd:integer", "start": 228, "end": 232},
-                {"text": "mail", "type": "slogert:Parameter", "start": 261, "end": 265}
+                {"text": "mail", "type": "slogert:User", "start": 261, "end": 265}
             ]
         },
         {
@@ -1229,7 +1231,7 @@
                 {"text": "192.168.10.18", "type": "slogert:Address", "start": 90, "end": 103},
                 {"text": "29234", "type": "xsd:integer", "start": 110, "end": 115},
                 {"text": "970", "type": "xsd:integer", "start": 124, "end": 127},
-                {"text": "/var/www/mail.insect.com/imp/lib/Compose.php", "type": "slogert:file", "start": 132, "end": 176}
+                {"text": "/var/www/mail.insect.com/imp/lib/Compose.php", "type": "slogert:File", "start": 132, "end": 176}
             ]
         }
     ]

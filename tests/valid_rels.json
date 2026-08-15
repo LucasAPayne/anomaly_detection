@@ -3,72 +3,77 @@
     {
         "description": "IPv4 address",
         "domain": "slogert:Address",
-        "range": "slogert:Adress"
+        "range": "slogert:Adress",
+        "auto_generate": true
     },
     "slogert:app.name":
     {
         "description": "Application name",
         "domain": "slogert:Application",
-        "range": "slogert:Application"
+        "range": "slogert:Application",
+        "auto_generate": true
     },
     "slogert:cmd":
     {
         "description": "Terminal command",
         "domain": "slogert:Parameter",
-        "range": "slogert:Parameter"
+        "range": "slogert:Parameter",
+        "auto_generate": false
     },
     "slogert:file.line":
     {
         "description": "File line number",
         "domain": "slogert:File",
-        "range": "xsd:integer"
+        "range": "xsd:integer",
+        "auto_generate": true
     },
     "slogert:file.mode":
     {
         "description": "File mode (permissions)",
         "domain": "slogert:File",
-        "range": "xsd:integer"
-    },
-    "slogert:file.name":
-    {
-        "description": "File name",
-        "domain": "slogert:File",
-        "range": "slogert:File"
+        "range": "xsd:integer",
+        "auto_generate": true
     },
     "slogert:file.path":
     {
         "description": "File path (directory)",
         "domain": "slogert:File",
-        "range": "slogert:File"
+        "range": "slogert:File",
+        "auto_generate": true
     },
     "slogert:proc.id":
     {
         "description": "Process ID (pid)",
         "domain": "slogert:Process",
-        "range": "xsd:integer"
+        "range": "xsd:integer",
+        "auto_generate": true
     },
     "slogert:proc.name":
     {
         "description": "Process name",
         "domain": "slogert:Process",
-        "range": "slogert:Process"
+        "range": "slogert:Process",
+        "auto_generate": true
     },
     "slogert:user.gid":
     {
         "description": "User group ID (gid)",
         "domain": "slogert:User",
-        "range": "xsd:integer"
+        "range": "xsd:integer",
+        "auto_generate": true
     },
     "slogert:user.group":
     {
         "description": "User group name",
         "domain": "slogert:User",
-        "range": "slogert:Parameter"
+        "range": "slogert:Parameter",
+        "auto_generate": true
     },
     "slogert:user.name":
     {
         "description": "User account name",
         "domain": "slogert:User",
-        "range": "slogert:User"
+        "range": "slogert:User",
+        "auto_generate": true
     }
 }

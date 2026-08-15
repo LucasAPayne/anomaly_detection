@@ -989,6 +989,38 @@ def get_candidate_names(
         for e in entities_by_type.get(entity_type, [])
     ]
 
+def add_automatic_triples(
+    triples_out: list[tuple[int, str, int]],
+    classified_entities: list[ExtractedEntity],
+    entities_by_type: dict,
+    valid_rels_dict: dict
+) -> None:
+    """Adds reflexive triples to triples_out"""
+    existing = set(triples_out)
+
+    auto_reflexive_relations = [
+        rel_name
+        for rel_name, rel_info in valid_rels_dict.items()
+        if rel_info.get("auto_generate", True)
+    ]
+
+    for rel in auto_reflexive_relations:
+        domain = valid_rels_dict[rel]["domain"]
+        range_ = valid_rels_dict[rel]["range"]
+
+        if domain != range_:
+            continue
+
+        for entity in entities_by_type.get(domain, []):
+            idx = get_entity_idx(entity.text, classified_entities)
+
+            triple = (idx, rel, idx)
+
+            if triple not in existing:
+                triples_out.append(triple)
+                existing.add(triple)
+                logging.debug(f"Adding automatic triple: {triple}")
+
 def generate_next_template(
     log: str,
     drain_template: str,
@@ -1013,9 +1045,14 @@ def generate_next_template(
     regex_entities = extract_regex_entities(log, mask_rules)
 
     ner_dataset_rules = """
+## Special Rules
+- When an application name appears inside brackets, it should be labeled slogert:Process
+- Group names should be labeled slogert:User
+
 ## Ambiguous Entities
 - Entities that do not have a direct fit for any valid type should be labeled as slogert:Parameter.
 - Examples of entities without direct fits are terminal commands and groups.
+- Random words like file, PLAIN, NULL, true, false, function names, etc., are not parameters
     """
 
     ner_prompt = build_ner_prompt(log, ner_dataset_rules)
@@ -1071,9 +1108,21 @@ def generate_next_template(
             missing_entities.append(entity.text)
 
     entity_list_text = str([e.text for e in classified_entities])
+    logging.info(f"Final entity list:\n{chr(10).join([str((e.text, e.type)) for e in classified_entities])}\n")
 
     # TODO(lucas): This should be imported from a config file to allow for different datasets
     triple_dataset_rules = """
+## Special Rules
+The following types should always have the corresponding self-referential relation:
+- slogert:Address -> slogert:address.ipv4
+- slogert:Application -> slogert:app.name
+- slogert:File -> slogert:file.name
+- slogert:User -> slogert:user.name
+
+Additionally:
+- If the log mentions a line of a file, use slogert:file.line
+- If the log mentions an email (user@domain), use slogert:user.domain
+
 ## Entity role constraints
 - Some entities are attached to triples later in the process and should not be connected here.
 - slogert:SourceHost entities should not participate in generated triples.
@@ -1149,6 +1198,15 @@ def generate_next_template(
     triples_out = []
     repair_requests = []
 
+    # Data structure that allows finding lists of entities that match a type.
+    # entities_by_type["type name"] will return a list of all entities
+    # where entity.type == "type name".
+    # Or, use entities_by_type.get("type name", []) to return an empty
+    # list in case that type name is not present.
+    entities_by_type = defaultdict(list)
+    for entity in classified_entities:
+        entities_by_type[entity.type].append(entity)
+
     for triple in triples:
         sub, rel, obj = triple
         sub_idx = get_entity_idx(sub, classified_entities)
@@ -1173,15 +1231,6 @@ def generate_next_template(
         obj_type = get_entity_type(obj, classified_entities)
         domain = valid_rels_dict[rel]["domain"]
         range = valid_rels_dict[rel]["range"]
-
-        # Data structure that allows finding lists of entities that match a type.
-        # entities_by_type["type name"] will return a list of all entities
-        # where entity.type == "type name".
-        # Or, use entities_by_type.get("type name", []) to return an empty
-        # list in case that type name is not present.
-        entities_by_type = defaultdict(list)
-        for entity in classified_entities:
-            entities_by_type[entity.type].append(entity)
 
         new_sub = sub
         new_obj = obj
@@ -1293,6 +1342,8 @@ def generate_next_template(
             if repaired_triple not in triples_out:
                 triples_out.append((sub_idx, rel, obj_idx))
 
+    add_automatic_triples(triples_out, classified_entities, entities_by_type, valid_rels_dict)
+
     logging.info("Parsed Triples:\n" + "\n".join(str(t) for t in triples_out))
 
     masked_log = mask_entities(log, classified_entities)
@@ -1307,16 +1358,17 @@ def generate_next_template(
     if len(triples_out) < len(triples):
         logging.info(f"{triples_discarded} triples were discarded due to entities not being found.")
 
-    regex_entities_dict = [asdict(e) for e in resolved]
-    llm_entities_dict = [asdict(e) for e in llm_entities_final]
+    # regex_entities_dict = [asdict(e) for e in resolved]
+    # llm_entities_dict = [asdict(e) for e in llm_entities_final]
 
     result = {
         "log": log,
         "drain_template": drain_template,
         "masked_log": masked_log,
         "triples": triples_out,
-        "regex_entities": regex_entities_dict,
-        "llm_entities": llm_entities_dict
+        "entities": [asdict(e) for e in classified_entities],
+        # "regex_entities": regex_entities_dict,
+        # "llm_entities": llm_entities_dict,
     }
 
     if run_logs is not None:
@@ -1365,7 +1417,6 @@ def write_templates_to_file(templates: list[dict], out_path: str) -> None:
             drain_template = template["drain_template"]
             masked_log = template["masked_log"].rstrip()
             triples = template["triples"]
-            logging.info(f'template["triples"]: {triples}')
             f.write(f"{indent*2}{{\n")
             f.write(f'{indent*3}"log": "{log}",\n')
             f.write(f'{indent*3}"drain_template": "{drain_template}",\n')
@@ -1388,32 +1439,45 @@ def write_templates_to_file(templates: list[dict], out_path: str) -> None:
                         f.write(",\n")
             f.write(f"\n{indent*3}],\n")
 
-            # Regex entities
-            regex_entities = template["regex_entities"]
-            f.write(f'{indent*3}"regex_entities":\n{indent*3}[\n')
-            for e_idx, e in enumerate(regex_entities):
+            # Entities
+            entities = template["entities"]
+            f.write(f'{indent*3}"entities":\n{indent*3}[\n')
+            for e_idx, e in enumerate(entities):
                 text = f'"text": "{e["text"]}"'
                 ent_type = f'"type": "{e["type"]}"'
                 start = f'"start": {e["start"]}'
                 end = f'"end": {e["end"]}'
 
                 f.write(format_row([text, ent_type, start, end]))
-                if e_idx < len(regex_entities) - 1:
+                if e_idx < len(entities) - 1:
                     f.write(",\n")
-            f.write(f"\n{indent*3}],\n")
 
-            # LLM entities
-            llm_entities = template["llm_entities"]
-            f.write(f'{indent*3}"llm_entities":\n{indent*3}[\n')
-            for e_idx, e in enumerate(llm_entities):
-                text = f'"text": "{e["text"]}"'
-                ent_type = f'"type": "{e["type"]}"'
-                start = f'"start": {e["start"]}'
-                end = f'"end": {e["end"]}'
+            # # Regex entities
+            # regex_entities = template["regex_entities"]
+            # f.write(f'{indent*3}"regex_entities":\n{indent*3}[\n')
+            # for e_idx, e in enumerate(regex_entities):
+            #     text = f'"text": "{e["text"]}"'
+            #     ent_type = f'"type": "{e["type"]}"'
+            #     start = f'"start": {e["start"]}'
+            #     end = f'"end": {e["end"]}'
 
-                f.write(format_row([text, ent_type, start, end]))
-                if e_idx < len(llm_entities) - 1:
-                    f.write(",\n")
+            #     f.write(format_row([text, ent_type, start, end]))
+            #     if e_idx < len(regex_entities) - 1:
+            #         f.write(",\n")
+            # f.write(f"\n{indent*3}],\n")
+
+            # # LLM entities
+            # llm_entities = template["llm_entities"]
+            # f.write(f'{indent*3}"llm_entities":\n{indent*3}[\n')
+            # for e_idx, e in enumerate(llm_entities):
+            #     text = f'"text": "{e["text"]}"'
+            #     ent_type = f'"type": "{e["type"]}"'
+            #     start = f'"start": {e["start"]}'
+            #     end = f'"end": {e["end"]}'
+
+            #     f.write(format_row([text, ent_type, start, end]))
+            #     if e_idx < len(llm_entities) - 1:
+            #         f.write(",\n")
             f.write(f"\n{indent*3}]\n")
 
             # End Template
